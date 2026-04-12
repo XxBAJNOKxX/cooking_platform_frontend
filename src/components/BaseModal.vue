@@ -57,7 +57,7 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-         @click.self="close" @keydown.esc="close">
+         @click.self="close">
       <div class="backdrop absolute inset-0 bg-text/40 backdrop-blur-sm pointer-events-none" aria-hidden="true"></div>
 
       <div
