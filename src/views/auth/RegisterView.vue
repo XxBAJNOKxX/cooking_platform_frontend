@@ -82,7 +82,7 @@ const handleRegister = async () => {
     <div class="mt-8 text-center text-sm font-medium text-muted">
       Már van fiókod?
       <RouterLink to="/login"
-        class="text-accent hover:text-[#d8581b] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm underline decoration-accent/30 hover:decoration-accent underline-offset-4">
+        class="text-accent hover:text-accent-hover transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm underline decoration-accent/30 hover:decoration-accent underline-offset-4">
         Jelentkezz be
       </RouterLink>
     </div>

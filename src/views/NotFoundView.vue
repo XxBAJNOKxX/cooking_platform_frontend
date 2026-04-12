@@ -5,7 +5,7 @@
     <p class="text-text/70 mb-8 max-w-md">
       Úgy tűnik, olyasmit keresel, ami már nincs itt, vagy talán sosem létezett.
     </p>
-    <BaseButton @click="goHome" class="min-w-[200px]">
+    <BaseButton @click="goHome" class="min-w-50">
       Vissza a főoldalra
     </BaseButton>
   </div>

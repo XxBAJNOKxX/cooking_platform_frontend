@@ -63,7 +63,7 @@ const handleLogout = async () => {
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="flex h-16 items-center justify-between">
 
-        <div class="flex-shrink-0 flex items-center">
+        <div class="shrink-0 flex items-center">
           <RouterLink to="/" class="nav-logo group text-2xl font-black tracking-tight text-text outline-none relative"
             @click="closeMobileMenu">
             Cookr<span class="text-accent">.</span>
