@@ -22,6 +22,11 @@ const router = createRouter({
       meta: { requiresGuest: true, fullWidth: true }
     },
     {
+      path: '/recipes/:id',
+      name: 'recipe-detail',
+      component: () => import('@/views/RecipeDetailView.vue')
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/views/NotFoundView.vue')
