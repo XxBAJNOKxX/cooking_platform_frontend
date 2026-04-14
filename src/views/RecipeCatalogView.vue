@@ -21,25 +21,40 @@ export default {
       return typeof value === 'string' ? value.trim() : ''
     })
 
-const fetchRecipes = async () => {
-  isLoading.value = true
-  error.value = ''
+    const filteredRecipes = computed(() => {
+      if (!searchQuery.value) return recipes.value
 
-  try {
-    recipes.value = []
-  } catch (error) {
-    error.value = 'Nem sikerült betölteni a recepteket.'
-  } finally {
-    isLoading.value = false
-  }
-}
+      const q = searchQuery.value.toLowerCase()
+      return recipes.value.filter((recipe) =>
+        (recipe.title || '').toLowerCase().includes(q)
+      )
+    })
 
-onMounted(() => {
-  fetchRecipes()
-})
+    const fetchRecipes = async () => {
+      isLoading.value = true
+      error.value = ''
+
+      try {
+        recipes.value = [
+          {
+            id: 999,
+            title: 'Rizibizi Husival',
+            description: 'Teszt recept kereséshez',
+            image_url: '/RizibiziHusival.jpg'
+          }
+        ]
+      } finally {
+        isLoading.value = false
+      }
+    }
+
+    onMounted(() => {
+      fetchRecipes()
+    })
 
     return {
       recipes,
+      filteredRecipes,
       isLoading,
       error,
       fetchRecipes,
@@ -66,10 +81,17 @@ onMounted(() => {
 
     <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside class="rounded-3xl border border-stroke bg-surface/40 p-5 shadow-sm">
-        <h2 class="mb-4 text-lg font-bold text-text">Szűrők</h2>
-        <p class="text-sm text-muted">
-          Ide jön majd a FilterSidebar komponens.
-        </p>
+        <h2 class="mb-4 text-lg font-bold text-text">Szűrés</h2>
+        <div class="space-y-3">
+          <div>
+            <p class="text-xs font-semibold text-muted/70 uppercase tracking-wide">Kategóriák</p>
+            <p class="text-sm text-muted mt-2">Húsok, Vegetáriánus, Desszertek, Névvel </p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-muted/70 uppercase tracking-wide mt-4">Nehézség</p>
+            <p class="text-sm text-muted mt-2">Könnyű, Közepes, Nehéz</p>
+          </div>
+        </div>
       </aside>
 
       <div class="space-y-6">
@@ -88,33 +110,34 @@ onMounted(() => {
         </div>
 
         <div
-          v-else-if="recipes.length === 0"
+          v-else-if="filteredRecipes.length === 0"
           class="rounded-3xl border border-stroke bg-surface/30 p-8 text-center"
         >
-          <p class="text-lg font-semibold text-text">Nincs még megjeleníthető recept.</p>
+          <p class="text-lg font-semibold text-text">Nincs találat</p>
           <p class="mt-2 text-sm text-muted">
-            Később itt fog megjelenni a lista a szűrési feltételek alapján.
+            Próbálj meg más keresőszót, vagy böngéssz a kategóriák között.
           </p>
         </div>
 
         <div v-else class="grid gap-4">
           <article
-            v-for="recipe in recipes"
+            v-for="recipe in filteredRecipes"
             :key="recipe.id"
-            class="rounded-3xl border border-stroke bg-bg p-5 shadow-sm"
+            class="rounded-3xl border border-stroke bg-bg overflow-hidden shadow-sm"
           >
-            <h3 class="text-lg font-bold text-text">
-              {{ recipe.title }}
-            </h3>
-            <p class="mt-2 text-sm text-muted">
-              {{ recipe.description }}
-            </p>
+            <img v-if="recipe.image_url" :src="recipe.image_url" :alt="recipe.title" class="w-full h-48 object-cover" />
+            <div class="p-5">
+              <h3 class="text-lg font-bold text-text">
+                {{ recipe.title }}
+              </h3>
+              <p class="mt-2 text-sm text-muted">
+                {{ recipe.description }}
+              </p>
+            </div>
           </article>
         </div>
 
-        <div class="rounded-3xl border border-stroke bg-surface/30 p-4 text-sm text-muted">
-          Vélemények: ...
-        </div>
+
       </div>
     </div>
   </section>
