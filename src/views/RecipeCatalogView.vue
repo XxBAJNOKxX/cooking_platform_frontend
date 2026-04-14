@@ -1,7 +1,8 @@
 
 
 <script>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 
 export default {
@@ -9,9 +10,16 @@ export default {
     LoadingSpinner
   },
   setup() {
+    const route = useRoute()
     const recipes = ref([])
-const isLoading = ref(false)
-const error = ref('')
+    const isLoading = ref(false)
+    const error = ref('')
+
+    const searchQuery = computed(() => {
+      const value = route.query.q
+
+      return typeof value === 'string' ? value.trim() : ''
+    })
 
 const fetchRecipes = async () => {
   isLoading.value = true
@@ -34,7 +42,8 @@ onMounted(() => {
       recipes,
       isLoading,
       error,
-      fetchRecipes
+      fetchRecipes,
+      searchQuery
     }
   }
 }
@@ -49,6 +58,9 @@ onMounted(() => {
       </h1>
       <p class="max-w-2xl text-sm text-muted sm:text-base">
     Böngéssz a legjobb ételreceptek között és találd meg a számodra tökéletes receptet.
+      </p>
+      <p v-if="searchQuery" class="max-w-2xl rounded-2xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm font-medium text-text">
+        Keresés erre: "{{ searchQuery }}"
       </p>
     </div>
 
