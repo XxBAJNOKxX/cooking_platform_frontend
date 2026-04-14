@@ -23,10 +23,8 @@ api.interceptors.response.use(
   response => response,
   error => {
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      import('@/stores/auth').then(({ useAuthStore }) => {
-        useAuthStore().clearAuth();
-      });
-
+      localStorage.removeItem('auth_token');
+      
       if (router.currentRoute.value.name !== 'login') {
         router.push({ name: 'login' });
       }

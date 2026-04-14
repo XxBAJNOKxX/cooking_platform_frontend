@@ -22,15 +22,9 @@ const router = createRouter({
       meta: { requiresGuest: true, fullWidth: true }
     },
     {
-      path: '/recipes/:id',
-      name: 'recipe-detail',
-      component: () => import('@/views/RecipeDetailView.vue')
-    },
-    {
-      path: '/recipes/:id/edit',
-      name: 'recipe-edit',
-      component: () => import('@/views/RecipeEditorView.vue'),
-      meta: { requiresAuth: true }
+      path: '/recipes',
+      name: 'recipes',
+      component: () => import('@/views/RecipeCatalogView.vue')
     },
     {
       path: '/:pathMatch(.*)*',
@@ -45,10 +39,6 @@ router.beforeEach((to, from) => {
 
   if (to.meta.requiresGuest && authStore.isAuthenticated) {
     return '/'
-  }
-
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    return { name: 'login' }
   }
 })
 

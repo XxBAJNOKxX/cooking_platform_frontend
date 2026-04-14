@@ -39,7 +39,7 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         const response = await api.get('/user');
-        this.user = response.data.data;
+        this.user = response.data;
       } catch (error) {
         this.clearAuth();
       }
