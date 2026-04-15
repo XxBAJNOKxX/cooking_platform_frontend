@@ -2,18 +2,22 @@
 
 <script>
 import { computed, ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import FilterSidebar from './FilterSidebar.vue'
 
 export default {
   components: {
-    LoadingSpinner
+    LoadingSpinner,
+    FilterSidebar
   },
   setup() {
     const route = useRoute()
+    const router = useRouter()
     const recipes = ref([])
     const isLoading = ref(false)
     const error = ref('')
+    const maxTime = ref(120)
 
     const searchQuery = computed(() => {
       const value = route.query.q
@@ -21,8 +25,43 @@ export default {
       return typeof value === 'string' ? value.trim() : ''
     })
 
+    const categoryQuery = computed(() => {
+      const value = route.query.category
+
+      return typeof value === 'string' ? value.trim() : ''
+    })
+
+    const updateSearch = (value) => {
+      router.push({
+        name: 'recipes',
+        query: {
+          ...(value ? { q: value } : {}),
+          ...(activeCategory.value ? { category: activeCategory.value } : {})
+        }
+      })
+    }
+
+    const updateCategory = (value) => {
+      router.push({
+        name: 'recipes',
+        query: {
+          ...(searchQuery.value ? { q: searchQuery.value } : {}),
+          ...(value ? { category: value } : {})
+        }
+      })
+    }
+
+    const updateMaxTime = (value) => {
+      maxTime.value = value
+    }
+
+    const resetFilters = () => {
+      maxTime.value = 120
+      router.push({ name: 'recipes' })
+    }
+
     const activeCategory = computed(() => {
-      return route.query.category || null
+      return categoryQuery.value || null
     })
 
     const filteredRecipes = computed(() => {
@@ -33,6 +72,12 @@ export default {
           (recipe.category || '').toLowerCase() === activeCategory.value.toLowerCase()
         )
       }
+
+      result = result.filter((recipe) => {
+        const recipeTime = Number(recipe.maxMinutes ?? recipe.timeMinutes ?? 999)
+
+        return recipeTime <= maxTime.value
+      })
 
 
       if (searchQuery.value) {
@@ -56,7 +101,8 @@ export default {
             title: 'Rizibizi Husival',
             description: 'Teszt recept kereséshez',
             image_url: '/RizibiziHusival.jpg',
-            category: 'ho-vegi-tulelo'
+            category: 'ho-vegi-tulelo',
+            maxMinutes: 35
           }
         ]
       } finally {
@@ -75,7 +121,12 @@ export default {
       error,
       fetchRecipes,
       searchQuery,
-      activeCategory
+      activeCategory,
+      maxTime,
+      updateSearch,
+      updateCategory,
+      updateMaxTime,
+      resetFilters
     }
   }
 }
@@ -100,48 +151,15 @@ export default {
     </div>
 
     <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-      <aside class="rounded-3xl border border-stroke bg-surface/40 p-5 shadow-sm">
-        <h2 class="mb-4 text-lg font-bold text-text">Szűrés</h2>
-        <div class="space-y-3">
-          <div>
-            <p class="text-xs font-semibold text-muted/70 uppercase tracking-wide">Kategóriák</p>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <button
-                @click="$router.push({ name: 'recipes', query: searchQuery ? { q: searchQuery } : {} })"
-                :class="[
-                  'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                  !activeCategory
-                    ? 'bg-accent text-white'
-                    : 'bg-surface/60 text-text hover:bg-surface/80 border border-stroke'
-                ]"
-              >
-                Összes
-              </button>
-
-              <button
-                v-for="cat in ['ho-vegi-tulelo', '20-perces-vacsora', 'vasarnapi-klasszikus', 'egytepsis-mentootlet']"
-                :key="cat"
-                @click="$router.push({
-                  name: 'recipes',
-                  query: { category: cat, ...(searchQuery ? { q: searchQuery } : {}) }
-                })"
-                :class="[
-                  'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                  activeCategory === cat
-                    ? 'bg-accent text-white'
-                    : 'bg-surface/60 text-text hover:bg-surface/80 border border-stroke'
-                ]"
-              >
-                {{ cat === 'ho-vegi-tulelo' ? '❄️ Hó végi túlélő' : cat === '20-perces-vacsora' ? '⚡ 20 perces ételek' : cat === 'vasarnapi-klasszikus' ? '☀️ Vasárnapi ételek' : '🍳 Egytepsis ételek' }}
-              </button>
-            </div>
-          </div>
-          <div>
-            <p class="text-xs font-semibold text-muted/70 uppercase tracking-wide mt-4">Nehézség</p>
-            <p class="text-sm text-muted mt-2">Könnyű, Közepes, Nehéz</p>
-          </div>
-        </div>
-      </aside>
+      <FilterSidebar
+        :search="searchQuery"
+        :category="activeCategory || ''"
+        :max-time="maxTime"
+        @update:search="updateSearch"
+        @update:category="updateCategory"
+        @update:maxTime="updateMaxTime"
+        @reset="resetFilters"
+      />
 
       <div class="space-y-6">
         <div
