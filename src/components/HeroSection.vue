@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseButton from './BaseButton.vue'
 import BaseInput from './BaseInput.vue'
+import CategoryCarousel from './CategoryCarousel.vue'
 
 const router = useRouter()
 const searchTerm = ref('')
@@ -103,6 +104,8 @@ const handleSearch = () => {
 			</div>
 		</div>
 	</section>
+
+	<CategoryCarousel />
 </template>
 
 <style scoped>
