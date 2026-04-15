@@ -21,13 +21,28 @@ export default {
       return typeof value === 'string' ? value.trim() : ''
     })
 
-    const filteredRecipes = computed(() => {
-      if (!searchQuery.value) return recipes.value
+    const activeCategory = computed(() => {
+      return route.query.category || null
+    })
 
-      const q = searchQuery.value.toLowerCase()
-      return recipes.value.filter((recipe) =>
-        (recipe.title || '').toLowerCase().includes(q)
-      )
+    const filteredRecipes = computed(() => {
+      let result = recipes.value
+
+      if (activeCategory.value) {
+        result = result.filter((recipe) =>
+          (recipe.category || '').toLowerCase() === activeCategory.value.toLowerCase()
+        )
+      }
+
+
+      if (searchQuery.value) {
+        const q = searchQuery.value.toLowerCase()
+        result = result.filter((recipe) =>
+          (recipe.title || '').toLowerCase().includes(q)
+        )
+      }
+
+      return result
     })
 
     const fetchRecipes = async () => {
@@ -40,7 +55,8 @@ export default {
             id: 999,
             title: 'Rizibizi Husival',
             description: 'Teszt recept kereséshez',
-            image_url: '/RizibiziHusival.jpg'
+            image_url: '/RizibiziHusival.jpg',
+            category: 'ho-vegi-tulelo'
           }
         ]
       } finally {
@@ -58,7 +74,8 @@ export default {
       isLoading,
       error,
       fetchRecipes,
-      searchQuery
+      searchQuery,
+      activeCategory
     }
   }
 }
@@ -77,6 +94,9 @@ export default {
       <p v-if="searchQuery" class="max-w-2xl rounded-2xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm font-medium text-text">
         Keresés erre: "{{ searchQuery }}"
       </p>
+      <p v-if="activeCategory" class="max-w-2xl rounded-2xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm font-medium text-text">
+        Kategória: <strong>{{ activeCategory }}</strong>
+      </p>
     </div>
 
     <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
@@ -85,7 +105,36 @@ export default {
         <div class="space-y-3">
           <div>
             <p class="text-xs font-semibold text-muted/70 uppercase tracking-wide">Kategóriák</p>
-            <p class="text-sm text-muted mt-2">Húsok, Vegetáriánus, Desszertek, Névvel </p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button
+                @click="$router.push({ name: 'recipes', query: searchQuery ? { q: searchQuery } : {} })"
+                :class="[
+                  'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                  !activeCategory
+                    ? 'bg-accent text-white'
+                    : 'bg-surface/60 text-text hover:bg-surface/80 border border-stroke'
+                ]"
+              >
+                Összes
+              </button>
+
+              <button
+                v-for="cat in ['ho-vegi-tulelo', '20-perces-vacsora', 'vasarnapi-klasszikus', 'egytepsis-mentootlet']"
+                :key="cat"
+                @click="$router.push({
+                  name: 'recipes',
+                  query: { category: cat, ...(searchQuery ? { q: searchQuery } : {}) }
+                })"
+                :class="[
+                  'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                  activeCategory === cat
+                    ? 'bg-accent text-white'
+                    : 'bg-surface/60 text-text hover:bg-surface/80 border border-stroke'
+                ]"
+              >
+                {{ cat === 'ho-vegi-tulelo' ? '❄️ Hó végi túlélő' : cat === '20-perces-vacsora' ? '⚡ 20 perces ételek' : cat === 'vasarnapi-klasszikus' ? '☀️ Vasárnapi ételek' : '🍳 Egytepsis ételek' }}
+              </button>
+            </div>
           </div>
           <div>
             <p class="text-xs font-semibold text-muted/70 uppercase tracking-wide mt-4">Nehézség</p>
