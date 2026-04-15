@@ -5,30 +5,29 @@ const router = useRouter()
 
 const categories = [
   {
-    id: 'ho-vegi-tulelo',
+    id: 'Hó végi túlélő',
     label: 'Hó végi túlélő',
     icon: '❄️',
     description: 'Alacsony költségű, kamra alapú receptek'
   },
   {
-    id: '20-perces-vacsora',
-    label: '20 perces vacsorák',
+    id: '20 perces vacsora',
+    label: '20 perces vacsora',
     icon: '⚡',
     description: 'Gyors és könnyű ételek'
   },
   {
-    id: 'vasarnapi-klasszikus',
-    label: 'Vasárnapi klasszikusok',
+    id: 'Vasárnapi klasszikus',
+    label: 'Vasárnapi klasszikus',
     icon: '☀️',
     description: 'Családi kedvencek'
   },
   {
-    id: 'egytepsis-mentootlet',
-    label: 'Egytepsis mentőötletek',
+    id: 'Egytepsis mentőötlet',
+    label: 'Egytepsis mentőötlet',
     icon: '🍳',
-    description: 'Egy edényben nyájasság'
-  },
-
+    description: 'Egy edényben elkészíthető ételek'
+  }
 ]
 
 const goToCategory = (categoryId) => {
@@ -74,6 +73,3 @@ const goToCategory = (categoryId) => {
   </section>
 </template>
 
-<style scoped>
-/* smooth transitions */
-</style>

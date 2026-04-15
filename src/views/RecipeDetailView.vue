@@ -471,10 +471,12 @@ onMounted(fetchRecipe)
   .hero-overlay { padding: 16px 16px 22px; }
 }
 
-.sidebar {
-  position: sticky;
-  top: 80px;
-  align-self: start;
+@media (min-width: 1024px) {
+  .sidebar {
+    position: sticky;
+    top: 80px;
+    align-self: start;
+  }
 }
 
 .card {
@@ -513,6 +515,8 @@ onMounted(fetchRecipe)
   color: var(--color-muted);
   line-height: 1.75;
   font-size: 0.95rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .reviews-header {

@@ -14,12 +14,12 @@ const heroStyle = computed(() => ({
 	backgroundImage: `linear-gradient(115deg, rgba(47, 30, 23, 0.82) 0%, rgba(47, 30, 23, 0.55) 45%, rgba(47, 30, 23, 0.22) 100%), url('${heroImage}')`,
 }))
 
-const openRecipes = async (query = '') => {
+const openRecipes = (query = '') => {
 	const trimmedQuery = query.trim()
 
-	await router.push({
+	router.push({
 		name: 'recipes',
-		query: trimmedQuery ? { q: trimmedQuery } : {},
+		query: trimmedQuery ? { search: trimmedQuery } : {},
 	})
 }
 
@@ -74,11 +74,10 @@ const handleSearch = () => {
 
 				<aside class="flex items-end lg:justify-end">
 					<div class="w-full max-w-md rounded-[1.75rem] border border-white/15 bg-white/12 p-4 text-white shadow-[0_20px_60px_-32px_rgba(0,0,0,0.55)] backdrop-blur-md sm:p-5">
-						<span class="text-xs font-semibold uppercase tracking-[0.26em] text-white/70">
-							<div class="ajanlo" style="color: khaki;"> Mai ajánló : </div>
-              Sült csirke sült paradicsommal és friss
-              <div class="bazsaxd" style="text-align: center;">bazsalikommal.</div>
-						</span>
+						<p class="text-xs font-semibold uppercase tracking-[0.26em] text-white/70">
+							<span class="block text-yellow-200">Mai ajánló:</span>
+							Sült csirke sült paradicsommal és friss bazsalikommal.
+						</p>
 
 						<div class="mt-4 overflow-hidden rounded-[1.35rem] border border-white/15 bg-black/20">
 							<img

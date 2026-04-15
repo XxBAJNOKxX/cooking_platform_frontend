@@ -159,6 +159,8 @@ function formatDate(str) {
   font-size: 0.9rem;
   line-height: 1.65;
   color: var(--color-text);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .review-photo {
