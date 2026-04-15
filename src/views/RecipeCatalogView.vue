@@ -174,7 +174,14 @@ export default {
             :key="recipe.id"
             class="rounded-3xl border border-stroke bg-bg overflow-hidden shadow-sm"
           >
-            <img v-if="recipe.image_url" :src="recipe.image_url" :alt="recipe.title" class="w-full h-48 object-cover" />
+            <div v-if="recipe.image_url" class="relative h-48 overflow-hidden bg-surface">
+              <img
+                :src="recipe.image_url"
+                :alt="recipe.title"
+                class="absolute left-1/2 top-1/2"
+                style="width: 160%; height: 160%; object-fit: fill; transform: translate(-50%, -50%) rotate(270deg); transform-origin: center center;"
+              />
+            </div>
             <div class="p-5">
               <h3 class="text-lg font-bold text-text">
                 {{ recipe.title }}
