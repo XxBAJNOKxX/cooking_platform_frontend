@@ -139,5 +139,7 @@ function toggle(i) {
   font-size: 0.925rem;
   color: var(--color-text);
   padding-top: 5px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 </style>
