@@ -102,7 +102,8 @@ export default {
             description: 'Teszt recept kereséshez',
             image_url: '/RizibiziHusival.jpg',
             category: 'ho-vegi-tulelo',
-            maxMinutes: 35
+            maxMinutes: 35,
+            difficulty: 'Könnyű'
           }
         ]
       } finally {
@@ -200,9 +201,19 @@ export default {
               />
             </div>
             <div class="p-5">
-              <h3 class="text-lg font-bold text-text">
-                {{ recipe.title }}
-              </h3>
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-lg font-bold text-text">
+                  {{ recipe.title }}
+                </h3>
+                <span v-if="recipe.difficulty" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold"
+                  :class="{
+                    'bg-green-100 text-green-800': recipe.difficulty === 'Könnyű',
+                    'bg-yellow-100 text-yellow-800': recipe.difficulty === 'Közepes',
+                    'bg-red-100 text-red-800': recipe.difficulty === 'Nehéz'
+                  }">
+                  {{ recipe.difficulty }}
+                </span>
+              </div>
               <p class="mt-2 text-sm text-muted">
                 {{ recipe.description }}
               </p>
