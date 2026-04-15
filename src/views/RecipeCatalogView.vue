@@ -5,11 +5,13 @@ import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import FilterSidebar from './FilterSidebar.vue'
+import RecipeCard from '@/components/RecipeCard.vue'
 
 export default {
   components: {
     LoadingSpinner,
-    FilterSidebar
+    FilterSidebar,
+    RecipeCard
   },
   setup() {
     const route = useRoute()
@@ -102,7 +104,8 @@ export default {
             description: 'Teszt recept kereséshez',
             image_url: '/RizibiziHusival.jpg',
             category: 'ho-vegi-tulelo',
-            maxMinutes: 35
+            maxMinutes: 35,
+            difficulty: 'Könnyű'
           }
         ]
       } finally {
@@ -187,27 +190,11 @@ export default {
         </div>
 
         <div v-else class="grid gap-4">
-          <article
+          <RecipeCard
             v-for="recipe in filteredRecipes"
             :key="recipe.id"
-            class="rounded-3xl border border-stroke bg-bg overflow-hidden shadow-sm"
-          >
-            <div v-if="recipe.image_url" class="h-56 overflow-hidden bg-surface">
-              <img
-                :src="recipe.image_url"
-                :alt="recipe.title"
-                class="h-full w-full object-cover object-center"
-              />
-            </div>
-            <div class="p-5">
-              <h3 class="text-lg font-bold text-text">
-                {{ recipe.title }}
-              </h3>
-              <p class="mt-2 text-sm text-muted">
-                {{ recipe.description }}
-              </p>
-            </div>
-          </article>
+            :recipe="recipe"
+          />
         </div>
 
 
