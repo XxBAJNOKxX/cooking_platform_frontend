@@ -200,7 +200,7 @@ async function submit() {
     category_ids: form.value.category_ids,
     ingredients:  form.value.ingredients.map(i => ({
       id:       i.id,
-      quantity: Number(i.quantity),
+      quantity: (i.quantity == null || String(i.quantity).trim() === '') ? null : Number(i.quantity),
       unit:     i.unit,
     })),
   }
@@ -212,6 +212,7 @@ async function submit() {
     } else {
       res = await api.post('/recipes', payload)
     }
+    saving.value = false
     router.push({ name: 'recipe-detail', params: { id: res.data.data.id } })
   } catch (err) {
     if (err.response?.status === 422) {
@@ -537,7 +538,7 @@ onBeforeUnmount(() => {
                   type="button"
                   class="ing-option"
                   role="option"
-                  @mousedown.prevent="selectIngredient(ing)"
+                  @mousedown.prevent @click="selectIngredient(ing)"
                 >{{ ing.name }}</button>
               </div>
             </div>

@@ -173,7 +173,7 @@ const DIFFICULTIES = [
               class="cat-option"
               :class="{ on: local.category === '' }"
               role="option"
-              @mousedown.prevent="selectCategory('')"
+              @mousedown.prevent @click="selectCategory('')"
             >Összes kategória</button>
             <button
               v-for="cat in categories"
@@ -182,7 +182,7 @@ const DIFFICULTIES = [
               class="cat-option"
               :class="{ on: local.category === cat.name }"
               role="option"
-              @mousedown.prevent="selectCategory(cat.name)"
+              @mousedown.prevent @click="selectCategory(cat.name)"
             >{{ cat.name }}</button>
           </div>
         </div>

@@ -24,13 +24,18 @@ const filters = ref({
   max_time:   '',
 })
 
+function getQueryString(value) {
+  if (Array.isArray(value)) return value[0] || ''
+  return value || ''
+}
+
 function syncFromRoute() {
   const q = route.query
   filters.value = {
-    search:     q.search     || '',
-    category:   q.category   || '',
-    difficulty: q.difficulty || '',
-    max_time:   q.max_time   ? Number(q.max_time) : '',
+    search:     getQueryString(q.search),
+    category:   getQueryString(q.category),
+    difficulty: getQueryString(q.difficulty),
+    max_time:   q.max_time ? Number(getQueryString(q.max_time)) : '',
   }
 }
 
