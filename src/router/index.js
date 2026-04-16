@@ -25,7 +25,13 @@ const router = createRouter({
     {
       path: '/recipes',
       name: 'recipes',
-      component: () => import('@/views/RecipeCatalogView.vue')
+      component: () => import('@/views/RecipeCatalogView.vue'),
+    },
+    {
+      path: '/recipes/create',
+      name: 'recipe-create',
+      component: () => import('@/views/RecipeEditorView.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/recipes/:id',
@@ -46,7 +52,7 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from) => {
+router.beforeEach((to, _from) => {
   const authStore = useAuthStore()
 
   if (to.meta.requiresGuest && authStore.isAuthenticated) {
