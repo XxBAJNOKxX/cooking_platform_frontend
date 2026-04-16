@@ -1,204 +1,465 @@
-
-
-<script>
-import { computed, ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import LoadingSpinner from '@/components/LoadingSpinner.vue'
-import FilterSidebar from './FilterSidebar.vue'
+<script setup>
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute, useRouter, isNavigationFailure } from 'vue-router'
+import api from '@/services/api'
 import RecipeCard from '@/components/RecipeCard.vue'
+import FilterSidebar from '@/components/FilterSidebar.vue'
+import Pagination from '@/components/Pagination.vue'
 
-export default {
-  components: {
-    LoadingSpinner,
-    FilterSidebar,
-    RecipeCard
-  },
-  setup() {
-    const route = useRoute()
-    const router = useRouter()
-    const recipes = ref([])
-    const isLoading = ref(false)
-    const error = ref('')
-    const maxTime = ref(120)
+const route  = useRoute()
+const router = useRouter()
 
-    const searchQuery = computed(() => {
-      const value = route.query.q
+// ---- State ----
+const recipes   = ref([])
+const meta      = ref(null)
+const loading   = ref(false)
+const error     = ref('')
+const categories         = ref([])
+const categoriesLoading  = ref(true)
 
-      return typeof value === 'string' ? value.trim() : ''
-    })
+const filters = ref({
+  search:     '',
+  category:   '',
+  difficulty: '',
+  max_time:   '',
+})
 
-    const categoryQuery = computed(() => {
-      const value = route.query.category
-
-      return typeof value === 'string' ? value.trim() : ''
-    })
-
-    const updateSearch = (value) => {
-      router.push({
-        name: 'recipes',
-        query: {
-          ...(value ? { q: value } : {}),
-          ...(activeCategory.value ? { category: activeCategory.value } : {})
-        }
-      })
-    }
-
-    const updateCategory = (value) => {
-      router.push({
-        name: 'recipes',
-        query: {
-          ...(searchQuery.value ? { q: searchQuery.value } : {}),
-          ...(value ? { category: value } : {})
-        }
-      })
-    }
-
-    const updateMaxTime = (value) => {
-      maxTime.value = value
-    }
-
-    const resetFilters = () => {
-      maxTime.value = 120
-      router.push({ name: 'recipes' })
-    }
-
-    const activeCategory = computed(() => {
-      return categoryQuery.value || null
-    })
-
-    const filteredRecipes = computed(() => {
-      let result = recipes.value
-
-      if (activeCategory.value) {
-        result = result.filter((recipe) =>
-          (recipe.category || '').toLowerCase() === activeCategory.value.toLowerCase()
-        )
-      }
-
-      result = result.filter((recipe) => {
-        const recipeTime = Number(recipe.maxMinutes ?? recipe.timeMinutes ?? 999)
-
-        return recipeTime <= maxTime.value
-      })
-
-
-      if (searchQuery.value) {
-        const q = searchQuery.value.toLowerCase()
-        result = result.filter((recipe) =>
-          (recipe.title || '').toLowerCase().includes(q)
-        )
-      }
-
-      return result
-    })
-
-    const fetchRecipes = async () => {
-      isLoading.value = true
-      error.value = ''
-
-      try {
-        recipes.value = [
-          {
-            id: 999,
-            title: 'Rizibizi Husival',
-            description: 'Teszt recept kereséshez',
-            image_url: '/RizibiziHusival.jpg',
-            category: 'ho-vegi-tulelo',
-            maxMinutes: 35,
-            difficulty: 'Könnyű'
-          }
-        ]
-      } finally {
-        isLoading.value = false
-      }
-    }
-
-    onMounted(() => {
-      fetchRecipes()
-    })
-
-    return {
-      recipes,
-      filteredRecipes,
-      isLoading,
-      error,
-      fetchRecipes,
-      searchQuery,
-      activeCategory,
-      maxTime,
-      updateSearch,
-      updateCategory,
-      updateMaxTime,
-      resetFilters
-    }
+function syncFromRoute() {
+  const q = route.query
+  filters.value = {
+    search:     q.search     || '',
+    category:   q.category   || '',
+    difficulty: q.difficulty || '',
+    max_time:   q.max_time   ? Number(q.max_time) : '',
   }
+}
+
+// ---- Build API params ----
+function buildParams(page = 1) {
+  const p = { page }
+  if (filters.value.search)     p.search     = filters.value.search
+  if (filters.value.category)   p.category   = filters.value.category
+  if (filters.value.difficulty) p.difficulty = filters.value.difficulty
+  if (filters.value.max_time)   p.max_time   = filters.value.max_time
+  return p
+}
+
+// ---- Fetch recipes ----
+async function fetchRecipes(page = 1) {
+  loading.value = true
+  error.value   = ''
+  try {
+    const { data } = await api.get('/recipes', { params: buildParams(page) })
+    recipes.value = data.data
+    meta.value    = data.meta
+  } catch (err) {
+    if (import.meta.env.DEV) console.error('[fetchRecipes]', err)
+    error.value = 'Nem sikerült betölteni a recepteket. Kérjük, próbáld újra.'
+  } finally {
+    loading.value = false
+  }
+}
+
+// ---- Fetch categories (for filter sidebar) ----
+async function fetchCategories() {
+  categoriesLoading.value = true
+  try {
+    const { data } = await api.get('/categories')
+    categories.value = data.data
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[fetchCategories]', err)
+    // silent – dropdown still usable with just "Összes kategória"
+  } finally {
+    categoriesLoading.value = false
+  }
+}
+
+// ---- Filter change from sidebar → push URL ----
+function onFiltersUpdate(newFilters) {
+  filters.value = { ...newFilters }
+
+  const query = {}
+  if (newFilters.search)     query.search     = newFilters.search
+  if (newFilters.category)   query.category   = newFilters.category
+  if (newFilters.difficulty) query.difficulty = newFilters.difficulty
+  if (newFilters.max_time)   query.max_time   = String(newFilters.max_time)
+
+  router.push({ name: 'recipes', query }).catch(err => {
+    if (!isNavigationFailure(err) && import.meta.env.DEV) console.error('[navigation]', err)
+  })
+}
+
+// ---- Watch URL query → refetch ----
+watch(
+  () => route.query,
+  () => {
+    syncFromRoute()
+    fetchRecipes(1)
+  },
+  { deep: true }
+)
+
+// ---- Pagination ----
+function onPageChange(page) {
+  fetchRecipes(page)
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// ---- Mount ----
+onMounted(() => {
+  syncFromRoute()
+  Promise.all([fetchCategories(), fetchRecipes(1)])
+})
+
+// ---- Computed helpers ----
+const hasFilters = computed(() =>
+  Object.values(filters.value).some(v => v !== '' && v !== null && v !== undefined)
+)
+
+const resultLabel = computed(() => {
+  if (!meta.value) return ''
+  const t = meta.value.total
+  return t === 0 ? 'Nincs találat' : `${t} recept`
+})
+
+function removeFilter(key) {
+  onFiltersUpdate({ ...filters.value, [key]: '' })
 }
 </script>
 
 <template>
-  <section class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-    <div class="mb-8 flex flex-col gap-3">
+  <div class="cat-root">
 
-      <h1 class="text-4xl font-black tracking-tight text-text sm:text-5xl">
-        Recept katalógus
-      </h1>
-      <p class="max-w-2xl text-sm text-muted sm:text-base">
-    Böngéssz a legjobb ételreceptek között és találd meg a számodra tökéletes receptet.
-      </p>
-      <p v-if="searchQuery" class="max-w-2xl rounded-2xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm font-medium text-text">
-        Keresés erre: "{{ searchQuery }}"
-      </p>
-      <p v-if="activeCategory" class="max-w-2xl rounded-2xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm font-medium text-text">
-        Kategória: <strong>{{ activeCategory }}</strong>
-      </p>
-    </div>
+    <!-- Page header -->
+    <header class="cat-header">
+      <div class="cat-header-content">
+        <h1 class="cat-title">Receptek</h1>
+        <p v-if="!loading && meta" class="cat-count">{{ resultLabel }}</p>
+        <p v-else-if="loading" class="cat-count cat-count-loading">Betöltés…</p>
+      </div>
+    </header>
 
-    <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-      <FilterSidebar
-        :search="searchQuery"
-        :category="activeCategory || ''"
-        :max-time="maxTime"
-        @update:search="updateSearch"
-        @update:category="updateCategory"
-        @update:maxTime="updateMaxTime"
-        @reset="resetFilters"
-      />
+    <!-- Main two-column layout -->
+    <div class="cat-layout">
 
-      <div class="space-y-6">
-        <div
-          v-if="isLoading"
-          class="flex min-h-[300px] items-center justify-center rounded-3xl border border-stroke bg-surface/30"
-        >
-          <LoadingSpinner size="w-8 h-8" />
+      <!-- Filter sidebar -->
+      <aside class="cat-sidebar-col">
+        <FilterSidebar
+          :model-value="filters"
+          :categories="categories"
+          :categories-loading="categoriesLoading"
+          @update:model-value="onFiltersUpdate"
+        />
+      </aside>
+
+      <!-- Results column -->
+      <section class="cat-results-col">
+
+        <!-- Active filter tags -->
+        <div v-if="hasFilters" class="cat-active-tags">
+          <span class="tags-label">Aktív szűrők:</span>
+
+          <button v-if="filters.search" class="tag" @click="removeFilter('search')">
+            "{{ filters.search }}"
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="tag-x" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>
+          </button>
+
+          <button v-if="filters.category" class="tag" @click="removeFilter('category')">
+            {{ filters.category }}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="tag-x" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>
+          </button>
+
+          <button v-if="filters.difficulty" class="tag" @click="removeFilter('difficulty')">
+            {{ filters.difficulty }}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="tag-x" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>
+          </button>
+
+          <button v-if="filters.max_time" class="tag" @click="removeFilter('max_time')">
+            Max. {{ filters.max_time }} perc
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="tag-x" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>
+          </button>
         </div>
 
-        <div
-          v-else-if="error"
-          class="rounded-3xl border border-danger/30 bg-danger/10 p-5 text-danger"
-        >
-          {{ error }}
+        <!-- Loading: skeleton grid -->
+        <div v-if="loading" class="recipe-grid" aria-busy="true" aria-label="Receptek betöltése">
+          <div v-for="i in 9" :key="i" class="skel-card" :style="`--skel-delay: ${i * 40}ms`">
+            <div class="skel-img" />
+            <div class="skel-body">
+              <div class="skel-line skel-t1" />
+              <div class="skel-line skel-t2" />
+              <div class="skel-line skel-t3" />
+              <div class="skel-chips">
+                <div class="skel-chip" />
+                <div class="skel-chip skel-chip-sm" />
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div
-          v-else-if="filteredRecipes.length === 0"
-          class="rounded-3xl border border-stroke bg-surface/30 p-8 text-center"
-        >
-          <p class="text-lg font-semibold text-text">Nincs találat</p>
-          <p class="mt-2 text-sm text-muted">
-            Próbálj meg más keresőszót, vagy böngéssz a kategóriák között.
-          </p>
+        <!-- Error state -->
+        <div v-else-if="error" class="cat-state">
+          <div class="state-ico state-ico-err">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12" stroke-linecap="round"/>
+              <line x1="12" y1="16" x2="12.01" y2="16" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <p class="state-title">{{ error }}</p>
+          <button class="state-btn" @click="fetchRecipes(1)">Újra próbálom</button>
         </div>
 
-        <div v-else class="grid gap-4">
+        <!-- Empty state -->
+        <div v-else-if="recipes.length === 0" class="cat-state">
+          <div class="state-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <p class="state-title">Nincs találat</p>
+          <p class="state-desc">Próbálj más szűrőfeltételekkel keresni.</p>
+          <button v-if="hasFilters" class="state-btn" @click="onFiltersUpdate({ search: '', category: '', difficulty: '', max_time: '' })">
+            Szűrők törlése
+          </button>
+        </div>
+
+        <!-- Recipe grid -->
+        <div v-else class="recipe-grid">
           <RecipeCard
-            v-for="recipe in filteredRecipes"
+            v-for="(recipe, i) in recipes"
             :key="recipe.id"
             :recipe="recipe"
+            :index="i"
           />
         </div>
 
+        <!-- Pagination -->
+        <Pagination
+          v-if="!loading && meta && meta.last_page > 1"
+          :meta="meta"
+          @page-change="onPageChange"
+        />
 
-      </div>
+      </section>
     </div>
-  </section>
+  </div>
 </template>
+
+<style scoped>
+.cat-root { padding-bottom: 72px; }
+
+/* ---- Header ---- */
+.cat-header {
+  padding-bottom: 22px;
+  border-bottom: 1.5px solid var(--color-stroke);
+  margin-bottom: 30px;
+}
+
+.cat-header-content {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cat-title {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--color-text);
+}
+
+.cat-count {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.cat-count-loading {
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+/* ---- Layout ---- */
+.cat-layout {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  gap: 28px;
+}
+
+@media (max-width: 767px) {
+  .cat-layout {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+/* ---- Sidebar ---- */
+@media (min-width: 768px) {
+  .cat-sidebar-col {
+    position: sticky;
+    top: 88px;
+    align-self: start;
+    padding: 20px;
+    border: 1.5px solid var(--color-stroke);
+    border-radius: 18px;
+    background: var(--color-bg);
+  }
+}
+
+/* ---- Active filter tags ---- */
+.cat-active-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.tags-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1.5px solid var(--color-accent-soft);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  color: var(--color-accent);
+  cursor: pointer;
+  transition: background 130ms var(--ease-ui-out), transform 130ms var(--ease-ui-out);
+}
+.tag:hover  { background: color-mix(in srgb, var(--color-accent) 15%, transparent); }
+.tag:active { transform: scale(0.94); }
+
+.tag-x { width: 10px; height: 10px; flex-shrink: 0; }
+
+/* ---- Recipe grid ---- */
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1199px) { .recipe-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 479px)  { .recipe-grid { grid-template-columns: 1fr; } }
+
+/* ---- Skeleton cards ---- */
+.skel-card {
+  border-radius: 18px;
+  border: 1.5px solid var(--color-stroke);
+  overflow: hidden;
+  background: var(--color-bg);
+  animation: skelIn 250ms var(--ease-ui-out) var(--skel-delay, 0ms) both;
+}
+
+@keyframes skelIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.skel-img {
+  aspect-ratio: 3 / 2;
+}
+
+.skel-body { padding: 14px 15px 15px; display: flex; flex-direction: column; gap: 8px; }
+
+.skel-line,
+.skel-img,
+.skel-chip {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface)       0%,
+    var(--color-surface-hover) 40%,
+    var(--color-surface)       80%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+.skel-img { border-radius: 0; animation-delay: var(--skel-delay, 0ms); }
+
+.skel-line { height: 13px; }
+.skel-t1   { width: 82%; animation-delay: calc(var(--skel-delay, 0ms) + 60ms); }
+.skel-t2   { width: 100%; animation-delay: calc(var(--skel-delay, 0ms) + 100ms); }
+.skel-t3   { width: 65%; animation-delay: calc(var(--skel-delay, 0ms) + 140ms); }
+
+.skel-chips { display: flex; gap: 6px; margin-top: 2px; }
+.skel-chip    { height: 24px; width: 72px; border-radius: 8px; animation-delay: calc(var(--skel-delay, 0ms) + 180ms); }
+.skel-chip-sm { width: 54px; animation-delay: calc(var(--skel-delay, 0ms) + 210ms); }
+
+@keyframes shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* ---- States (empty / error) ---- */
+.cat-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 340px;
+  text-align: center;
+  animation: fadeIn 250ms var(--ease-ui-out) both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.state-ico {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-muted);
+}
+.state-ico svg { width: 26px; height: 26px; }
+
+.state-ico-err {
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+  color: var(--color-danger);
+}
+
+.state-title {
+  font-size: 1rem; font-weight: 700;
+  color: var(--color-text); margin: 0;
+}
+
+.state-desc {
+  font-size: 0.875rem; color: var(--color-muted); margin: 0;
+}
+
+.state-btn {
+  margin-top: 4px;
+  padding: 8px 22px;
+  border-radius: 10px;
+  border: 1.5px solid var(--color-stroke);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.875rem; font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out);
+}
+.state-btn:hover  { background: var(--color-surface); }
+.state-btn:active { transform: scale(0.97); }
+</style>
