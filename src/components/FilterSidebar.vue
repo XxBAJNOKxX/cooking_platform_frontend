@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import BaseInput from '@/components/BaseInput.vue'
 
 const props = defineProps({
@@ -15,10 +15,12 @@ const emit = defineEmits(['update:modelValue'])
 
 const MAX_TIME_MINUTES = 180
 
-const local = ref({ ...props.modelValue })
-let searchTimer = null
-let timeTimer   = null
-const mobileOpen = ref(false)
+const local      = ref({ ...props.modelValue })
+let   searchTimer = null
+let   timeTimer   = null
+const mobileOpen  = ref(false)
+const catOpen     = ref(false)
+const catDropRef  = ref(null)
 
 watch(
   () => props.modelValue,
@@ -41,8 +43,9 @@ function onSearch(val) {
   searchTimer = setTimeout(() => emit('update:modelValue', { ...local.value }), 320)
 }
 
-function onCategoryChange(e) {
-  patch('category', e.target.value)
+function selectCategory(name) {
+  catOpen.value = false
+  patch('category', name)
 }
 
 function toggleDifficulty(d) {
@@ -59,8 +62,15 @@ function onTimeInput(e) {
 function reset() {
   clearTimeout(searchTimer)
   clearTimeout(timeTimer)
+  catOpen.value = false
   local.value = { search: '', category: '', difficulty: '', max_time: '' }
   emit('update:modelValue', { ...local.value })
+}
+
+function onDocClick(e) {
+  if (catDropRef.value && !catDropRef.value.contains(e.target)) {
+    catOpen.value = false
+  }
 }
 
 const activeCount = computed(() =>
@@ -73,7 +83,12 @@ const sliderPct = computed(() => {
   return ((v - 5) / (MAX_TIME_MINUTES - 5)) * 100
 })
 
+onMounted(() => {
+  document.addEventListener('click', onDocClick)
+})
+
 onUnmounted(() => {
+  document.removeEventListener('click', onDocClick)
   clearTimeout(searchTimer)
   clearTimeout(timeTimer)
 })
@@ -131,30 +146,45 @@ const DIFFICULTIES = [
         />
       </div>
 
-      <!-- Category dropdown -->
+      <!-- Category custom dropdown -->
       <div class="fsb-section">
         <p class="fsb-label">Kategória</p>
-        <div class="select-wrap">
-          <select
-            :value="local.category"
-            @change="onCategoryChange"
-            class="cat-select"
+        <div class="cat-dd" ref="catDropRef">
+          <button
+            type="button"
+            class="cat-trigger"
+            :class="{ 'cat-trigger--active': local.category }"
             :disabled="categoriesLoading"
+            :aria-expanded="catOpen"
+            @click="catOpen = !catOpen"
           >
-            <option value="">
-              {{ categoriesLoading ? 'Betöltés…' : 'Összes kategória' }}
-            </option>
-            <option
+            <span class="cat-trigger-text">
+              {{ categoriesLoading ? 'Betöltés…' : (local.category || 'Összes kategória') }}
+            </span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              class="cat-chev" :class="{ open: catOpen }" aria-hidden="true">
+              <polyline points="6,9 12,15 18,9"/>
+            </svg>
+          </button>
+
+          <div v-show="catOpen" class="cat-options" role="listbox">
+            <button
+              type="button"
+              class="cat-option"
+              :class="{ on: local.category === '' }"
+              role="option"
+              @mousedown.prevent="selectCategory('')"
+            >Összes kategória</button>
+            <button
               v-for="cat in categories"
               :key="cat.id"
-              :value="cat.name"
-            >
-              {{ cat.name }}
-            </option>
-          </select>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="select-chevron" aria-hidden="true">
-            <polyline points="6,9 12,15 18,9"/>
-          </svg>
+              type="button"
+              class="cat-option"
+              :class="{ on: local.category === cat.name }"
+              role="option"
+              @mousedown.prevent="selectCategory(cat.name)"
+            >{{ cat.name }}</button>
+          </div>
         </div>
       </div>
 
@@ -295,17 +325,15 @@ const DIFFICULTIES = [
   background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
 
-/* ---- Category select ---- */
-.select-wrap {
-  position: relative;
-}
+/* ---- Category custom dropdown ---- */
+.cat-dd { position: relative; }
 
-.cat-select {
-  -webkit-appearance: none;
-  appearance: none;
-  display: block;
+.cat-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
-  padding: 9px 36px 9px 13px;
+  padding: 9px 12px 9px 13px;
   border-radius: 10px;
   border: 1.5px solid var(--color-stroke);
   background: var(--color-bg);
@@ -313,34 +341,74 @@ const DIFFICULTIES = [
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
+  text-align: left;
   outline: none;
   transition: border-color 150ms var(--ease-ui-out), box-shadow 150ms var(--ease-ui-out);
 }
-
-.cat-select:focus {
+.cat-trigger:hover:not(:disabled) {
+  border-color: var(--color-accent-soft);
+}
+.cat-trigger:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 1px var(--color-accent);
 }
-
-.cat-select:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.cat-select:not([value=""]) {
+.cat-trigger:disabled { opacity: 0.55; cursor: not-allowed; }
+.cat-trigger--active {
   border-color: var(--color-accent);
   color: var(--color-accent);
   font-weight: 600;
 }
 
-.select-chevron {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
+.cat-trigger-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cat-chev {
   width: 14px; height: 14px;
   color: var(--color-muted);
-  pointer-events: none;
+  flex-shrink: 0;
+  margin-left: 8px;
+  transition: transform 250ms var(--ease-ui-out);
+}
+.cat-chev.open { transform: rotate(180deg); }
+
+.cat-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  z-index: 60;
+  border: 1.5px solid var(--color-stroke);
+  border-radius: 12px;
+  background: var(--color-bg);
+  box-shadow: 0 8px 24px -6px rgba(47, 30, 23, 0.14);
+  overflow: hidden;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.cat-option {
+  display: block;
+  width: 100%;
+  padding: 9px 13px;
+  text-align: left;
+  border: none;
+  border-bottom: 1px solid var(--color-stroke);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms var(--ease-ui-out);
+}
+.cat-option:last-child { border-bottom: none; }
+.cat-option:hover { background: var(--color-surface); }
+.cat-option.on {
+  color: var(--color-accent);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
 }
 
 /* ---- Difficulty chips ---- */

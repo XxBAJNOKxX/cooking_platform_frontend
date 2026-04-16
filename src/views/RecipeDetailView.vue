@@ -64,6 +64,13 @@
                 </svg>
                 {{ difficultyLabel }}
               </span>
+              <span v-if="recipe.servings" class="meta-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chip-icon">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke-linecap="round"/>
+                </svg>
+                {{ recipe.servings }} fő
+              </span>
               <span v-if="recipe.author" class="meta-chip">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chip-icon">
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
@@ -83,10 +90,10 @@
         <aside class="sidebar">
           <div class="card">
             <h2 class="card-title">Hozzávalók</h2>
-            <PortionCalculator :default="DEFAULT_PORTIONS" @change="portions = $event" />
+            <PortionCalculator :default="defaultPortions" @change="portions = $event" />
             <IngredientList
               :ingredients="recipe.ingredients"
-              :base-portions="DEFAULT_PORTIONS"
+              :base-portions="defaultPortions"
               :current-portions="portions"
             />
           </div>
@@ -115,23 +122,26 @@
             </div>
 
             <template v-if="authStore.isAuthenticated">
-              <button
-                v-if="!showReviewForm && !hasReviewed"
-                class="btn-write-review"
-                @click="showReviewForm = true"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-icon">
-                  <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
-                </svg>
-                Értékelés írása
-              </button>
-              <p v-else-if="hasReviewed" class="already-msg">Már értékelted ezt a receptet.</p>
-              <ReviewForm
-                v-if="showReviewForm"
-                :recipe-id="recipe.id"
-                @submitted="onReviewSubmitted"
-                @cancel="showReviewForm = false"
-              />
+              <p v-if="isOwner" class="owner-review-msg">Nem értékelheted a saját receptedet.</p>
+              <template v-else>
+                <button
+                  v-if="!showReviewForm && !hasReviewed"
+                  class="btn-write-review"
+                  @click="showReviewForm = true"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-icon">
+                    <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+                  </svg>
+                  Értékelés írása
+                </button>
+                <p v-else-if="hasReviewed" class="already-msg">Már értékelted ezt a receptet.</p>
+                <ReviewForm
+                  v-if="showReviewForm"
+                  :recipe-id="recipe.id"
+                  @submitted="onReviewSubmitted"
+                  @cancel="showReviewForm = false"
+                />
+              </template>
             </template>
             <p v-else class="login-prompt">
               <router-link :to="{ name: 'login' }">Jelentkezz be</router-link>
@@ -165,7 +175,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
@@ -182,11 +192,13 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
-const DEFAULT_PORTIONS = 4
 const recipe = ref(null)
 const loading = ref(true)
 const error = ref('')
-const portions = ref(DEFAULT_PORTIONS)
+const portions = ref(4)
+
+const defaultPortions = computed(() => recipe.value?.servings ?? 4)
+watch(defaultPortions, v => { portions.value = v })
 const showReviewForm = ref(false)
 const showDeleteModal = ref(false)
 const deleting = ref(false)
@@ -567,7 +579,8 @@ onMounted(fetchRecipe)
 .btn-write-review:hover { background: var(--color-accent-hover); }
 .btn-write-review:active { transform: scale(0.97); }
 
-.already-msg {
+.already-msg,
+.owner-review-msg {
   font-size: 0.875rem;
   color: var(--color-muted);
   margin-bottom: 14px;
