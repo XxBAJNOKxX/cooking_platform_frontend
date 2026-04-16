@@ -81,6 +81,19 @@
                 <StarRating :model-value="averageRating" :show-count="true" :count="recipe.reviews.length" />
               </span>
             </div>
+
+            <div v-if="authStore.isAuthenticated" class="hero-cta-row">
+              <button class="btn-add-cal" @click="openCalModal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                  <line x1="8" y1="14" x2="8" y2="14" stroke-linecap="round" stroke-width="3"/>
+                  <line x1="12" y1="14" x2="12" y2="14" stroke-linecap="round" stroke-width="3"/>
+                </svg>
+                Naptárhoz adás
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -155,6 +168,66 @@
       </div>
     </template>
 
+    <BaseModal v-if="showCalendarModal" :model-value="true" title="Hozzáadás a naptárhoz" @close="closeCalModal" max-width="max-w-sm">
+      <Transition name="cal-success" mode="out-in">
+        <div v-if="calSuccess" class="cal-success-body">
+          <div class="cal-success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <p class="cal-success-title">Hozzáadva!</p>
+          <p class="cal-success-sub">{{ recipe?.title }}</p>
+          <router-link :to="{ name: 'calendar' }" class="cal-success-link" @click="closeCalModal">
+            Naptár megtekintése →
+          </router-link>
+        </div>
+
+        <div v-else class="cal-form-body">
+          <p class="cal-recipe-name">{{ recipe?.title }}</p>
+
+          <div class="cal-field">
+            <label class="cal-label" for="cal-date">Dátum</label>
+            <input
+              id="cal-date"
+              v-model="calDate"
+              type="date"
+              class="cal-date-input"
+              :min="todayStr"
+            />
+          </div>
+
+          <div class="cal-field">
+            <span class="cal-label">Étkezés típusa</span>
+            <div class="cal-meal-pills">
+              <button
+                v-for="type in CAL_MEAL_TYPES"
+                :key="type"
+                class="cal-meal-pill"
+                :class="{ active: calMealType === type }"
+                @click="calMealType = type"
+              >{{ type }}</button>
+            </div>
+          </div>
+
+          <p v-if="calError" class="cal-error" role="alert">{{ calError }}</p>
+        </div>
+      </Transition>
+
+      <template #footer>
+        <BaseButton
+          v-if="!calSuccess"
+          variant="primary"
+          block
+          :loading="calLoading"
+          :disabled="!calDate"
+          @click="submitCalModal"
+        >
+          Hozzáadás
+        </BaseButton>
+      </template>
+    </BaseModal>
+
     <BaseModal v-if="showDeleteModal" :model-value="true" title="Recept törlése" @close="showDeleteModal = false; deleteError = ''">
       <p class="modal-body-text">
         Biztosan törölni szeretnéd a <strong>{{ recipe?.title }}</strong> receptet?
@@ -181,12 +254,15 @@ import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import BaseModal from '@/components/BaseModal.vue'
+import BaseButton from '@/components/BaseButton.vue'
 import StarRating from '@/components/recipe/StarRating.vue'
 import PortionCalculator from '@/components/recipe/PortionCalculator.vue'
 import IngredientList from '@/components/recipe/IngredientList.vue'
 import StepList from '@/components/recipe/StepList.vue'
 import ReviewList from '@/components/recipe/ReviewList.vue'
 import ReviewForm from '@/components/recipe/ReviewForm.vue'
+
+const CAL_SUCCESS_DISPLAY_MS = 2200
 
 const route = useRoute()
 const router = useRouter()
@@ -203,6 +279,52 @@ const showReviewForm = ref(false)
 const showDeleteModal = ref(false)
 const deleting = ref(false)
 const deleteError = ref('')
+
+// ── Calendar modal ──────────────────────────────────────────────────────────
+const CAL_MEAL_TYPES = ['Reggeli', 'Tízórai', 'Ebéd', 'Uzsonna', 'Vacsora']
+
+function getTodayStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+const todayStr = getTodayStr()
+const showCalendarModal = ref(false)
+const calDate = ref(todayStr)
+const calMealType = ref('Ebéd')
+const calLoading = ref(false)
+const calError = ref('')
+const calSuccess = ref(false)
+
+function openCalModal() {
+  calDate.value = todayStr
+  calMealType.value = 'Ebéd'
+  calError.value = ''
+  calSuccess.value = false
+  showCalendarModal.value = true
+}
+
+function closeCalModal() {
+  showCalendarModal.value = false
+}
+
+async function submitCalModal() {
+  calLoading.value = true
+  calError.value = ''
+  try {
+    await api.post('/meal-plans', {
+      recipe_id: recipe.value.id,
+      planned_date: calDate.value,
+      meal_type: calMealType.value,
+    })
+    calSuccess.value = true
+    setTimeout(closeCalModal, CAL_SUCCESS_DISPLAY_MS)
+  } catch {
+    calError.value = 'Nem sikerült hozzáadni. Próbáld újra!'
+  } finally {
+    calLoading.value = false
+  }
+}
 
 const difficultyLabel = computed(() => ({
   easy: 'Könnyű', medium: 'Közepes', hard: 'Nehéz'
@@ -353,6 +475,7 @@ onMounted(fetchRecipe)
   border-color: var(--color-stroke);
   background: var(--color-bg);
   color: var(--color-text);
+  margin-bottom: 2rem;
 }
 
 .btn-back svg { width: 16px; height: 16px; }
@@ -656,4 +779,209 @@ onMounted(fetchRecipe)
 .btn-danger:hover:not(:disabled) { background: var(--color-danger-hover); }
 .btn-danger:active:not(:disabled) { transform: scale(0.97); }
 .btn-danger:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ── Hero CTA row ──────────────────────────────────────────────── */
+.hero-cta-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  animation: fadeSlideUp 320ms var(--ease-ui-out) 140ms both;
+}
+
+.btn-add-cal {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  background: rgba(233, 105, 44, 0.28);
+  color: #fff;
+  transition:
+    background 160ms var(--ease-ui-out),
+    border-color 160ms ease,
+    transform 160ms var(--ease-ui-out);
+}
+
+.btn-add-cal svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-add-cal:hover {
+    background: rgba(233, 105, 44, 0.50);
+    border-color: rgba(255, 255, 255, 0.65);
+  }
+}
+
+.btn-add-cal:active { transform: scale(0.96); }
+
+.hero-no-img .btn-add-cal {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: var(--color-accent);
+}
+
+/* ── Calendar Modal ────────────────────────────────────────────── */
+.cal-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+.cal-recipe-name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text);
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface);
+  border-radius: 0.625rem;
+  border: 1px solid var(--color-stroke);
+}
+
+.cal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.cal-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.cal-date-input {
+  width: 100%;
+  padding: 0.6rem 0.875rem;
+  border-radius: 0.75rem;
+  border: 1.5px solid var(--color-stroke);
+  background: var(--color-bg);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.cal-date-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
+}
+
+.cal-meal-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.cal-meal-pill {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-stroke);
+  background: transparent;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms var(--ease-ui-out);
+}
+
+.cal-meal-pill.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.cal-meal-pill:active { transform: scale(0.93); }
+
+.cal-error {
+  font-size: 0.8125rem;
+  color: var(--color-danger);
+  padding: 0.5rem 0.75rem;
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 22%, transparent);
+  border-radius: 0.5rem;
+}
+
+/* ── Calendar success state ────────────────────────────────────── */
+.cal-success-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0 0.5rem;
+  text-align: center;
+}
+
+.cal-success-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-chip) 15%, transparent);
+  border: 2px solid var(--color-chip);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-chip);
+  animation: successPop 380ms var(--ease-ui-out) both;
+}
+
+@keyframes successPop {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.cal-success-icon svg { width: 1.375rem; height: 1.375rem; }
+
+.cal-success-title {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.cal-success-sub {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.cal-success-link {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+  text-underline-offset: 3px;
+  transition: color 150ms;
+}
+
+.cal-success-link:hover { color: var(--color-accent-hover); }
+
+/* ── Transition: success state swap ───────────────────────────── */
+.cal-success-enter-active,
+.cal-success-leave-active {
+  transition: opacity 200ms var(--ease-ui-out), transform 200ms var(--ease-ui-out);
+}
+
+.cal-success-enter-from {
+  opacity: 0;
+  transform: scale(0.97) translateY(6px);
+}
+
+.cal-success-leave-to {
+  opacity: 0;
+  transform: scale(0.97) translateY(-4px);
+}
 </style>

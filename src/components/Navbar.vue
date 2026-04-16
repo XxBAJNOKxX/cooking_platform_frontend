@@ -1,8 +1,9 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import BaseButton from '@/components/BaseButton.vue'
 import { useRouter } from 'vue-router'
+import api from '@/services/api'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -39,11 +40,28 @@ const handleClickOutside = (e) => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  checkUnread()
+  unreadTimer = setInterval(checkUnread, 60_000)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  clearInterval(unreadTimer)
 })
+
+const hasUnread = ref(false)
+let unreadTimer = null
+
+async function checkUnread() {
+  if (!authStore.isAuthenticated) return
+  try {
+    const res = await api.get('/messages', { params: { per_page: 100 } })
+    const myId = authStore.user?.id
+    hasUnread.value = (res.data.data ?? []).some(
+      m => !m.is_read && m.receiver?.id === myId
+    )
+  } catch { /* silent */ }
+}
 
 const handleLogout = async () => {
   closeProfileMenu()
@@ -102,9 +120,12 @@ const handleLogout = async () => {
               <button @click.stop="toggleProfileMenu"
                 class="nav-avatar-btn flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-full"
                 aria-label="Profil menü">
-                <div
-                  class="h-9 w-9 rounded-full bg-accent text-bg flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-transparent hover:ring-stroke transition-all duration-200">
-                  {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
+                <div class="relative">
+                  <div
+                    class="h-9 w-9 rounded-full bg-accent text-bg flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-transparent hover:ring-stroke transition-all duration-200">
+                    {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
+                  </div>
+                  <span v-if="hasUnread" class="nav-unread-dot" aria-label="Olvasatlan üzenetek"></span>
                 </div>
               </button>
 
@@ -283,6 +304,15 @@ const handleLogout = async () => {
 
 .nav-avatar-btn:active {
   transform: scale(0.92);
+}
+
+.nav-unread-dot {
+  position: absolute;
+  top: -1px; right: -1px;
+  width: 0.625rem; height: 0.625rem;
+  border-radius: 999px;
+  background: var(--color-danger);
+  border: 2px solid var(--color-bg);
 }
 
 .profile-dropdown {

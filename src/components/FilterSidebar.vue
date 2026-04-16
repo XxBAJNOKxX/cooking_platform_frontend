@@ -21,6 +21,7 @@ let   timeTimer   = null
 const mobileOpen  = ref(false)
 const catOpen     = ref(false)
 const catDropRef  = ref(null)
+const catOptionsRef = ref(null)
 
 watch(
   () => props.modelValue,
@@ -46,6 +47,19 @@ function onSearch(val) {
 function selectCategory(name) {
   catOpen.value = false
   patch('category', name)
+}
+
+function onCatKeydown(e) {
+  if (!catOpen.value) return
+  const letter = e.key.length === 1 ? e.key.toLowerCase() : null
+  if (!letter) return
+  e.preventDefault()
+  const buttons = catOptionsRef.value?.querySelectorAll('button')
+  if (!buttons) return
+  const match = Array.from(buttons).find(
+    btn => btn.textContent.trim().toLowerCase().startsWith(letter)
+  )
+  match?.focus()
 }
 
 function toggleDifficulty(d) {
@@ -157,6 +171,7 @@ const DIFFICULTIES = [
             :disabled="categoriesLoading"
             :aria-expanded="catOpen"
             @click="catOpen = !catOpen"
+            @keydown="onCatKeydown"
           >
             <span class="cat-trigger-text">
               {{ categoriesLoading ? 'Betöltés…' : (local.category || 'Összes kategória') }}
@@ -167,7 +182,7 @@ const DIFFICULTIES = [
             </svg>
           </button>
 
-          <div v-show="catOpen" class="cat-options" role="listbox">
+          <div v-show="catOpen" class="cat-options" role="listbox" ref="catOptionsRef" @keydown="onCatKeydown" tabindex="0">
             <button
               type="button"
               class="cat-option"

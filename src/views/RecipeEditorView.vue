@@ -115,8 +115,7 @@ async function fetchRecipe() {
 }
 
 // ---- Image upload ----
-async function onFileChange(e) {
-  const file = e.target.files?.[0]
+async function uploadFile(file) {
   if (!file) return
   imageUploading.value = true
   imgBroken.value      = false
@@ -134,6 +133,27 @@ async function onFileChange(e) {
   } finally {
     imageUploading.value = false
     if (fileInputRef.value) fileInputRef.value.value = ''
+  }
+}
+
+async function onFileChange(e) {
+  await uploadFile(e.target.files?.[0])
+}
+
+const imgDragOver = ref(false)
+
+function onImgDrop(e) {
+  imgDragOver.value = false
+  const dt = e.dataTransfer
+  if (dt.files?.length) {
+    uploadFile(dt.files[0])
+    return
+  }
+  const url = dt.getData('text/uri-list') || dt.getData('text/plain') || dt.getData('text/html')
+  const match = url?.match(/https?:\/\/[^\s"'<>]+/)
+  if (match) {
+    form.value.image_url = match[0]
+    imgBroken.value = false
   }
 }
 
@@ -335,39 +355,48 @@ onBeforeUnmount(() => {
             <!-- Image URL + upload -->
             <div class="field">
               <label class="field-label">Kép</label>
-              <div class="img-row">
-                <input
-                  v-model="form.image_url"
-                  type="url"
-                  class="img-url-input"
-                  :class="{ 'img-url-input--err': errors.image_url }"
-                  placeholder="https://…"
-                  @input="imgBroken = false"
-                />
-                <button
-                  type="button"
-                  class="img-upload-btn"
-                  :disabled="imageUploading"
-                  @click="fileInputRef.click()"
-                  :aria-busy="imageUploading"
-                >
-                  <svg v-if="imageUploading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="re-spin" aria-hidden="true">
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke-linecap="round"/>
-                  </svg>
-                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-linecap="round"/>
-                    <polyline points="17,8 12,3 7,8" stroke-linecap="round"/>
-                    <line x1="12" y1="3" x2="12" y2="15" stroke-linecap="round"/>
-                  </svg>
-                  {{ imageUploading ? 'Feltöltés…' : 'Feltöltés' }}
-                </button>
-                <input
-                  ref="fileInputRef"
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  class="img-file-hidden"
-                  @change="onFileChange"
-                />
+              <div
+                class="img-drop-zone"
+                :class="{ 'img-drop-zone--over': imgDragOver }"
+                @dragover.prevent="imgDragOver = true"
+                @dragleave="imgDragOver = false"
+                @drop.prevent="onImgDrop"
+              >
+                <div class="img-row">
+                  <input
+                    v-model="form.image_url"
+                    type="url"
+                    class="img-url-input"
+                    :class="{ 'img-url-input--err': errors.image_url }"
+                    placeholder="https://…"
+                    @input="imgBroken = false"
+                  />
+                  <button
+                    type="button"
+                    class="img-upload-btn"
+                    :disabled="imageUploading"
+                    @click="fileInputRef.click()"
+                    :aria-busy="imageUploading"
+                  >
+                    <svg v-if="imageUploading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="re-spin" aria-hidden="true">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke-linecap="round"/>
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-linecap="round"/>
+                      <polyline points="17,8 12,3 7,8" stroke-linecap="round"/>
+                      <line x1="12" y1="3" x2="12" y2="15" stroke-linecap="round"/>
+                    </svg>
+                    {{ imageUploading ? 'Feltöltés…' : 'Feltöltés' }}
+                  </button>
+                  <input
+                    ref="fileInputRef"
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    class="img-file-hidden"
+                    @change="onFileChange"
+                  />
+                </div>
+                <p v-if="imgDragOver" class="img-drop-hint">Húzd ide a képfájlt vagy URL-t</p>
               </div>
               <p v-if="errors.image_url" class="field-err">{{ errors.image_url[0] }}</p>
             </div>
@@ -830,6 +859,25 @@ onBeforeUnmount(() => {
   font-weight: 600;
   color: var(--color-danger);
   margin: 0;
+}
+
+/* ── Drag & drop zone ── */
+.img-drop-zone {
+  border-radius: 0.75rem;
+  border: 1.5px dashed transparent;
+  padding: 4px;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.img-drop-zone--over {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+.img-drop-hint {
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  font-weight: 600;
+  text-align: center;
+  margin-top: 4px;
 }
 
 /* ── Image upload row ── */
