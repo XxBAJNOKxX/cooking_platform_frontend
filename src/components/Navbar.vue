@@ -96,11 +96,11 @@ const handleLogout = async () => {
           <RouterLink to="/recipes" class="nav-link text-sm font-semibold text-muted hover:text-text">
             Receptek
           </RouterLink>
+          <RouterLink to="/tools" class="nav-link text-sm font-semibold text-muted hover:text-text">
+            Eszközök
+          </RouterLink>
 
           <template v-if="authStore.isAuthenticated">
-            <RouterLink to="/tools" class="nav-link text-sm font-semibold text-muted hover:text-text">
-              Eszközök
-            </RouterLink>
             <RouterLink to="/calendar" class="nav-link text-sm font-semibold text-muted hover:text-text">
               Naptár
             </RouterLink>
@@ -191,12 +191,12 @@ const handleLogout = async () => {
             <span>Receptek</span>
           </RouterLink>
 
-          <template v-if="authStore.isAuthenticated">
-            <RouterLink @click="closeMobileMenu" to="/tools" exact-active-class="mobile-link-active"
-              class="mobile-link">
-              <span>Eszközök</span>
-            </RouterLink>
+          <RouterLink @click="closeMobileMenu" to="/tools" exact-active-class="mobile-link-active"
+            class="mobile-link">
+            <span>Eszközök</span>
+          </RouterLink>
 
+          <template v-if="authStore.isAuthenticated">
             <RouterLink @click="closeMobileMenu" to="/calendar" exact-active-class="mobile-link-active"
               class="mobile-link">
               <span>Naptár</span>

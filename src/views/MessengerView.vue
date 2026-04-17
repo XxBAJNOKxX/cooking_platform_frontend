@@ -63,6 +63,9 @@ const conversations = computed(() => {
 
 const selectedPartnerId = ref(null)
 const externalPartner = ref(null)
+const externalTool = ref(null)
+const toolActing = ref(false)
+const toolNotice = ref('')
 
 const activeConversation = computed(() =>
   conversations.value.find(c => c.partner.id === selectedPartnerId.value) ?? null
@@ -72,9 +75,23 @@ const activePartner = computed(() =>
   activeConversation.value?.partner ?? externalPartner.value ?? null
 )
 
+// Most recent tool referenced by either side in the active conversation.
+// Used to show the "context tool" header with a rent-out action for the owner.
+const activeTool = computed(() => {
+  const conv = activeConversation.value
+  if (!conv) return externalTool.value
+  for (let i = conv.messages.length - 1; i >= 0; i--) {
+    const m = conv.messages[i]
+    if (m.tool?.id) return m.tool
+  }
+  return externalTool.value
+})
+
 function selectConversation(conv) {
   selectedPartnerId.value = conv.partner.id
   externalPartner.value = null
+  externalTool.value = null
+  toolNotice.value = ''
   markConversationRead(conv)
   scrollToBottom()
 }
@@ -95,6 +112,8 @@ onMounted(async () => {
   await fetchMessages()
 
   const urlUserId = route.query.userId ? parseInt(route.query.userId) : null
+  const urlToolId = route.query.toolId ? parseInt(route.query.toolId) : null
+
   if (urlUserId) {
     const found = conversations.value.find(c => c.partner.id === urlUserId)
     if (found) {
@@ -106,6 +125,20 @@ onMounted(async () => {
         username: route.query.username ?? `Felhasználó #${urlUserId}`,
       }
     }
+  }
+
+  if (urlToolId) {
+    try {
+      const res = await api.get(`/kitchen-tools/${urlToolId}`)
+      const t = res.data.data
+      externalTool.value = {
+        id: t.id,
+        name: t.name,
+        image_url: t.image_url,
+        is_available: t.is_available,
+        is_owner: t.is_owner,
+      }
+    } catch { /* ignore missing tool */ }
   }
 })
 
@@ -127,10 +160,16 @@ async function sendMessage(content) {
   if (!selectedPartnerId.value) return
   sendLoading.value = true
   try {
-    const res = await api.post('/messages', {
+    const payload = {
       receiver_id: selectedPartnerId.value,
       content,
-    })
+    }
+    // If we opened the chat from a tool, pin the first message to it so
+    // either participant can jump back to the listing.
+    if (externalTool.value?.id && !activeConversation.value) {
+      payload.tool_id = externalTool.value.id
+    }
+    const res = await api.post('/messages', payload)
     const newMsg = res.data.data
     allMessages.value.push(newMsg)
     if (externalPartner.value) externalPartner.value = null
@@ -139,6 +178,44 @@ async function sendMessage(content) {
     // TODO: toast error
   } finally {
     sendLoading.value = false
+  }
+}
+
+async function markToolRented() {
+  const tool = activeTool.value
+  if (!tool?.is_owner || !selectedPartnerId.value) return
+  toolActing.value = true
+  try {
+    const res = await api.post(`/kitchen-tools/${tool.id}/rent-out`, {
+      receiver_id: selectedPartnerId.value,
+    })
+    allMessages.value.push(res.data.data)
+    toolNotice.value = `Megjelölted "kiadva" státuszúnak: ${tool.name}`
+    await scrollToBottom()
+  } catch (e) {
+    console.error('[markToolRented]', e)
+    toolNotice.value = 'A jelölés nem sikerült.'
+  } finally {
+    toolActing.value = false
+  }
+}
+
+async function markToolAvailable() {
+  const tool = activeTool.value
+  if (!tool?.is_owner) return
+  toolActing.value = true
+  try {
+    const res = await api.post(`/kitchen-tools/${tool.id}/mark-available`, {
+      receiver_id: selectedPartnerId.value,
+    })
+    allMessages.value.push(res.data.data)
+    toolNotice.value = `${tool.name}: újra elérhető.`
+    await scrollToBottom()
+  } catch (e) {
+    console.error('[markToolAvailable]', e)
+    toolNotice.value = 'A jelölés nem sikerült.'
+  } finally {
+    toolActing.value = false
   }
 }
 
@@ -276,6 +353,44 @@ const showPanel = ref(false)
           </div>
           <span class="chat-partner-name">{{ activePartner?.username }}</span>
         </div>
+
+        <!-- Tool context banner -->
+        <div v-if="activeTool" class="tool-banner" :class="{ 'tool-banner-rented': !activeTool.is_available }">
+          <RouterLink :to="{ name: 'tool-detail', params: { id: activeTool.id } }" class="tool-banner-link">
+            <img v-if="activeTool.image_url" :src="activeTool.image_url" :alt="activeTool.name" class="tool-banner-img" />
+            <div v-else class="tool-banner-img tool-banner-img-fallback" aria-hidden="true">🧰</div>
+            <div class="tool-banner-body">
+              <span class="tool-banner-label">
+                {{ activeTool.is_available ? 'Erről az eszközről beszéltek' : 'Jelenleg kiadva' }}
+              </span>
+              <span class="tool-banner-name">{{ activeTool.name }}</span>
+            </div>
+          </RouterLink>
+
+          <div v-if="activeTool.is_owner" class="tool-banner-actions">
+            <button
+              v-if="activeTool.is_available"
+              class="tool-action tool-action-primary"
+              :disabled="toolActing"
+              @click="markToolRented"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M20 7L9 18l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Kiadva jelölés
+            </button>
+            <button
+              v-else
+              class="tool-action"
+              :disabled="toolActing"
+              @click="markToolAvailable"
+            >
+              Újra elérhetővé
+            </button>
+          </div>
+        </div>
+
+        <p v-if="toolNotice" class="tool-notice">{{ toolNotice }}</p>
 
         <!-- Messages -->
         <div class="messages-area">
@@ -504,6 +619,99 @@ const showPanel = ref(false)
   flex-direction: column;
   gap: 0.5rem;
   scroll-behavior: smooth;
+}
+
+/* ── Tool context banner ── */
+.tool-banner {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.55rem 0.75rem 0.55rem 0.55rem;
+  margin: 0.6rem 0.75rem 0;
+  border: 1.5px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 7%, var(--color-bg));
+  border-radius: 0.875rem;
+  animation: toolBannerIn 240ms var(--ease-ui-out) both;
+}
+@keyframes toolBannerIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.tool-banner-rented {
+  border-color: color-mix(in srgb, #2f1e17 25%, transparent);
+  background: color-mix(in srgb, #2f1e17 6%, var(--color-bg));
+}
+
+.tool-banner-link {
+  display: flex; align-items: center; gap: 0.6rem;
+  flex: 1; min-width: 0;
+  text-decoration: none;
+  color: var(--color-text);
+  transition: opacity 150ms var(--ease-ui-out);
+}
+.tool-banner-link:hover { opacity: 0.85; }
+
+.tool-banner-img {
+  width: 2.25rem; height: 2.25rem;
+  border-radius: 0.55rem;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--color-stroke);
+}
+.tool-banner-img-fallback {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-surface);
+  font-size: 1rem;
+}
+
+.tool-banner-body {
+  display: flex; flex-direction: column; gap: 0.05rem;
+  min-width: 0; flex: 1;
+}
+
+.tool-banner-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.tool-banner-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.tool-banner-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+
+.tool-action {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-stroke);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.78rem; font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out), border-color 150ms var(--ease-ui-out);
+}
+.tool-action:hover  { background: var(--color-surface); }
+.tool-action:active { transform: scale(0.96); }
+.tool-action:disabled { opacity: 0.55; cursor: wait; }
+.tool-action svg { width: 0.85rem; height: 0.85rem; }
+
+.tool-action-primary {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+.tool-action-primary:hover { background: var(--color-accent-hover); }
+
+.tool-notice {
+  margin: 0.4rem 0.85rem 0;
+  font-size: 0.78rem;
+  color: var(--color-accent);
+  animation: toolBannerIn 240ms var(--ease-ui-out) both;
 }
 
 /* ── Day separator ── */

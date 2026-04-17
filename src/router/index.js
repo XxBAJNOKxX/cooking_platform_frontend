@@ -45,6 +45,28 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/tools',
+      name: 'tools',
+      component: () => import('@/views/tools/ToolMarketView.vue'),
+    },
+    {
+      path: '/tools/create',
+      name: 'tool-create',
+      component: () => import('@/views/tools/ToolEditorView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/tools/:id',
+      name: 'tool-detail',
+      component: () => import('@/views/tools/ToolDetailView.vue')
+    },
+    {
+      path: '/tools/:id/edit',
+      name: 'tool-edit',
+      component: () => import('@/views/tools/ToolEditorView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/profile',
       name: 'profile',
       component: () => import('@/views/ProfileView.vue'),
