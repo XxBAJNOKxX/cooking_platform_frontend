@@ -41,7 +41,7 @@ function syncFromRoute() {
 
 // ---- Build API params ----
 function buildParams(page = 1) {
-  const p = { page }
+  const p = { page, per_page: 18 }
   if (filters.value.search)     p.search     = filters.value.search
   if (filters.value.category)   p.category   = filters.value.category
   if (filters.value.difficulty) p.difficulty = filters.value.difficulty
@@ -66,13 +66,27 @@ async function fetchRecipes(page = 1) {
 }
 
 // ---- Fetch categories (for filter sidebar) ----
-async function fetchCategories() {
+//      Retries once with a short backoff if the first attempt fails or
+//      returns an empty list — fixes cold-start flakiness where the
+//      category dropdown occasionally rendered empty.
+async function fetchCategories({ retry = true } = {}) {
   categoriesLoading.value = true
   try {
     const { data } = await api.get('/categories')
-    categories.value = data.data
+    const list = data.data ?? []
+    if (list.length === 0 && retry) {
+      categoriesLoading.value = false
+      await new Promise(r => setTimeout(r, 400))
+      return fetchCategories({ retry: false })
+    }
+    categories.value = list
   } catch (err) {
     if (import.meta.env.DEV) console.warn('[fetchCategories]', err)
+    if (retry) {
+      categoriesLoading.value = false
+      await new Promise(r => setTimeout(r, 600))
+      return fetchCategories({ retry: false })
+    }
     // silent – dropdown still usable with just "Összes kategória"
   } finally {
     categoriesLoading.value = false
@@ -100,6 +114,9 @@ watch(
   () => {
     syncFromRoute()
     fetchRecipes(1)
+    if (categories.value.length === 0 && !categoriesLoading.value) {
+      fetchCategories()
+    }
   },
   { deep: true }
 )

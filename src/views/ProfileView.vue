@@ -1,15 +1,14 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import RecipeCard from '@/components/RecipeCard.vue'
+import ToolCard from '@/components/tools/ToolCard.vue'
 import SettingsModal from '@/components/SettingsModal.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import BaseButton from '@/components/BaseButton.vue'
 
 const authStore = useAuthStore()
-const router = useRouter()
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
 
@@ -28,6 +27,10 @@ const joinedLabel = computed(() => {
 
 const showSettings = ref(false)
 
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+
+const activeTab = ref('recipes')
+
 // ─── My Recipes ───────────────────────────────────────────────────────────────
 
 const recipes = ref([])
@@ -36,6 +39,7 @@ const recipesError = ref(null)
 const recipesPage = ref(1)
 const recipesLastPage = ref(1)
 const recipesTotal = ref(0)
+const recipesLoaded = ref(false)
 
 async function fetchMyRecipes(page = 1) {
   if (!profile.value?.id) return
@@ -49,6 +53,7 @@ async function fetchMyRecipes(page = 1) {
     recipesPage.value = res.data.meta?.current_page ?? 1
     recipesLastPage.value = res.data.meta?.last_page ?? 1
     recipesTotal.value = res.data.meta?.total ?? recipes.value.length
+    recipesLoaded.value = true
   } catch {
     recipesError.value = 'Nem sikerült betölteni a recepteket.'
   } finally {
@@ -56,14 +61,64 @@ async function fetchMyRecipes(page = 1) {
   }
 }
 
-// ─── Delete Recipe ────────────────────────────────────────────────────────────
+// ─── My Tools ─────────────────────────────────────────────────────────────────
+
+const tools = ref([])
+const toolsLoading = ref(false)
+const toolsError = ref(null)
+const toolsPage = ref(1)
+const toolsLastPage = ref(1)
+const toolsTotal = ref(0)
+const toolsLoaded = ref(false)
+
+async function fetchMyTools(page = 1) {
+  if (!profile.value?.id) return
+  toolsLoading.value = true
+  toolsError.value = null
+  try {
+    const res = await api.get('/tools', {
+      params: { user_id: profile.value.id, per_page: 12, page },
+    })
+    tools.value = res.data.data ?? []
+    toolsPage.value = res.data.meta?.current_page ?? 1
+    toolsLastPage.value = res.data.meta?.last_page ?? 1
+    toolsTotal.value = res.data.meta?.total ?? tools.value.length
+    toolsLoaded.value = true
+  } catch {
+    toolsError.value = 'Nem sikerült betölteni az eszközöket.'
+  } finally {
+    toolsLoading.value = false
+  }
+}
+
+watch(activeTab, (tab) => {
+  if (tab === 'tools' && !toolsLoaded.value && !toolsLoading.value) {
+    fetchMyTools(1)
+  }
+})
+
+// ─── Delete (shared modal) ────────────────────────────────────────────────────
 
 const deleteTarget = ref(null)
+const deleteKind = ref(null) // 'recipe' | 'tool'
 const deleting = ref(false)
 const deleteError = ref('')
 
-function confirmDelete(recipe) {
+function confirmDeleteRecipe(recipe) {
   deleteTarget.value = recipe
+  deleteKind.value = 'recipe'
+  deleteError.value = ''
+}
+
+function confirmDeleteTool(tool) {
+  deleteTarget.value = tool
+  deleteKind.value = 'tool'
+  deleteError.value = ''
+}
+
+function closeDelete() {
+  deleteTarget.value = null
+  deleteKind.value = null
   deleteError.value = ''
 }
 
@@ -72,15 +127,26 @@ async function doDelete() {
   deleting.value = true
   deleteError.value = ''
   try {
-    await api.delete(`/recipes/${deleteTarget.value.id}`)
-    recipes.value = recipes.value.filter(r => r.id !== deleteTarget.value.id)
-    deleteTarget.value = null
+    if (deleteKind.value === 'recipe') {
+      await api.delete(`/recipes/${deleteTarget.value.id}`)
+      recipes.value = recipes.value.filter(r => r.id !== deleteTarget.value.id)
+      recipesTotal.value = Math.max(0, recipesTotal.value - 1)
+    } else if (deleteKind.value === 'tool') {
+      await api.delete(`/tools/${deleteTarget.value.id}`)
+      tools.value = tools.value.filter(t => t.id !== deleteTarget.value.id)
+      toolsTotal.value = Math.max(0, toolsTotal.value - 1)
+    }
+    closeDelete()
   } catch {
     deleteError.value = 'Törlés sikertelen. Próbáld újra.'
   } finally {
     deleting.value = false
   }
 }
+
+const deleteTitle = computed(() =>
+  deleteKind.value === 'tool' ? 'Eszköz törlése' : 'Recept törlése'
+)
 
 onMounted(fetchMyRecipes)
 </script>
@@ -128,6 +194,10 @@ onMounted(fetchMyRecipes)
         <span class="stat-num">{{ recipesTotal }}</span>
         <span class="stat-lbl">recept</span>
       </div>
+      <div class="stat-chip">
+        <span class="stat-num">{{ toolsTotal }}</span>
+        <span class="stat-lbl">eszköz</span>
+      </div>
       <RouterLink to="/messages" class="stat-chip stat-link">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="stat-icon" aria-hidden="true">
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
@@ -136,11 +206,42 @@ onMounted(fetchMyRecipes)
       </RouterLink>
     </div>
 
-    <!-- ── My Recipes ────────────────────────────────────────────── -->
-    <section class="recipes-section">
+    <!-- ── Tabs ─────────────────────────────────────────────────── -->
+    <div class="tabs-row" role="tablist">
+      <button
+        class="tab"
+        :class="{ 'tab-active': activeTab === 'recipes' }"
+        role="tab"
+        :aria-selected="activeTab === 'recipes'"
+        @click="activeTab = 'recipes'"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M18 3a3 3 0 00-3 3v11H3V6a3 3 0 016 0v2" stroke-linecap="round"/>
+          <path d="M21 6v12a3 3 0 01-3 3H6" stroke-linecap="round"/>
+        </svg>
+        Receptek
+        <span class="tab-count">{{ recipesTotal }}</span>
+      </button>
+      <button
+        class="tab"
+        :class="{ 'tab-active': activeTab === 'tools' }"
+        role="tab"
+        :aria-selected="activeTab === 'tools'"
+        @click="activeTab = 'tools'"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Eszközök
+        <span class="tab-count">{{ toolsTotal }}</span>
+      </button>
+    </div>
+
+    <!-- ── Recipes panel ────────────────────────────────────────── -->
+    <section v-if="activeTab === 'recipes'" class="panel" role="tabpanel">
       <div class="section-header">
         <h2 class="section-title">Receptjeim</h2>
-        <RouterLink :to="{ name: 'recipe-create' }" class="new-recipe-btn">
+        <RouterLink :to="{ name: 'recipe-create' }" class="new-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
             <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
           </svg>
@@ -148,7 +249,7 @@ onMounted(fetchMyRecipes)
         </RouterLink>
       </div>
 
-      <div v-if="recipesLoading" class="recipes-grid" aria-busy="true" aria-label="Receptek betöltése">
+      <div v-if="recipesLoading" class="items-grid" aria-busy="true" aria-label="Receptek betöltése">
         <div v-for="i in 6" :key="i" class="skel-card" :style="`--skel-delay: ${i * 45}ms`">
           <div class="skel-img" />
           <div class="skel-body">
@@ -165,22 +266,22 @@ onMounted(fetchMyRecipes)
 
       <p v-else-if="recipesError" class="error-text">{{ recipesError }}</p>
 
-      <div v-else-if="recipes.length === 0" class="empty-recipes">
+      <div v-else-if="recipes.length === 0" class="empty-state">
         <p class="empty-text">Még nincs recepted.</p>
         <RouterLink :to="{ name: 'recipe-create' }" class="empty-cta">Hozz létre egyet →</RouterLink>
       </div>
 
-      <div v-else class="recipes-grid">
-        <div v-for="(recipe, i) in recipes" :key="recipe.id" class="recipe-wrap">
+      <div v-else class="items-grid">
+        <div v-for="(recipe, i) in recipes" :key="recipe.id" class="item-wrap">
           <RecipeCard :recipe="recipe" :index="i" />
-          <div class="recipe-actions">
-            <RouterLink :to="{ name: 'recipe-edit', params: { id: recipe.id } }" class="action-btn action-edit" title="Szerkesztés">
+          <div class="item-actions">
+            <RouterLink :to="{ name: 'recipe-edit', params: { id: recipe.id } }" class="action-btn action-edit" title="Szerkesztés" aria-label="Szerkesztés">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke-linecap="round"/>
                 <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke-linecap="round"/>
               </svg>
             </RouterLink>
-            <button class="action-btn action-delete" title="Törlés" @click="confirmDelete(recipe)">
+            <button class="action-btn action-delete" title="Törlés" aria-label="Törlés" @click="confirmDeleteRecipe(recipe)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                 <polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/>
                 <path d="M10 11v6M14 11v6M9 6V4h6v2" stroke-linecap="round"/>
@@ -190,7 +291,7 @@ onMounted(fetchMyRecipes)
         </div>
       </div>
 
-      <div v-if="recipesLastPage > 1" class="recipes-pagination">
+      <div v-if="recipesLastPage > 1" class="pagination">
         <button
           class="page-btn"
           :disabled="recipesPage === 1"
@@ -215,6 +316,85 @@ onMounted(fetchMyRecipes)
       </div>
     </section>
 
+    <!-- ── Tools panel ──────────────────────────────────────────── -->
+    <section v-else-if="activeTab === 'tools'" class="panel" role="tabpanel">
+      <div class="section-header">
+        <h2 class="section-title">Eszközeim</h2>
+        <RouterLink :to="{ name: 'tool-create' }" class="new-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+          </svg>
+          Új eszköz
+        </RouterLink>
+      </div>
+
+      <div v-if="toolsLoading" class="items-grid" aria-busy="true" aria-label="Eszközök betöltése">
+        <div v-for="i in 6" :key="i" class="skel-card" :style="`--skel-delay: ${i * 45}ms`">
+          <div class="skel-img" />
+          <div class="skel-body">
+            <div class="skel-line skel-t1" />
+            <div class="skel-line skel-t2" />
+            <div class="skel-line skel-t3" />
+            <div class="skel-chips">
+              <div class="skel-chip" />
+              <div class="skel-chip skel-chip-sm" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p v-else-if="toolsError" class="error-text">{{ toolsError }}</p>
+
+      <div v-else-if="tools.length === 0" class="empty-state">
+        <p class="empty-text">Még nincs eszközöd bérbeadásra.</p>
+        <RouterLink :to="{ name: 'tool-create' }" class="empty-cta">Hozz létre egyet →</RouterLink>
+      </div>
+
+      <div v-else class="items-grid">
+        <div v-for="(tool, i) in tools" :key="tool.id" class="item-wrap">
+          <ToolCard :tool="tool" :index="i" />
+          <div class="item-actions">
+            <RouterLink :to="{ name: 'tool-edit', params: { id: tool.id } }" class="action-btn action-edit" title="Szerkesztés" aria-label="Szerkesztés">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke-linecap="round"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke-linecap="round"/>
+              </svg>
+            </RouterLink>
+            <button class="action-btn action-delete" title="Törlés" aria-label="Törlés" @click="confirmDeleteTool(tool)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/>
+                <path d="M10 11v6M14 11v6M9 6V4h6v2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="toolsLastPage > 1" class="pagination">
+        <button
+          class="page-btn"
+          :disabled="toolsPage === 1"
+          @click="fetchMyTools(toolsPage - 1)"
+          aria-label="Előző oldal"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <polyline points="15,18 9,12 15,6"/>
+          </svg>
+        </button>
+        <span class="page-info">{{ toolsPage }} / {{ toolsLastPage }}</span>
+        <button
+          class="page-btn"
+          :disabled="toolsPage === toolsLastPage"
+          @click="fetchMyTools(toolsPage + 1)"
+          aria-label="Következő oldal"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <polyline points="9,18 15,12 9,6"/>
+          </svg>
+        </button>
+      </div>
+    </section>
+
     <!-- ── Settings modal ───────────────────────────────────────── -->
     <SettingsModal v-model="showSettings" />
 
@@ -222,18 +402,19 @@ onMounted(fetchMyRecipes)
     <BaseModal
       v-if="deleteTarget"
       :model-value="true"
-      title="Recept törlése"
+      :title="deleteTitle"
       max-width="max-w-sm"
-      @close="deleteTarget = null; deleteError = ''"
+      @close="closeDelete"
     >
       <p class="del-text">
-        Biztosan törölni szeretnéd a <strong>{{ deleteTarget?.title }}</strong> receptet?
+        Biztosan törölni szeretnéd a/az <strong>{{ deleteTarget?.name ?? deleteTarget?.title }}</strong>
+        {{ deleteKind === 'tool' ? 'eszközt' : 'receptet' }}?
         Ez a művelet nem vonható vissza.
       </p>
       <p v-if="deleteError" class="del-error">{{ deleteError }}</p>
       <template #footer>
         <div class="del-footer">
-          <BaseButton variant="outline" @click="deleteTarget = null; deleteError = ''">Mégse</BaseButton>
+          <BaseButton variant="outline" @click="closeDelete">Mégse</BaseButton>
           <BaseButton variant="danger" :loading="deleting" @click="doDelete">Törlés</BaseButton>
         </div>
       </template>
@@ -244,12 +425,12 @@ onMounted(fetchMyRecipes)
 
 <style scoped>
 .profile-page {
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 2rem 1.25rem 4rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 /* ── Profile card ──────────────────────────────────────────────── */
@@ -299,6 +480,7 @@ onMounted(fetchMyRecipes)
   font-size: 1.375rem; font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--color-text);
+  overflow-wrap: anywhere;
 }
 
 .edit-btn {
@@ -318,7 +500,7 @@ onMounted(fetchMyRecipes)
 }
 .edit-btn:active { transform: scale(0.95); }
 
-.profile-email { font-size: 0.875rem; color: var(--color-muted); }
+.profile-email { font-size: 0.875rem; color: var(--color-muted); overflow-wrap: anywhere; }
 
 .profile-meta {
   display: flex; align-items: center; gap: 0.3rem;
@@ -329,6 +511,7 @@ onMounted(fetchMyRecipes)
 .profile-bio {
   font-size: 0.9rem; color: var(--color-text);
   line-height: 1.6; margin-top: 0.1rem;
+  overflow-wrap: anywhere;
 }
 
 .profile-joined { font-size: 0.78rem; color: var(--color-muted); }
@@ -358,8 +541,56 @@ onMounted(fetchMyRecipes)
 }
 .stat-link:active { transform: scale(0.96); }
 
-/* ── Recipes section ─────────────────────────────────────────────  */
-.recipes-section {
+/* ── Tabs ──────────────────────────────────────────────────────── */
+.tabs-row {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1.5px solid var(--color-stroke);
+  animation: fadeUp 320ms var(--ease-ui-out) 80ms both;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs-row::-webkit-scrollbar { display: none; }
+
+.tab {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.625rem 1rem;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 0.875rem; font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-bottom: -1.5px;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.tab svg { width: 0.9rem; height: 0.9rem; }
+.tab-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.25rem; height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-stroke);
+  font-size: 0.7rem; font-weight: 700;
+  color: var(--color-muted);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tab:hover { color: var(--color-text); }
+}
+.tab-active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+.tab-active .tab-count {
+  border-color: var(--color-accent-soft, var(--color-accent));
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+/* ── Panel ─────────────────────────────────────────────────────── */
+.panel {
   display: flex; flex-direction: column; gap: 1rem;
   animation: fadeUp 320ms var(--ease-ui-out) 100ms both;
 }
@@ -373,7 +604,7 @@ onMounted(fetchMyRecipes)
   letter-spacing: -0.01em; color: var(--color-text);
 }
 
-.new-recipe-btn {
+.new-btn {
   display: inline-flex; align-items: center; gap: 0.35rem;
   padding: 0.4rem 0.875rem;
   border-radius: 999px;
@@ -383,9 +614,9 @@ onMounted(fetchMyRecipes)
   text-decoration: none;
   transition: background 150ms ease, transform 150ms var(--ease-ui-out);
 }
-.new-recipe-btn svg { width: 0.875rem; height: 0.875rem; }
-.new-recipe-btn:hover { background: var(--color-accent-hover); }
-.new-recipe-btn:active { transform: scale(0.96); }
+.new-btn svg { width: 0.875rem; height: 0.875rem; }
+.new-btn:hover { background: var(--color-accent-hover); }
+.new-btn:active { transform: scale(0.96); }
 
 /* ── Skeleton ── */
 .skel-card {
@@ -421,23 +652,19 @@ onMounted(fetchMyRecipes)
 }
 
 .skel-img { aspect-ratio: 3 / 2; border-radius: 0; animation-delay: var(--skel-delay, 0ms); }
-
 .skel-body { padding: 14px 15px 15px; display: flex; flex-direction: column; gap: 8px; }
-
 .skel-line { height: 13px; }
 .skel-t1   { width: 82%; animation-delay: calc(var(--skel-delay, 0ms) + 60ms); }
 .skel-t2   { width: 100%; animation-delay: calc(var(--skel-delay, 0ms) + 100ms); }
 .skel-t3   { width: 65%; animation-delay: calc(var(--skel-delay, 0ms) + 140ms); }
-
 .skel-chips { display: flex; gap: 6px; margin-top: 2px; }
 .skel-chip    { height: 24px; width: 72px; border-radius: 8px; animation-delay: calc(var(--skel-delay, 0ms) + 180ms); }
 .skel-chip-sm { width: 54px; animation-delay: calc(var(--skel-delay, 0ms) + 210ms); }
 
 /* ── States ── */
-.state-center { display: flex; justify-content: center; padding: 2.5rem; }
-.error-text   { font-size: 0.875rem; color: var(--color-danger); text-align: center; }
+.error-text { font-size: 0.875rem; color: var(--color-danger); text-align: center; }
 
-.empty-recipes {
+.empty-state {
   display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
   padding: 3rem; text-align: center;
   background: var(--color-surface);
@@ -447,18 +674,18 @@ onMounted(fetchMyRecipes)
 .empty-text { font-size: 0.9rem; color: var(--color-muted); }
 .empty-cta  { font-size: 0.875rem; font-weight: 700; color: var(--color-accent); text-decoration: underline; text-underline-offset: 3px; }
 
-/* ── Recipes grid ── */
-.recipes-grid {
+/* ── Items grid (recipes + tools share) ── */
+.items-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
 }
+@media (max-width: 1023px) { .items-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 479px)  { .items-grid { grid-template-columns: 1fr; } }
 
-.recipe-wrap {
-  position: relative;
-}
+.item-wrap { position: relative; }
 
-.recipe-actions {
+.item-actions {
   position: absolute;
   top: 0.5rem; right: 0.5rem;
   display: flex; gap: 0.3rem;
@@ -467,9 +694,16 @@ onMounted(fetchMyRecipes)
   z-index: 2;
 }
 
-.recipe-wrap:hover .recipe-actions,
-.recipe-wrap:focus-within .recipe-actions {
-  opacity: 1;
+@media (hover: hover) and (pointer: fine) {
+  .item-wrap:hover .item-actions,
+  .item-wrap:focus-within .item-actions {
+    opacity: 1;
+  }
+}
+
+/* Touch devices: always visible */
+@media (hover: none), (pointer: coarse) {
+  .item-actions { opacity: 1; }
 }
 
 .action-btn {
@@ -479,19 +713,20 @@ onMounted(fetchMyRecipes)
   border: none;
   cursor: pointer;
   backdrop-filter: blur(6px);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   transition: transform 150ms var(--ease-ui-out), background 150ms ease;
 }
 .action-btn svg { width: 0.875rem; height: 0.875rem; }
 
 .action-edit {
-  background: rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.92);
   color: var(--color-text);
   text-decoration: none;
 }
 .action-edit:hover { background: white; }
 
 .action-delete {
-  background: rgba(217, 75, 75, 0.88);
+  background: rgba(217, 75, 75, 0.92);
   color: white;
 }
 .action-delete:hover { background: var(--color-danger); }
@@ -508,7 +743,7 @@ onMounted(fetchMyRecipes)
 .del-footer { display: flex; justify-content: flex-end; gap: 0.5rem; }
 
 /* ── Pagination ── */
-.recipes-pagination {
+.pagination {
   display: flex; align-items: center; justify-content: center; gap: 0.75rem;
   margin-top: 0.5rem;
 }
@@ -536,6 +771,7 @@ onMounted(fetchMyRecipes)
 
 /* ── Responsive ── */
 @media (max-width: 600px) {
+  .profile-page { padding: 1.5rem 0.875rem 3rem; }
   .profile-card { flex-direction: column; align-items: center; text-align: center; padding: 1.25rem; }
   .profile-name-row { justify-content: center; }
   .profile-meta { justify-content: center; }

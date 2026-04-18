@@ -97,12 +97,18 @@ function selectConversation(conv) {
 }
 
 function markConversationRead(conv) {
+  let changed = false
   conv.messages.forEach(msg => {
     if (!msg.is_read && msg.receiver?.id === myId.value) {
       msg.is_read = true
+      changed = true
       api.put(`/messages/${msg.id}`, { is_read: true }).catch(() => {})
     }
   })
+  if (changed) {
+    // Let the navbar refresh its unread badge immediately.
+    window.dispatchEvent(new CustomEvent('unread:refresh'))
+  }
 }
 
 // Watch URL params on mount
@@ -111,8 +117,11 @@ onMounted(async () => {
 
   await fetchMessages()
 
-  const urlUserId = route.query.userId ? parseInt(route.query.userId) : null
+  const urlUserIdRaw = route.query.userId ? parseInt(route.query.userId) : null
   const urlToolId = route.query.toolId ? parseInt(route.query.toolId) : null
+
+  // Guard: don't open a chat with yourself.
+  const urlUserId = urlUserIdRaw && urlUserIdRaw !== myId.value ? urlUserIdRaw : null
 
   if (urlUserId) {
     const found = conversations.value.find(c => c.partner.id === urlUserId)

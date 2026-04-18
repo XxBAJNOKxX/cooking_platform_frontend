@@ -1,9 +1,8 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import ToolCard from '@/components/tools/ToolCard.vue'
-import ToolMap from '@/components/tools/ToolMap.vue'
 import Pagination from '@/components/Pagination.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -65,6 +64,7 @@ function onSubmit() {
   if (filters.value.max_price) query.max_price = String(filters.value.max_price)
   if (!filters.value.available_only) query.available_only = '0'
   router.push({ name: 'tools', query }).catch(() => {})
+  if (isNarrow.value) filtersOpen.value = false
 }
 
 function resetFilters() {
@@ -74,9 +74,28 @@ function resetFilters() {
 
 watch(() => route.query, () => { syncFromRoute(); fetchTools(1) }, { deep: true })
 
+// ─── Collapsible filter (mobile/tablet) ────────────────────────────
+const isNarrow = ref(false)
+const filtersOpen = ref(true)
+
+const NARROW_BREAKPOINT = 900
+function updateIsNarrow() {
+  const narrow = window.innerWidth < NARROW_BREAKPOINT
+  if (narrow !== isNarrow.value) {
+    isNarrow.value = narrow
+    filtersOpen.value = !narrow
+  }
+}
+
 onMounted(() => {
   syncFromRoute()
   fetchTools(1)
+  updateIsNarrow()
+  window.addEventListener('resize', updateIsNarrow)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateIsNarrow)
 })
 
 function onPageChange(page) {
@@ -84,37 +103,19 @@ function onPageChange(page) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-// --- map overview ---
-const mapTools = computed(() =>
-  tools.value
-    .filter(t => t.latitude && t.longitude)
-    .map(t => ({
-      id: t.id,
-      lat: t.latitude,
-      lng: t.longitude,
-      radius_m: t.location_radius_m ?? 700,
-      name: t.name,
-    }))
-)
-
-const mapCentre = computed(() => {
-  if (!mapTools.value.length) return { lat: 47.4979, lng: 19.0402 } // Budapest default
-  const sumLat = mapTools.value.reduce((s, t) => s + t.lat, 0)
-  const sumLng = mapTools.value.reduce((s, t) => s + t.lng, 0)
-  return {
-    lat: sumLat / mapTools.value.length,
-    lng: sumLng / mapTools.value.length,
-  }
-})
-
-function openFromMap(m) {
-  router.push({ name: 'tool-detail', params: { id: m.id } })
-}
-
 const resultLabel = computed(() => {
   if (!meta.value) return ''
   const t = meta.value.total
   return t === 0 ? 'Nincs találat' : `${t} eszköz`
+})
+
+const activeFilterCount = computed(() => {
+  let n = 0
+  if (filters.value.search) n++
+  if (filters.value.city) n++
+  if (filters.value.max_price) n++
+  if (!filters.value.available_only) n++
+  return n
 })
 </script>
 
@@ -132,112 +133,111 @@ const resultLabel = computed(() => {
       </RouterLink>
     </header>
 
+    <!-- Filter toggle (mobile/tablet only) -->
+    <button
+      v-if="isNarrow"
+      type="button"
+      class="tm-toggle"
+      :aria-expanded="filtersOpen"
+      @click="filtersOpen = !filtersOpen"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <line x1="4" y1="6" x2="20" y2="6" stroke-linecap="round"/>
+        <line x1="7" y1="12" x2="17" y2="12" stroke-linecap="round"/>
+        <line x1="10" y1="18" x2="14" y2="18" stroke-linecap="round"/>
+      </svg>
+      <span>Szűrők</span>
+      <span v-if="activeFilterCount" class="tm-toggle-badge">{{ activeFilterCount }}</span>
+      <svg class="tm-toggle-chev" :class="{ 'tm-toggle-chev--open': filtersOpen }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <polyline points="6,9 12,15 18,9" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+
     <!-- Filters -->
-    <form class="tm-filters" @submit.prevent="onSubmit">
-      <label class="tm-field">
-        <span>Keresés</span>
-        <input
-          v-model="filters.search"
-          type="text"
-          placeholder="név, leírás, város…"
-          class="tm-input"
-        />
-      </label>
+    <Transition name="tm-filters-fade">
+      <form v-show="filtersOpen" class="tm-filters" @submit.prevent="onSubmit">
+        <label class="tm-field">
+          <span>Keresés</span>
+          <input
+            v-model="filters.search"
+            type="text"
+            placeholder="név, leírás, város…"
+            class="tm-input"
+          />
+        </label>
 
-      <label class="tm-field">
-        <span>Város</span>
-        <input
-          v-model="filters.city"
-          type="text"
-          placeholder="pl. Budapest"
-          class="tm-input"
-        />
-      </label>
+        <label class="tm-field">
+          <span>Város</span>
+          <input
+            v-model="filters.city"
+            type="text"
+            placeholder="pl. Budapest"
+            class="tm-input"
+          />
+        </label>
 
-      <label class="tm-field tm-field-sm">
-        <span>Max ár / nap</span>
-        <input
-          v-model.number="filters.max_price"
-          type="number"
-          min="0"
-          placeholder="Ft"
-          class="tm-input"
-        />
-      </label>
+        <label class="tm-field tm-field-sm">
+          <span>Max ár / nap</span>
+          <input
+            v-model.number="filters.max_price"
+            type="number"
+            min="0"
+            placeholder="Ft"
+            class="tm-input"
+          />
+        </label>
 
-      <label class="tm-check">
-        <input type="checkbox" v-model="filters.available_only" />
-        <span>Csak elérhető</span>
-      </label>
+        <label class="tm-check">
+          <input type="checkbox" v-model="filters.available_only" />
+          <span>Csak elérhető</span>
+        </label>
 
-      <div class="tm-actions">
-        <button type="submit" class="tm-btn tm-btn-primary">Szűrés</button>
-        <button type="button" class="tm-btn" @click="resetFilters">Törlés</button>
+        <div class="tm-actions">
+          <button type="submit" class="tm-btn tm-btn-primary">Szűrés</button>
+          <button type="button" class="tm-btn" @click="resetFilters">Törlés</button>
+        </div>
+      </form>
+    </Transition>
+
+    <!-- Tools grid -->
+    <section class="tm-grid-col">
+      <div v-if="loading" class="tm-grid" aria-busy="true">
+        <div v-for="i in 6" :key="i" class="tm-skel" :style="`--d: ${i * 40}ms`">
+          <div class="tm-skel-img" />
+          <div class="tm-skel-body">
+            <div class="tm-skel-line tm-skel-1" />
+            <div class="tm-skel-line tm-skel-2" />
+            <div class="tm-skel-line tm-skel-3" />
+          </div>
+        </div>
       </div>
-    </form>
 
-    <!-- Split: grid + map -->
-    <div class="tm-split">
-      <section class="tm-grid-col">
-        <div v-if="loading" class="tm-grid" aria-busy="true">
-          <div v-for="i in 6" :key="i" class="tm-skel" :style="`--d: ${i * 40}ms`">
-            <div class="tm-skel-img" />
-            <div class="tm-skel-body">
-              <div class="tm-skel-line tm-skel-1" />
-              <div class="tm-skel-line tm-skel-2" />
-              <div class="tm-skel-line tm-skel-3" />
-            </div>
-          </div>
-        </div>
+      <div v-else-if="error" class="tm-empty">
+        <p>{{ error }}</p>
+        <button class="tm-btn" @click="fetchTools(1)">Újra próbálom</button>
+      </div>
 
-        <div v-else-if="error" class="tm-empty">
-          <p>{{ error }}</p>
-          <button class="tm-btn" @click="fetchTools(1)">Újra próbálom</button>
-        </div>
+      <div v-else-if="tools.length === 0" class="tm-empty">
+        <p>Nincs az adott szűrőknek megfelelő eszköz.</p>
+        <button class="tm-btn" @click="resetFilters">Szűrők törlése</button>
+      </div>
 
-        <div v-else-if="tools.length === 0" class="tm-empty">
-          <p>Nincs az adott szűrőknek megfelelő eszköz.</p>
-          <button class="tm-btn" @click="resetFilters">Szűrők törlése</button>
-        </div>
-
-        <div v-else class="tm-grid">
-          <ToolCard
-            v-for="(t, i) in tools"
-            :key="t.id"
-            :tool="t"
-            :index="i"
-          />
-        </div>
-
-        <Pagination
-          v-if="!loading && meta && meta.last_page > 1"
-          :meta="meta"
-          @page-change="onPageChange"
-          class="mt-6"
+      <div v-else class="tm-grid">
+        <ToolCard
+          v-for="(t, i) in tools"
+          :key="t.id"
+          :tool="t"
+          :index="i"
         />
-      </section>
+      </div>
 
-      <aside class="tm-map-col">
-        <div class="tm-map-frame">
-          <ToolMap
-            v-if="mapTools.length"
-            :lat="mapCentre.lat"
-            :lng="mapCentre.lng"
-            :radius-m="0"
-            :markers="mapTools"
-            :zoom="7"
-            @marker-click="openFromMap"
-          />
-          <div v-else class="tm-map-placeholder">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-              <circle cx="12" cy="10" r="3"/>
-            </svg>
-            <p>A találatok itt fognak megjelenni a térképen.</p>
-          </div>
-        </div>
-      </aside>
-    </div>
+      <Pagination
+        v-if="!loading && meta && meta.last_page > 1"
+        :meta="meta"
+        @page-change="onPageChange"
+        class="mt-6"
+      />
+    </section>
   </div>
 </template>
 
@@ -263,6 +263,38 @@ const resultLabel = computed(() => {
 .tm-count-loading { animation: tmBlink 1.4s ease-in-out infinite; }
 @keyframes tmBlink { 0%,100%{opacity:1} 50%{opacity:0.45} }
 
+/* ── Filter toggle (mobile/tablet only) ── */
+.tm-toggle {
+  display: flex; align-items: center; gap: 0.5rem;
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.75rem;
+  border: 1.5px solid var(--color-stroke);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.9rem; font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 0.75rem;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.tm-toggle:hover { background: var(--color-surface); border-color: var(--color-accent); }
+.tm-toggle:active { transform: scale(0.99); }
+.tm-toggle svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+.tm-toggle-chev {
+  margin-left: auto;
+  transition: transform 200ms var(--ease-ui-out);
+}
+.tm-toggle-chev--open { transform: rotate(180deg); }
+.tm-toggle-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.25rem; height: 1.25rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-size: 0.7rem; font-weight: 800;
+}
+
 /* filters */
 .tm-filters {
   display: grid;
@@ -278,6 +310,19 @@ const resultLabel = computed(() => {
 @media (max-width: 900px) {
   .tm-filters { grid-template-columns: 1fr 1fr; }
   .tm-actions { grid-column: 1 / -1; }
+}
+@media (max-width: 520px) {
+  .tm-filters { grid-template-columns: 1fr; }
+}
+
+.tm-filters-fade-enter-active,
+.tm-filters-fade-leave-active {
+  transition: opacity 200ms var(--ease-ui-out), transform 200ms var(--ease-ui-out);
+}
+.tm-filters-fade-enter-from,
+.tm-filters-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 .tm-field {
@@ -329,17 +374,6 @@ const resultLabel = computed(() => {
 }
 .tm-btn-primary:hover { background: var(--color-accent-hover); }
 
-/* split layout */
-.tm-split {
-  display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: 1.5rem;
-}
-@media (max-width: 1099px) {
-  .tm-split { grid-template-columns: 1fr; }
-  .tm-map-col { order: -1; }
-}
-
 .tm-grid-col { min-width: 0; }
 
 .tm-grid {
@@ -380,40 +414,4 @@ const resultLabel = computed(() => {
   font-size: 0.9rem;
   text-align: center;
 }
-
-/* map */
-.tm-map-col {
-  position: sticky;
-  top: 5.5rem;
-  align-self: start;
-  height: calc(100vh - 7rem);
-}
-@media (max-width: 1099px) {
-  .tm-map-col { position: static; height: auto; }
-}
-
-.tm-map-frame {
-  height: 100%;
-  display: flex; flex-direction: column;
-}
-.tm-map-frame :deep(.tmap-outer),
-.tm-map-frame :deep(.tmap) {
-  flex: 1;
-  height: 100%;
-  min-height: 28rem;
-}
-
-.tm-map-placeholder {
-  height: 100%;
-  min-height: 22rem;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 0.5rem;
-  border: 1.5px dashed var(--color-stroke);
-  border-radius: 1rem;
-  color: var(--color-muted);
-  font-size: 0.85rem;
-  padding: 1.5rem;
-  text-align: center;
-}
-.tm-map-placeholder svg { width: 2rem; height: 2rem; opacity: 0.5; }
 </style>

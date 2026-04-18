@@ -76,37 +76,55 @@ function getMeals(day, type) {
             'is-today':  isToday(day),
             'row-last':  i === weekDays.length - 1,
             'col-last':  type === MEAL_TYPES[MEAL_TYPES.length - 1],
+            'is-empty':  getMeals(day, type).length === 0,
           }"
           :style="{ '--i': i }"
         >
-          <TransitionGroup name="meal" tag="div" class="slot-meals">
-            <div
-              v-for="meal in getMeals(day, type)"
-              :key="meal.id"
-              class="slot-card"
+          <template v-if="getMeals(day, type).length === 0">
+            <button
+              class="slot-add slot-add--full"
+              @click="emit('add', toDateStr(day), type)"
+              aria-label="Étkezés hozzáadása"
             >
-              <span class="slot-title">{{ meal.recipe?.title ?? '–' }}</span>
-              <button
-                class="del-btn"
-                @click.stop="emit('delete', meal.id)"
-                aria-label="Törlés"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                  <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </div>
-          </TransitionGroup>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </template>
 
-          <button
-            class="slot-add"
-            @click="emit('add', toDateStr(day), type)"
-            aria-label="Étkezés hozzáadása"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
+          <template v-else>
+            <TransitionGroup name="meal" tag="div" class="slot-meals">
+              <div
+                v-for="meal in getMeals(day, type)"
+                :key="meal.id"
+                class="slot-card"
+              >
+                <span class="slot-title">{{ meal.recipe?.title ?? '–' }}</span>
+                <span v-if="meal.servings" class="slot-servings" :aria-label="`${meal.servings} adag`">
+                  {{ meal.servings }}<span class="slot-servings-unit">fő</span>
+                </span>
+                <button
+                  class="del-btn"
+                  @click.stop="emit('delete', meal.id)"
+                  aria-label="Törlés"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </TransitionGroup>
+
+            <button
+              class="slot-add"
+              @click="emit('add', toDateStr(day), type)"
+              aria-label="Étkezés hozzáadása"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </template>
         </div>
 
       </template>
@@ -120,6 +138,15 @@ function getMeals(day, type) {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 0.5rem;
+  max-width: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-stroke) transparent;
+}
+.table-scroll::-webkit-scrollbar { height: 6px; }
+.table-scroll::-webkit-scrollbar-track { background: transparent; }
+.table-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-stroke);
+  border-radius: 999px;
 }
 
 /* ── Table grid ── */
@@ -130,6 +157,24 @@ function getMeals(day, type) {
   border: 1.5px solid var(--color-stroke);
   border-radius: 1rem;
   overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .week-table {
+    grid-template-columns: 2.75rem repeat(5, minmax(110px, 1fr));
+    min-width: 610px;
+  }
+}
+
+@media (max-width: 640px) {
+  .week-table {
+    grid-template-columns: 2.5rem repeat(5, minmax(96px, 1fr));
+    min-width: 535px;
+  }
+  .type-hdr { padding: 0.5rem 0.5rem; gap: 0.3rem; }
+  .type-name { font-size: 0.6rem; letter-spacing: 0.05em; }
+  .slot { padding: 0.3rem 0.3rem; min-height: 3.25rem; }
+  .slot-title { font-size: 0.7rem; }
 }
 
 /* ── Corner ── */
@@ -303,6 +348,16 @@ function getMeals(day, type) {
 }
 .slot-add svg { width: 0.625rem; height: 0.625rem; }
 
+/* Full-cell variant: fills empty slot completely */
+.slot-add--full {
+  flex: 1;
+  align-self: stretch;
+  margin: -0.075rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+.slot-add--full svg { width: 1rem; height: 1rem; }
+
 @media (hover: hover) and (pointer: fine) {
   .slot:hover .slot-add {
     color: var(--color-muted);
@@ -320,9 +375,34 @@ function getMeals(day, type) {
     color: var(--color-muted);
     border-color: var(--color-stroke);
   }
+  .slot-add--full {
+    color: color-mix(in srgb, var(--color-muted) 60%, transparent);
+    border-color: color-mix(in srgb, var(--color-stroke) 70%, transparent);
+  }
 }
 
 .slot-add:active { transform: scale(0.93); }
+.slot-add--full:active { transform: scale(0.97); }
+
+/* ── Servings badge on slot cards ── */
+.slot-servings {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-muted) 10%, transparent);
+  line-height: 1.1;
+}
+.slot-servings-unit {
+  font-size: 0.55rem;
+  margin-left: 1px;
+  opacity: 0.85;
+}
 
 /* ── Entrance animation ── */
 @keyframes rowIn {

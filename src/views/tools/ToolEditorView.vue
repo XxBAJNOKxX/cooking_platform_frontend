@@ -37,6 +37,52 @@ const form = reactive({
 
 const addressQuery = ref('')
 
+// ─── Image upload ────────────────────────────────────────────────
+const imgDragOver = ref(false)
+const imgBroken = ref(false)
+const imageUploading = ref(false)
+const fileInputRef = ref(null)
+
+async function uploadFile(file) {
+  if (!file) return
+  imageUploading.value = true
+  imgBroken.value = false
+  delete fieldErrors.image_url
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('folder', 'tools')
+    const { data } = await api.post('/upload', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    form.image_url = data.url
+  } catch {
+    serverError.value = 'Képfeltöltés sikertelen. Próbáld újra.'
+  } finally {
+    imageUploading.value = false
+    if (fileInputRef.value) fileInputRef.value.value = ''
+  }
+}
+
+function onFileChange(e) {
+  uploadFile(e.target.files?.[0])
+}
+
+function onImgDrop(e) {
+  imgDragOver.value = false
+  const dt = e.dataTransfer
+  if (dt.files?.length) {
+    uploadFile(dt.files[0])
+    return
+  }
+  const url = dt.getData('text/uri-list') || dt.getData('text/plain') || dt.getData('text/html')
+  const match = url?.match(/https?:\/\/[^\s"'<>]+/)
+  if (match) {
+    form.image_url = match[0]
+    imgBroken.value = false
+  }
+}
+
 const hasCoords = computed(() =>
   typeof form.latitude === 'number' && typeof form.longitude === 'number'
 )
@@ -169,7 +215,60 @@ async function submit() {
           <textarea v-model="form.description" rows="4" class="te-textarea" placeholder="Mire alkalmas, mit tartalmaz…"></textarea>
         </label>
 
-        <BaseInput v-model="form.image_url" label="Kép URL" type="url" placeholder="https://…" :error="fieldErrors.image_url" />
+        <div class="te-field">
+          <span>Kép</span>
+          <div
+            class="te-img-drop"
+            :class="{ 'te-img-drop--over': imgDragOver }"
+            @dragover.prevent="imgDragOver = true"
+            @dragleave="imgDragOver = false"
+            @drop.prevent="onImgDrop"
+          >
+            <div class="te-img-row">
+              <input
+                v-model="form.image_url"
+                type="url"
+                class="te-img-url"
+                :class="{ 'te-img-url--err': fieldErrors.image_url }"
+                placeholder="https://… vagy dobd ide a képet"
+                @input="imgBroken = false"
+              />
+              <button
+                type="button"
+                class="te-img-upload"
+                :disabled="imageUploading"
+                @click="fileInputRef.click()"
+              >
+                <svg v-if="imageUploading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="te-spin" aria-hidden="true">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke-linecap="round"/>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-linecap="round"/>
+                  <polyline points="17,8 12,3 7,8" stroke-linecap="round"/>
+                  <line x1="12" y1="3" x2="12" y2="15" stroke-linecap="round"/>
+                </svg>
+                {{ imageUploading ? 'Feltöltés…' : 'Feltöltés' }}
+              </button>
+              <input
+                ref="fileInputRef"
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                class="te-img-file"
+                @change="onFileChange"
+              />
+            </div>
+            <p v-if="imgDragOver" class="te-img-hint">Engedd el — feltöltjük.</p>
+          </div>
+          <p v-if="fieldErrors.image_url" class="te-field-err">{{ fieldErrors.image_url }}</p>
+          <div v-if="form.image_url && !imgBroken" class="te-img-preview">
+            <img
+              :src="form.image_url"
+              alt="Kép előnézet"
+              loading="lazy"
+              @error="imgBroken = true"
+            />
+          </div>
+        </div>
 
         <BaseInput
           v-model="form.price_per_day"
@@ -353,5 +452,97 @@ async function submit() {
 
 .te-actions {
   display: flex; justify-content: flex-end; gap: 0.5rem;
+}
+
+/* ── Image drop zone ── */
+.te-img-drop {
+  border-radius: 0.75rem;
+  border: 1.5px dashed transparent;
+  padding: 4px;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.te-img-drop--over {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+
+.te-img-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.te-img-url {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.5rem;
+  border: 1.5px solid var(--color-stroke);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.te-img-url:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+.te-img-url--err { border-color: var(--color-danger); }
+
+.te-img-upload {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.5rem;
+  border: 1.5px solid var(--color-stroke);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 150ms ease, transform 150ms var(--ease-ui-out);
+}
+.te-img-upload svg { width: 14px; height: 14px; }
+.te-img-upload:hover:not(:disabled) { background: var(--color-surface-hover, var(--color-stroke)); }
+.te-img-upload:active:not(:disabled) { transform: scale(0.96); }
+.te-img-upload:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.te-img-file { display: none; }
+
+.te-img-hint {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-align: center;
+}
+
+.te-field-err {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.te-img-preview {
+  margin-top: 0.5rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1.5px solid var(--color-stroke);
+}
+.te-img-preview img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+@keyframes te-spin { to { transform: rotate(360deg); } }
+.te-spin { width: 14px; height: 14px; animation: te-spin 0.8s linear infinite; }
+
+@media (max-width: 540px) {
+  .te-img-upload span { display: none; }
 }
 </style>

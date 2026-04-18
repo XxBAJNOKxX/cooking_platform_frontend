@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import ToolMap from '@/components/tools/ToolMap.vue'
 import BaseButton from '@/components/BaseButton.vue'
+import BaseModal from '@/components/BaseModal.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -16,6 +17,8 @@ const loading = ref(true)
 const error = ref('')
 const acting = ref(false)
 const actionMsg = ref('')
+const showDeleteModal = ref(false)
+const deleteError = ref('')
 
 async function fetchTool() {
   loading.value = true
@@ -86,22 +89,14 @@ async function startChat() {
 
 async function toggleAvailability() {
   if (!tool.value?.is_owner) return
-  const endpoint = tool.value.is_available
-    ? `/kitchen-tools/${tool.value.id}/rent-out`
-    : `/kitchen-tools/${tool.value.id}/mark-available`
-
-  // Without a receiver_id, rent-out requires one — so we only flip via tool-detail
-  // when the owner doesn't want to notify anyone. mark-available supports null receiver.
-  if (tool.value.is_available) {
-    actionMsg.value = 'A bérlés jelzéséhez nyisd meg a chatet a bérlővel.'
-    return
-  }
-
   try {
     acting.value = true
-    await api.post(endpoint)
+    actionMsg.value = ''
+    await api.put(`/kitchen-tools/${tool.value.id}/toggle-availability`, {
+      is_available: !tool.value.is_available,
+    })
     await fetchTool()
-    actionMsg.value = 'Az eszköz újra elérhető.'
+    actionMsg.value = tool.value.is_available ? 'Az eszköz elérhető.' : 'Az eszköz jelenleg nem elérhető.'
   } catch (e) {
     console.error('[toggleAvailability]', e)
     actionMsg.value = 'A művelet nem sikerült.'
@@ -110,15 +105,18 @@ async function toggleAvailability() {
   }
 }
 
-async function deleteTool() {
+async function confirmDelete() {
   if (!tool.value?.is_owner) return
-  if (!confirm(`Biztos törlöd a(z) "${tool.value.name}" eszközt?`)) return
+  deleteError.value = ''
   try {
+    acting.value = true
     await api.delete(`/kitchen-tools/${tool.value.id}`)
     router.push({ name: 'tools' })
   } catch (e) {
     console.error('[deleteTool]', e)
-    actionMsg.value = 'A törlés nem sikerült.'
+    deleteError.value = e.response?.data?.message ?? 'A törlés nem sikerült.'
+  } finally {
+    acting.value = false
   }
 }
 </script>
@@ -192,16 +190,15 @@ async function deleteTool() {
                 </RouterLink>
 
                 <BaseButton
-                  v-if="!tool.is_available"
-                  variant="primary"
+                  :variant="tool.is_available ? 'outline' : 'primary'"
                   block
                   :disabled="acting"
                   @click="toggleAvailability"
                 >
-                  Újra elérhetővé tétel
+                  {{ tool.is_available ? 'Elérhetetlenné tétel' : 'Újra elérhetővé tétel' }}
                 </BaseButton>
 
-                <button class="td-danger-btn" @click="deleteTool">Törlés</button>
+                <button class="td-danger-btn" @click="showDeleteModal = true">Törlés</button>
               </div>
             </template>
 
@@ -244,6 +241,22 @@ async function deleteTool() {
         </aside>
       </div>
     </template>
+
+    <BaseModal v-if="showDeleteModal" :model-value="true" title="Eszköz törlése" @close="showDeleteModal = false; deleteError = ''">
+      <p class="td-modal-text">
+        Biztosan törölni szeretnéd a(z) <strong>{{ tool?.name }}</strong> eszközt?
+        Ez a művelet nem vonható vissza.
+      </p>
+      <p v-if="deleteError" class="td-modal-error">{{ deleteError }}</p>
+      <template #footer>
+        <div class="td-modal-actions">
+          <button class="td-ghost" @click="showDeleteModal = false; deleteError = ''">Mégse</button>
+          <button class="td-danger-btn td-danger-solid" :disabled="acting" @click="confirmDelete">
+            {{ acting ? 'Törlés...' : 'Törlés' }}
+          </button>
+        </div>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
@@ -426,4 +439,35 @@ async function deleteTool() {
   border-radius: 1rem;
   font-size: 0.82rem; color: var(--color-muted);
 }
+
+.td-modal-text { margin: 0; color: var(--color-muted); line-height: 1.6; font-size: 0.95rem; }
+.td-modal-error {
+  margin: 0.75rem 0 0; font-size: 0.875rem; color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 20%, transparent);
+  border-radius: 0.5rem; padding: 0.5rem 0.75rem;
+}
+.td-modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.td-ghost {
+  padding: 0.5rem 1.125rem;
+  border: 1.5px solid var(--color-stroke);
+  border-radius: 0.625rem;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 0.875rem; font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out);
+}
+.td-ghost:hover { background: var(--color-surface); color: var(--color-text); }
+.td-ghost:active { transform: scale(0.97); }
+.td-danger-solid {
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: 0.625rem;
+  background: var(--color-danger);
+  color: #fff;
+  font-weight: 700; font-size: 0.875rem;
+}
+.td-danger-solid:hover:not(:disabled) { background: var(--color-danger-hover); }
+.td-danger-solid:disabled { opacity: 0.55; cursor: not-allowed; }
 </style>

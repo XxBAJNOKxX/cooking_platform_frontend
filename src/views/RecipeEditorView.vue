@@ -158,6 +158,8 @@ function onImgDrop(e) {
 }
 
 // ---- Ingredient search ----
+const ingCreating = ref(false)
+
 function onIngInput(e) {
   ingQuery.value = e.target.value
   clearTimeout(ingTimer)
@@ -172,18 +174,49 @@ function onIngInput(e) {
       const { data } = await api.get('/ingredients', { params: { search: ingQuery.value } })
       const used = new Set(form.value.ingredients.map(i => i.id))
       ingResults.value  = data.data.filter(i => !used.has(i.id))
-      ingDropdown.value = ingResults.value.length > 0
+      // Dropdown stays open even with no results so we can show "create new"
+      ingDropdown.value = true
     } finally {
       ingSearching.value = false
     }
   }, 250)
 }
 
+// Exact-match helper: is the current query already in the local results?
+const queryExists = computed(() => {
+  const q = ingQuery.value.trim().toLowerCase()
+  if (!q) return false
+  return ingResults.value.some(i => i.name.trim().toLowerCase() === q)
+})
+
 function selectIngredient(ing) {
   form.value.ingredients.push({ id: ing.id, name: ing.name, quantity: '', unit: '' })
   ingQuery.value    = ''
   ingResults.value  = []
   ingDropdown.value = false
+}
+
+async function createAndAddIngredient() {
+  const name = ingQuery.value.trim()
+  if (!name || ingCreating.value) return
+  ingCreating.value = true
+  try {
+    const { data } = await api.post('/ingredients', { name })
+    const created = data.data
+    // Guard against double-create in case the backend returned an existing row
+    // that we already have in the form.
+    if (!form.value.ingredients.some(i => i.id === created.id)) {
+      selectIngredient(created)
+    } else {
+      ingQuery.value    = ''
+      ingResults.value  = []
+      ingDropdown.value = false
+    }
+  } catch {
+    serverError.value = 'Nem sikerült létrehozni a hozzávalót.'
+  } finally {
+    ingCreating.value = false
+  }
 }
 
 function removeIngredient(idx) {
@@ -324,6 +357,9 @@ onBeforeUnmount(() => {
 
       <!-- ── Form ── -->
       <form @submit.prevent="submit" class="re-form" novalidate>
+        <datalist id="re-units-list">
+          <option v-for="u in units" :key="u" :value="u" />
+        </datalist>
 
         <!-- ─── Alapadatok ─── -->
         <section class="re-card">
@@ -520,14 +556,15 @@ onBeforeUnmount(() => {
                   placeholder="0"
                 />
                 <div class="ing-unit-wrap">
-                  <select
+                  <input
                     v-model="ing.unit"
+                    list="re-units-list"
                     class="ing-input ing-unit"
                     :class="{ 'ing-input--err': errors[`ingredients.${idx}.unit`] }"
-                  >
-                    <option value="" disabled>Válassz…</option>
-                    <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
-                  </select>
+                    placeholder="Egység"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="ing-unit-chev" aria-hidden="true">
                     <polyline points="6,9 12,15 18,9"/>
                   </svg>
@@ -569,6 +606,25 @@ onBeforeUnmount(() => {
                   role="option"
                   @mousedown.prevent @click="selectIngredient(ing)"
                 >{{ ing.name }}</button>
+
+                <button
+                  v-if="ingQuery.trim() && !queryExists"
+                  type="button"
+                  class="ing-option ing-option--create"
+                  :disabled="ingCreating || ingSearching"
+                  @mousedown.prevent
+                  @click="createAndAddIngredient"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+                  </svg>
+                  <span>
+                    <span v-if="ingCreating">Létrehozás…</span>
+                    <template v-else>
+                      Új hozzávaló: <strong>{{ ingQuery.trim() }}</strong>
+                    </template>
+                  </span>
+                </button>
               </div>
             </div>
 
@@ -1164,6 +1220,21 @@ onBeforeUnmount(() => {
 }
 .ing-option:last-child { border-bottom: none; }
 .ing-option:hover      { background: var(--color-surface); }
+
+.ing-option--create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-accent);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+}
+.ing-option--create svg { width: 14px; height: 14px; flex-shrink: 0; }
+.ing-option--create strong { font-weight: 700; }
+.ing-option--create:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+.ing-option--create:disabled { opacity: 0.6; cursor: wait; }
 
 /* ── Mobile ── */
 @media (max-width: 540px) {

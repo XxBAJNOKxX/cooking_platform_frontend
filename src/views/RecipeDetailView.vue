@@ -103,11 +103,11 @@
         <aside class="sidebar">
           <div class="card">
             <h2 class="card-title">Hozzávalók</h2>
-            <PortionCalculator :default="defaultPortions" @change="portions = $event" />
+            <PortionCalculator v-if="recipe.servings" :default="defaultPortions" @change="portions = $event" />
             <IngredientList
               :ingredients="recipe.ingredients"
-              :base-portions="defaultPortions"
-              :current-portions="portions"
+              :base-portions="recipe.servings ? defaultPortions : 1"
+              :current-portions="recipe.servings ? portions : 1"
             />
           </div>
         </aside>
@@ -161,7 +161,7 @@
               az értékeléshez.
             </p>
 
-            <ReviewList :reviews="recipe.reviews" />
+            <ReviewList v-if="!isOwner || (recipe.reviews && recipe.reviews.length > 0)" :reviews="recipe.reviews" />
           </section>
 
         </main>
@@ -207,6 +207,15 @@
                 :class="{ active: calMealType === type }"
                 @click="calMealType = type"
               >{{ type }}</button>
+            </div>
+          </div>
+
+          <div class="cal-field">
+            <label class="cal-label" for="cal-servings">Hány főre</label>
+            <div class="cal-servings">
+              <button type="button" class="cal-serv-btn" :disabled="calServings <= 1" @click="calServings = Math.max(1, calServings - 1)">−</button>
+              <input id="cal-servings" v-model.number="calServings" type="number" min="1" max="100" class="cal-serv-input" />
+              <button type="button" class="cal-serv-btn" :disabled="calServings >= 100" @click="calServings = Math.min(100, calServings + 1)">+</button>
             </div>
           </div>
 
@@ -292,6 +301,7 @@ const todayStr = getTodayStr()
 const showCalendarModal = ref(false)
 const calDate = ref(todayStr)
 const calMealType = ref('Ebéd')
+const calServings = ref(4)
 const calLoading = ref(false)
 const calError = ref('')
 const calSuccess = ref(false)
@@ -299,6 +309,7 @@ const calSuccess = ref(false)
 function openCalModal() {
   calDate.value = todayStr
   calMealType.value = 'Ebéd'
+  calServings.value = recipe.value?.servings ?? 4
   calError.value = ''
   calSuccess.value = false
   showCalendarModal.value = true
@@ -316,6 +327,7 @@ async function submitCalModal() {
       recipe_id: recipe.value.id,
       planned_date: calDate.value,
       meal_type: calMealType.value,
+      servings: calServings.value,
     })
     calSuccess.value = true
     setTimeout(closeCalModal, CAL_SUCCESS_DISPLAY_MS)
@@ -904,6 +916,48 @@ onMounted(fetchRecipe)
 }
 
 .cal-meal-pill:active { transform: scale(0.93); }
+
+.cal-servings {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-stroke);
+  border-radius: 0.75rem;
+  padding: 0.25rem;
+  width: max-content;
+}
+
+.cal-serv-btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms ease, transform 150ms var(--ease-ui-out);
+}
+
+.cal-serv-btn:hover:not(:disabled) { background: var(--color-surface-hover); }
+.cal-serv-btn:active:not(:disabled) { transform: scale(0.92); }
+.cal-serv-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.cal-serv-input {
+  width: 3rem;
+  text-align: center;
+  border: none;
+  background: transparent;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  outline: none;
+  -moz-appearance: textfield;
+}
+.cal-serv-input::-webkit-outer-spin-button,
+.cal-serv-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 .cal-error {
   font-size: 0.8125rem;

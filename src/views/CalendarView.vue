@@ -93,12 +93,35 @@ const mealsByDate = computed(() => {
 
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
-async function handleDelete(id) {
-  mealPlans.value = mealPlans.value.filter((p) => p.id !== id)
+const showDeleteModal = ref(false)
+const pendingDeleteId = ref(null)
+const deleteError = ref(null)
+const deleteLoading = ref(false)
+
+const pendingDeleteMeal = computed(() =>
+  mealPlans.value.find((p) => p.id === pendingDeleteId.value) ?? null
+)
+
+function handleDelete(id) {
+  pendingDeleteId.value = id
+  deleteError.value = null
+  showDeleteModal.value = true
+}
+
+async function confirmDelete() {
+  if (!pendingDeleteId.value) return
+  const id = pendingDeleteId.value
+  deleteLoading.value = true
+  deleteError.value = null
   try {
     await api.delete(`/meal-plans/${id}`)
+    mealPlans.value = mealPlans.value.filter((p) => p.id !== id)
+    showDeleteModal.value = false
+    pendingDeleteId.value = null
   } catch {
-    await fetchMealPlans()
+    deleteError.value = 'Nem sikerült törölni. Próbáld újra!'
+  } finally {
+    deleteLoading.value = false
   }
 }
 
@@ -110,12 +133,18 @@ const showModal = ref(false)
 const modalDate = ref('')
 const selectedRecipe = ref(null)
 const selectedMealType = ref('Ebéd')
+const calServings = ref(4)
 const recipes = ref([])
 const recipeSearch = ref('')
 const recipesLoading = ref(false)
 const addLoading = ref(false)
 const addError = ref(null)
 let debounceTimer = null
+
+function stepServings(delta) {
+  const next = (calServings.value || 1) + delta
+  calServings.value = Math.min(100, Math.max(1, next))
+}
 
 const modalDateLabel = computed(() => {
   if (!modalDate.value) return ''
@@ -148,10 +177,18 @@ async function openAddModal(dateStr, mealType = 'Ebéd') {
   modalDate.value = dateStr
   selectedRecipe.value = null
   selectedMealType.value = mealType
+  calServings.value = 4
   recipeSearch.value = ''
   addError.value = null
   showModal.value = true
   await loadRecipes('')
+}
+
+function onRecipePick(recipe) {
+  selectedRecipe.value = recipe
+  if (recipe?.servings) {
+    calServings.value = recipe.servings
+  }
 }
 
 async function submitAddMeal() {
@@ -163,6 +200,7 @@ async function submitAddMeal() {
       recipe_id: selectedRecipe.value.id,
       meal_type: selectedMealType.value,
       planned_date: modalDate.value,
+      servings: calServings.value,
     })
     mealPlans.value.push(res.data.data)
     showModal.value = false
@@ -271,7 +309,7 @@ onUnmounted(() => clearTimeout(debounceTimer))
                 :class="{ selected: selectedRecipe?.id === recipe.id }"
                 role="option"
                 :aria-selected="selectedRecipe?.id === recipe.id"
-                @click="selectedRecipe = recipe"
+                @click="onRecipePick(recipe)"
               >
                 <div class="recipe-thumb">
                   <img
@@ -310,6 +348,44 @@ onUnmounted(() => clearTimeout(debounceTimer))
             </div>
           </div>
 
+          <!-- Servings picker -->
+          <div class="meal-type-section">
+            <span class="section-label">Hány főre</span>
+            <div class="cal-servings">
+              <button
+                type="button"
+                class="cal-serv-btn"
+                :disabled="calServings <= 1"
+                @click="stepServings(-1)"
+                aria-label="Kevesebb"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                  <path d="M5 12h14" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <input
+                v-model.number="calServings"
+                type="number"
+                min="1"
+                max="100"
+                class="cal-serv-input"
+                aria-label="Adagok száma"
+              />
+              <button
+                type="button"
+                class="cal-serv-btn"
+                :disabled="calServings >= 100"
+                @click="stepServings(1)"
+                aria-label="Több"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <span class="cal-serv-unit">fő</span>
+            </div>
+          </div>
+
           <p v-if="addError" class="add-error" role="alert">{{ addError }}</p>
         </div>
       </template>
@@ -324,6 +400,31 @@ onUnmounted(() => clearTimeout(debounceTimer))
         >
           Hozzáadás a naptárhoz
         </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- ── Delete Confirmation Modal ─────────────────────────────────── -->
+    <BaseModal v-model="showDeleteModal" title="Étkezés törlése" max-width="max-w-sm">
+      <template #default>
+        <div class="del-modal-body">
+          <p class="del-modal-text">
+            Biztosan törlöd
+            <strong v-if="pendingDeleteMeal?.recipe?.title">„{{ pendingDeleteMeal.recipe.title }}”</strong>
+            <span v-else>ezt az étkezést</span>
+            a naptárból?
+          </p>
+          <p v-if="deleteError" class="add-error" role="alert">{{ deleteError }}</p>
+        </div>
+      </template>
+      <template #footer>
+        <div class="del-modal-actions">
+          <BaseButton variant="outline" :disabled="deleteLoading" @click="showDeleteModal = false">
+            Mégsem
+          </BaseButton>
+          <BaseButton variant="danger" :loading="deleteLoading" @click="confirmDelete">
+            Törlés
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
 
@@ -443,7 +544,12 @@ onUnmounted(() => clearTimeout(debounceTimer))
 .grid-wrap {
   position: relative;
   overflow: hidden;
+  max-width: 100%;
+  min-width: 0;
 }
+
+/* Allow inner .table-scroll to show its own horizontal scrollbar */
+.grid-wrap > * { max-width: 100%; }
 
 /* forward (next week): new content enters from right */
 .forward-enter-active,
@@ -672,6 +778,89 @@ onUnmounted(() => clearTimeout(debounceTimer))
 }
 
 .type-pill:active { transform: scale(0.94); }
+
+/* ── Servings picker ──────────────────────────────────────────── */
+.cal-servings {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cal-serv-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-stroke);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms var(--ease-ui-out);
+}
+.cal-serv-btn svg { width: 0.875rem; height: 0.875rem; }
+
+@media (hover: hover) and (pointer: fine) {
+  .cal-serv-btn:hover:not(:disabled) {
+    background: var(--color-surface);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+}
+
+.cal-serv-btn:active:not(:disabled) { transform: scale(0.92); }
+.cal-serv-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.cal-serv-input {
+  width: 3.25rem;
+  padding: 0.35rem 0.25rem;
+  border-radius: 0.5rem;
+  border: 1.5px solid var(--color-stroke);
+  background: var(--color-bg);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+  -moz-appearance: textfield;
+}
+.cal-serv-input::-webkit-outer-spin-button,
+.cal-serv-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.cal-serv-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
+}
+
+.cal-serv-unit {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+/* ── Delete modal ─────────────────────────────────────────────── */
+.del-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.del-modal-text {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.del-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  width: 100%;
+}
 
 /* ── Error ────────────────────────────────────────────────────── */
 .add-error {

@@ -38,6 +38,22 @@ async function uploadAvatar(file) {
   }
 }
 
+const avatarDragOver = ref(false)
+
+function onAvatarDrop(e) {
+  avatarDragOver.value = false
+  const dt = e.dataTransfer
+  if (dt.files?.length) {
+    uploadAvatar(dt.files[0])
+    return
+  }
+  const url = dt.getData('text/uri-list') || dt.getData('text/plain') || dt.getData('text/html')
+  const match = url?.match(/https?:\/\/[^\s"'<>]+/)
+  if (match) {
+    form.value.avatar_url = match[0]
+  }
+}
+
 watch(() => props.modelValue, (open) => {
   if (open) {
     const u = authStore.user ?? {}
@@ -110,25 +126,34 @@ async function save() {
 
       <div class="field">
         <label class="lbl" for="s-avatar">Profilkép</label>
-        <div class="avatar-row">
-          <div v-if="form.avatar_url" class="avatar-preview">
-            <img :src="form.avatar_url" alt="Avatar előnézet" class="avatar-preview-img" @error="form.avatar_url = ''" />
+        <div
+          class="avatar-drop"
+          :class="{ 'avatar-drop--over': avatarDragOver }"
+          @dragover.prevent="avatarDragOver = true"
+          @dragleave="avatarDragOver = false"
+          @drop.prevent="onAvatarDrop"
+        >
+          <div class="avatar-row">
+            <div v-if="form.avatar_url" class="avatar-preview">
+              <img :src="form.avatar_url" alt="Avatar előnézet" class="avatar-preview-img" @error="form.avatar_url = ''" />
+            </div>
+            <div class="avatar-inputs">
+              <input id="s-avatar" v-model="form.avatar_url" class="inp" :class="{ 'inp-err': errors.avatar_url }" type="url" placeholder="https://… vagy dobd ide" />
+              <button type="button" class="avatar-upload-btn" :disabled="avatarUploading" @click="avatarFileRef.click()">
+                <svg v-if="avatarUploading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="avatar-spin" aria-hidden="true">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke-linecap="round"/>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-linecap="round"/>
+                  <polyline points="17,8 12,3 7,8" stroke-linecap="round"/>
+                  <line x1="12" y1="3" x2="12" y2="15" stroke-linecap="round"/>
+                </svg>
+                {{ avatarUploading ? 'Feltöltés…' : 'Kép feltöltése' }}
+              </button>
+              <input ref="avatarFileRef" type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden-file" @change="uploadAvatar($event.target.files?.[0])" />
+            </div>
           </div>
-          <div class="avatar-inputs">
-            <input id="s-avatar" v-model="form.avatar_url" class="inp" :class="{ 'inp-err': errors.avatar_url }" type="url" placeholder="https://…" />
-            <button type="button" class="avatar-upload-btn" :disabled="avatarUploading" @click="avatarFileRef.click()">
-              <svg v-if="avatarUploading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="avatar-spin" aria-hidden="true">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke-linecap="round"/>
-              </svg>
-              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-linecap="round"/>
-                <polyline points="17,8 12,3 7,8" stroke-linecap="round"/>
-                <line x1="12" y1="3" x2="12" y2="15" stroke-linecap="round"/>
-              </svg>
-              {{ avatarUploading ? 'Feltöltés…' : 'Kép feltöltése' }}
-            </button>
-            <input ref="avatarFileRef" type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden-file" @change="uploadAvatar($event.target.files?.[0])" />
-          </div>
+          <p v-if="avatarDragOver" class="avatar-drop-hint">Engedd el — feltöltjük.</p>
         </div>
         <p v-if="errors.avatar_url" class="field-err">{{ errors.avatar_url[0] }}</p>
       </div>
@@ -193,6 +218,25 @@ async function save() {
 .field-err { font-size: 0.78rem; color: var(--color-danger); margin: 0; }
 
 /* ── Avatar upload ── */
+.avatar-drop {
+  border-radius: 0.875rem;
+  border: 1.5px dashed transparent;
+  padding: 4px;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.avatar-drop--over {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+
+.avatar-drop-hint {
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
 .avatar-row { display: flex; align-items: flex-start; gap: 0.75rem; }
 
 .avatar-preview {

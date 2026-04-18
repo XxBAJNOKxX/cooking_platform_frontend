@@ -40,12 +40,14 @@ const handleClickOutside = (e) => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('unread:refresh', checkUnread)
   checkUnread()
   unreadTimer = setInterval(checkUnread, 60_000)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('unread:refresh', checkUnread)
   clearInterval(unreadTimer)
 })
 

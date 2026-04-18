@@ -33,10 +33,15 @@ const dateRange = ref(thisWeekRange())
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
-const items = ref([])
+const aggregated = ref([])
+const byRecipe = ref([])
 const loading = ref(false)
 const error = ref(null)
 const hasLoaded = ref(false)
+
+// ─── View mode ───────────────────────────────────────────────────────────────
+
+const viewMode = ref('aggregated') // 'aggregated' | 'by_recipe'
 
 async function fetchList() {
   if (!dateRange.value.start || !dateRange.value.end) return
@@ -47,7 +52,8 @@ async function fetchList() {
     const res = await api.get('/shopping-list', {
       params: { start_date: dateRange.value.start, end_date: dateRange.value.end },
     })
-    items.value = (res.data ?? []).sort((a, b) => a.name.localeCompare(b.name, 'hu'))
+    aggregated.value = res.data?.aggregated ?? []
+    byRecipe.value   = res.data?.by_recipe ?? []
     checkedIds.value = loadChecked()
     hasLoaded.value = true
   } catch {
@@ -92,18 +98,28 @@ function resetAll() {
   saveChecked()
 }
 
-const checkedCount = computed(() => checkedIds.value.size)
-const totalCount = computed(() => items.value.length)
+const checkedCount = computed(() => {
+  let n = 0
+  for (const it of aggregated.value) {
+    if (checkedIds.value.has(it.id)) n++
+  }
+  return n
+})
+const totalCount = computed(() => aggregated.value.length)
 
 const progress = computed(() =>
   totalCount.value === 0 ? 0 : (checkedCount.value / totalCount.value) * 100
 )
 
-const sortedItems = computed(() => {
-  const unchecked = items.value.filter(i => !checkedIds.value.has(i.id))
-  const checked = items.value.filter(i => checkedIds.value.has(i.id))
+const sortedAggregated = computed(() => {
+  const unchecked = aggregated.value.filter(i => !checkedIds.value.has(i.id))
+  const checked   = aggregated.value.filter(i =>  checkedIds.value.has(i.id))
   return [...unchecked, ...checked]
 })
+
+const hasAnyItems = computed(
+  () => aggregated.value.length > 0 || byRecipe.value.length > 0
+)
 
 // ─── Range label ─────────────────────────────────────────────────────────────
 
@@ -114,6 +130,29 @@ const rangeLabel = computed(() => {
   const e = new Date(`${end}T12:00:00`).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' })
   return `${s} – ${e}`
 })
+
+// ─── Per-recipe helpers ──────────────────────────────────────────────────────
+
+const MEAL_COLORS = {
+  Reggeli: '#f59e0b',
+  Tízórai: '#22c55e',
+  'Ebéd':  '#e9692c',
+  Uzsonna: '#0ea5e9',
+  Vacsora: '#8b5cf6',
+}
+
+function planLabel(plan) {
+  if (!plan.planned_date) return plan.meal_type ?? ''
+  const d = new Date(`${plan.planned_date}T12:00:00`)
+  const date = d.toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' })
+  return plan.meal_type ? `${date} · ${plan.meal_type}` : date
+}
+
+// Each recipe has its own checkbox keys (we namespace by recipe id to avoid
+// collisions with the aggregated view).
+function recipeKey(recipeId, ingId) {
+  return `r${recipeId}:${ingId}`
+}
 
 // ─── Print ───────────────────────────────────────────────────────────────────
 
@@ -133,7 +172,7 @@ function printList() {
       </div>
 
       <button
-        v-if="items.length"
+        v-if="hasAnyItems"
         class="print-btn no-print"
         @click="printList"
         aria-label="Nyomtatás"
@@ -147,9 +186,32 @@ function printList() {
       </button>
     </div>
 
-    <!-- ── Date picker ─────────────────────────────────────────────── -->
-    <div class="picker-card no-print">
-      <DateRangePicker v-model="dateRange" />
+    <!-- ── Controls (picker + view toggle) ─────────────────────────── -->
+    <div class="controls no-print">
+      <div class="picker-card">
+        <DateRangePicker v-model="dateRange" />
+      </div>
+
+      <div class="view-toggle" role="tablist">
+        <button
+          class="view-pill"
+          role="tab"
+          :aria-selected="viewMode === 'aggregated'"
+          :class="{ active: viewMode === 'aggregated' }"
+          @click="viewMode = 'aggregated'"
+        >
+          Összes
+        </button>
+        <button
+          class="view-pill"
+          role="tab"
+          :aria-selected="viewMode === 'by_recipe'"
+          :class="{ active: viewMode === 'by_recipe' }"
+          @click="viewMode = 'by_recipe'"
+        >
+          Receptenként
+        </button>
+      </div>
     </div>
 
     <!-- ── Loading ─────────────────────────────────────────────────── -->
@@ -163,60 +225,113 @@ function printList() {
     </div>
 
     <!-- ── Empty ───────────────────────────────────────────────────── -->
-    <div v-else-if="hasLoaded && items.length === 0" class="empty-state">
+    <div v-else-if="hasLoaded && !hasAnyItems" class="empty-state">
       <div class="empty-icon" aria-hidden="true">🥦</div>
       <p class="empty-title">Nincs mit venni</p>
       <p class="empty-sub">Erre az időszakra nincs betervezett étkezés. Adj hozzá recepteket a <RouterLink to="/calendar" class="empty-link">naptárban</RouterLink>!</p>
     </div>
 
-    <!-- ── List ────────────────────────────────────────────────────── -->
-    <div v-else-if="items.length" class="list-card">
+    <!-- ── Aggregated view ─────────────────────────────────────────── -->
+    <template v-else-if="viewMode === 'aggregated' && aggregated.length">
+      <div class="list-card">
+        <div class="list-header no-print">
+          <div class="progress-row">
+            <span class="progress-label">
+              <strong>{{ checkedCount }}</strong> / {{ totalCount }} cikk
+            </span>
+            <button
+              v-if="checkedCount > 0"
+              class="reset-btn"
+              @click="resetAll"
+            >
+              Visszaállítás
+            </button>
+          </div>
+          <div class="progress-track" role="progressbar" :aria-valuenow="checkedCount" :aria-valuemax="totalCount">
+            <div class="progress-fill" :style="{ width: `${progress}%` }"></div>
+          </div>
+        </div>
 
-      <!-- Progress bar (print: hidden) -->
-      <div class="list-header no-print">
-        <div class="progress-row">
-          <span class="progress-label">
-            <strong>{{ checkedCount }}</strong> / {{ totalCount }} cikk
-          </span>
-          <button
-            v-if="checkedCount > 0"
-            class="reset-btn"
-            @click="resetAll"
-          >
-            Visszaállítás
-          </button>
+        <div class="print-header print-only">
+          <div class="print-logo">Cookr<span class="print-logo-dot">.</span></div>
+          <p class="print-title">Bevásárlólista</p>
+          <p class="print-range">{{ rangeLabel }}</p>
         </div>
-        <div class="progress-track" role="progressbar" :aria-valuenow="checkedCount" :aria-valuemax="totalCount">
-          <div class="progress-fill" :style="{ width: `${progress}%` }"></div>
-        </div>
+
+        <TransitionGroup name="sl-item" tag="div" class="items-list">
+          <CheckableListItem
+            v-for="(item, i) in sortedAggregated"
+            :key="item.id"
+            :item="item"
+            :checked="checkedIds.has(item.id)"
+            :index="i"
+            @toggle="toggle"
+          />
+        </TransitionGroup>
+
+        <Transition name="done-fade">
+          <div v-if="checkedCount === totalCount && totalCount > 0" class="all-done no-print">
+            <span>🎉</span> Minden megvan!
+          </div>
+        </Transition>
       </div>
+    </template>
 
-      <!-- Print header (print only) -->
-      <div class="print-header print-only">
-        <div class="print-logo">Cookr<span class="print-logo-dot">.</span></div>
-        <p class="print-title">Bevásárlólista</p>
-        <p class="print-range">{{ rangeLabel }}</p>
+    <!-- ── By-recipe view ──────────────────────────────────────────── -->
+    <template v-else-if="viewMode === 'by_recipe' && byRecipe.length">
+      <div class="recipes-grid">
+        <section v-for="entry in byRecipe" :key="entry.recipe.id" class="recipe-card">
+          <header class="recipe-head">
+            <RouterLink
+              :to="{ name: 'recipe-detail', params: { id: entry.recipe.id } }"
+              class="recipe-thumb-link"
+              :aria-label="entry.recipe.title"
+            >
+              <img v-if="entry.recipe.image_url"
+                   :src="entry.recipe.image_url"
+                   :alt="entry.recipe.title"
+                   class="recipe-thumb"
+                   loading="lazy" />
+              <div v-else class="recipe-thumb recipe-thumb-fallback" aria-hidden="true">🍲</div>
+            </RouterLink>
+
+            <div class="recipe-meta">
+              <RouterLink
+                :to="{ name: 'recipe-detail', params: { id: entry.recipe.id } }"
+                class="recipe-title"
+              >{{ entry.recipe.title }}</RouterLink>
+
+              <div class="recipe-plans">
+                <span
+                  v-for="plan in entry.plans"
+                  :key="plan.id"
+                  class="plan-chip"
+                  :style="{ '--dot': MEAL_COLORS[plan.meal_type] || 'var(--color-accent)' }"
+                >
+                  {{ planLabel(plan) }}
+                  <span v-if="plan.servings" class="plan-serv">· {{ plan.servings }} fő</span>
+                </span>
+              </div>
+            </div>
+          </header>
+
+          <ul class="ings-list" role="list">
+            <li
+              v-for="ing in entry.ingredients"
+              :key="recipeKey(entry.recipe.id, ing.id) + ':' + ing.unit"
+              class="ing-row"
+            >
+              <span class="ing-dot" aria-hidden="true"></span>
+              <span class="ing-name">{{ ing.name }}</span>
+              <span class="ing-qty">
+                <span class="qty-num">{{ ing.quantity % 1 === 0 ? ing.quantity : ing.quantity.toFixed(1) }}</span>
+                <span v-if="ing.unit" class="qty-unit">{{ ing.unit }}</span>
+              </span>
+            </li>
+          </ul>
+        </section>
       </div>
-
-      <!-- Items -->
-      <TransitionGroup name="sl-item" tag="div" class="items-list">
-        <CheckableListItem
-          v-for="(item, i) in sortedItems"
-          :key="item.id"
-          :item="item"
-          :checked="checkedIds.has(item.id)"
-          :index="i"
-          @toggle="toggle"
-        />
-      </TransitionGroup>
-
-      <!-- All done state -->
-      <Transition name="done-fade">
-        <div v-if="checkedCount === totalCount && totalCount > 0" class="all-done no-print">
-          <span>🎉</span> Minden megvan!
-        </div>
-      </Transition>
-    </div>
+    </template>
 
   </div>
 </template>
@@ -224,7 +339,7 @@ function printList() {
 <style scoped>
 /* ── Page ──────────────────────────────────────────────────────── */
 .sl-page {
-  max-width: 680px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 2rem 1.25rem 4rem;
   display: flex;
@@ -286,13 +401,62 @@ function printList() {
 
 .print-btn:active { transform: scale(0.96); }
 
-/* ── Picker card ───────────────────────────────────────────────── */
+/* ── Controls ──────────────────────────────────────────────────── */
+.controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.875rem;
+  align-items: stretch;
+}
+
+@media (max-width: 640px) {
+  .controls { grid-template-columns: 1fr; }
+}
+
 .picker-card {
   background: var(--color-surface);
   border: 1.5px solid var(--color-stroke);
   border-radius: 1rem;
   padding: 1rem 1.125rem;
 }
+
+.view-toggle {
+  display: inline-flex;
+  align-self: center;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-stroke);
+  border-radius: 999px;
+  padding: 0.25rem;
+  gap: 0.125rem;
+}
+
+.view-pill {
+  padding: 0.4rem 0.95rem;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms var(--ease-ui-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .view-pill:not(.active):hover { color: var(--color-text); }
+}
+
+.view-pill.active {
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.view-pill:active { transform: scale(0.96); }
 
 /* ── States ────────────────────────────────────────────────────── */
 .state-center {
@@ -339,25 +503,14 @@ function printList() {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.empty-icon {
-  font-size: 2.5rem;
-  line-height: 1;
-  margin-bottom: 0.25rem;
-}
-
-.empty-title {
-  font-size: 1.125rem;
-  font-weight: 800;
-  color: var(--color-text);
-}
-
+.empty-icon { font-size: 2.5rem; line-height: 1; margin-bottom: 0.25rem; }
+.empty-title { font-size: 1.125rem; font-weight: 800; color: var(--color-text); }
 .empty-sub {
   font-size: 0.875rem;
   color: var(--color-muted);
   max-width: 320px;
   line-height: 1.6;
 }
-
 .empty-link {
   color: var(--color-accent);
   font-weight: 700;
@@ -366,8 +519,11 @@ function printList() {
   text-underline-offset: 3px;
 }
 
-/* ── List card ─────────────────────────────────────────────────── */
+/* ── Aggregated list card ──────────────────────────────────────── */
 .list-card {
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
   background: var(--color-bg);
   border: 1.5px solid var(--color-stroke);
   border-radius: 1rem;
@@ -375,10 +531,7 @@ function printList() {
   animation: fadeIn 300ms var(--ease-ui-out) both;
 }
 
-/* ── Progress ──────────────────────────────────────────────────── */
-.list-header {
-  padding: 0.875rem 1rem 0;
-}
+.list-header { padding: 0.875rem 1rem 0; }
 
 .progress-row {
   display: flex;
@@ -387,15 +540,8 @@ function printList() {
   margin-bottom: 0.5rem;
 }
 
-.progress-label {
-  font-size: 0.8125rem;
-  color: var(--color-muted);
-}
-
-.progress-label strong {
-  color: var(--color-text);
-  font-weight: 800;
-}
+.progress-label { font-size: 0.8125rem; color: var(--color-muted); }
+.progress-label strong { color: var(--color-text); font-weight: 800; }
 
 .reset-btn {
   font-size: 0.75rem;
@@ -406,12 +552,11 @@ function printList() {
   cursor: pointer;
   padding: 0.1rem 0.25rem;
   border-radius: 0.25rem;
-  transition: color 150ms ease, background 150ms ease;
+  transition: color 150ms ease;
   text-decoration: underline;
   text-decoration-color: transparent;
   text-underline-offset: 3px;
 }
-
 .reset-btn:hover {
   color: var(--color-accent);
   text-decoration-color: color-mix(in srgb, var(--color-accent) 50%, transparent);
@@ -423,7 +568,6 @@ function printList() {
   border-radius: 999px;
   overflow: hidden;
 }
-
 .progress-fill {
   height: 100%;
   background: var(--color-chip);
@@ -431,13 +575,8 @@ function printList() {
   transition: width 300ms var(--ease-ui-out);
 }
 
-/* ── Items ─────────────────────────────────────────────────────── */
-.items-list {
-  padding: 0.5rem 0.25rem;
-  position: relative;
-}
+.items-list { padding: 0.5rem 0.25rem; position: relative; }
 
-/* ── All done ──────────────────────────────────────────────────── */
 .all-done {
   text-align: center;
   padding: 0.875rem;
@@ -447,25 +586,166 @@ function printList() {
   border-top: 1px solid var(--color-stroke);
 }
 
-.done-fade-enter-active {
-  transition: opacity 300ms var(--ease-ui-out), transform 300ms var(--ease-ui-out);
-}
-.done-fade-enter-from {
-  opacity: 0;
-  transform: translateY(6px);
+.done-fade-enter-active { transition: opacity 300ms var(--ease-ui-out), transform 300ms var(--ease-ui-out); }
+.done-fade-enter-from { opacity: 0; transform: translateY(6px); }
+
+.sl-item-move { transition: transform 300ms var(--ease-ui-out); }
+
+/* ── By-recipe view ────────────────────────────────────────────── */
+.recipes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+  animation: fadeIn 300ms var(--ease-ui-out) both;
 }
 
-/* ── TransitionGroup: item reorder ────────────────────────────── */
-.sl-item-move {
-  transition: transform 300ms var(--ease-ui-out);
+.recipe-card {
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-stroke);
+  border-radius: 1rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-head {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-stroke);
+}
+
+.recipe-thumb-link {
+  flex-shrink: 0;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.625rem;
+  overflow: hidden;
+  display: block;
+  transition: transform 150ms var(--ease-ui-out);
+}
+.recipe-thumb-link:active { transform: scale(0.95); }
+
+.recipe-thumb {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.recipe-thumb-fallback {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-bg);
+  border: 1px solid var(--color-stroke);
+  font-size: 1.25rem;
+  border-radius: 0.625rem;
+}
+
+.recipe-meta {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.recipe-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--color-text);
+  text-decoration: none;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  transition: color 150ms ease;
+}
+.recipe-title:hover { color: var(--color-accent); }
+
+.recipe-plans {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.plan-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem 0.15rem 0.375rem;
+  border-radius: 999px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-stroke);
+  color: var(--color-muted);
+}
+.plan-chip::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--dot, var(--color-accent));
+  flex-shrink: 0;
+}
+.plan-serv { font-weight: 700; color: var(--color-text); }
+
+.ings-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.ing-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  min-width: 0;
+}
+
+.ing-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--color-stroke);
+  flex-shrink: 0;
+}
+
+.ing-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ing-qty {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.qty-num {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.qty-unit {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-muted);
 }
 
 /* ── Print styles ──────────────────────────────────────────────── */
 .print-only { display: none; }
 
-.print-header {
-  padding: 0.75rem 1rem 0;
-}
+.print-header { padding: 0.75rem 1rem 0; }
 
 .print-logo {
   font-size: 1.5rem;
@@ -475,18 +755,13 @@ function printList() {
   line-height: 1;
   margin-bottom: 0.125rem;
 }
-
-.print-logo-dot {
-  color: #e9692c;
-}
-
+.print-logo-dot { color: #e9692c; }
 .print-title {
   font-size: 1rem;
   font-weight: 800;
   color: #000;
   margin: 0.1rem 0;
 }
-
 .print-range {
   font-size: 0.875rem;
   color: #555;
@@ -496,33 +771,33 @@ function printList() {
 @media print {
   .no-print { display: none !important; }
   .print-only { display: block !important; }
-
   header, nav { display: none !important; }
-
-  .sl-page {
-    padding: 0;
-    max-width: 100%;
-    gap: 0.5rem;
-  }
-
-  .sl-title {
-    font-size: 1.25rem;
-    color: #000;
-  }
-
+  .sl-page { padding: 0; max-width: 100%; gap: 0.5rem; }
+  .sl-title { font-size: 1.25rem; color: #000; }
   .list-card {
     border: none;
     border-radius: 0;
+    max-width: 100%;
   }
-
-  .items-list {
-    padding: 0;
-  }
+  .items-list { padding: 0; }
+  .recipes-grid { grid-template-columns: 1fr; gap: 0.5rem; }
+  .recipe-card { border: none; border-bottom: 1px solid #ddd; border-radius: 0; }
 }
 
 /* ── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .sl-page { padding: 1.25rem 1rem 3rem; }
   .sl-title { font-size: 1.375rem; }
+
+  .view-toggle { align-self: stretch; justify-content: center; }
+  .view-pill { flex: 1; }
+
+  .recipes-grid { grid-template-columns: 1fr; }
+
+  .recipe-thumb-link {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .recipe-title { font-size: 0.9rem; }
 }
 </style>

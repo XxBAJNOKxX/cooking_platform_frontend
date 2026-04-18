@@ -30,14 +30,11 @@ const activeIdx = ref(0)
 
 function toggle(i) {
   const next = new Set(done.value)
-  if (next.has(i)) {
-    next.delete(i)
-  } else {
-    next.add(i)
-    const nextActive = parsedSteps.value.findIndex((_, idx) => idx > i && !next.has(idx))
-    if (nextActive !== -1) activeIdx.value = nextActive
-  }
+  if (next.has(i)) next.delete(i)
+  else next.add(i)
   done.value = next
+  const first = parsedSteps.value.findIndex((_, idx) => !next.has(idx))
+  activeIdx.value = first === -1 ? -1 : first
 }
 </script>
 
