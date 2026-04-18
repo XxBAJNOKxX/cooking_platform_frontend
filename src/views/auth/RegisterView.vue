@@ -32,10 +32,23 @@ const handleRegister = async () => {
 
     router.push('/')
   } catch (error) {
-    if (error.response?.status === 422) {
-      errors.value = error.response.data.errors
+    const status = error.response?.status
+    const data = error.response?.data
+
+    if (status === 422) {
+      errors.value = data?.errors || {}
+      if (!data?.errors && data?.message) {
+        generalError.value = data.message
+      }
+    } else if (status === 429) {
+      generalError.value = data?.message
+        || 'Túl sok regisztrációs próbálkozás. Próbáld újra később.'
+    } else if (!error.response) {
+      generalError.value = 'Nem sikerült elérni a szervert. Ellenőrizd az internetkapcsolatot.'
+    } else if (status >= 500) {
+      generalError.value = 'Szerverhiba történt. Kérjük, próbáld újra később.'
     } else {
-      generalError.value = 'Hiba a regisztráció során. Kérjük, próbáld újra!'
+      generalError.value = data?.message || 'Hiba a regisztráció során. Kérjük, próbáld újra!'
     }
   } finally {
     loading.value = false

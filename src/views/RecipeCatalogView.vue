@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter, isNavigationFailure } from 'vue-router'
 import api from '@/services/api'
 import RecipeCard from '@/components/RecipeCard.vue'
+import RecipeSkeletonCard from '@/components/RecipeSkeletonCard.vue'
 import FilterSidebar from '@/components/FilterSidebar.vue'
 import Pagination from '@/components/Pagination.vue'
 
@@ -204,18 +205,11 @@ function removeFilter(key) {
 
         <!-- Loading: skeleton grid -->
         <div v-if="loading" class="recipe-grid" aria-busy="true" aria-label="Receptek betöltése">
-          <div v-for="i in 9" :key="i" class="skel-card" :style="`--skel-delay: ${i * 40}ms`">
-            <div class="skel-img" />
-            <div class="skel-body">
-              <div class="skel-line skel-t1" />
-              <div class="skel-line skel-t2" />
-              <div class="skel-line skel-t3" />
-              <div class="skel-chips">
-                <div class="skel-chip" />
-                <div class="skel-chip skel-chip-sm" />
-              </div>
-            </div>
-          </div>
+          <RecipeSkeletonCard
+            v-for="i in 9"
+            :key="i"
+            :index="i"
+          />
         </div>
 
         <!-- Error state -->
@@ -380,56 +374,6 @@ function removeFilter(key) {
 
 @media (max-width: 1199px) { .recipe-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 479px)  { .recipe-grid { grid-template-columns: 1fr; } }
-
-/* ---- Skeleton cards ---- */
-.skel-card {
-  border-radius: 18px;
-  border: 1.5px solid var(--color-stroke);
-  overflow: hidden;
-  background: var(--color-bg);
-  animation: skelIn 250ms var(--ease-ui-out) var(--skel-delay, 0ms) both;
-}
-
-@keyframes skelIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-.skel-img {
-  aspect-ratio: 3 / 2;
-}
-
-.skel-body { padding: 14px 15px 15px; display: flex; flex-direction: column; gap: 8px; }
-
-.skel-line,
-.skel-img,
-.skel-chip {
-  background: linear-gradient(
-    90deg,
-    var(--color-surface)       0%,
-    var(--color-surface-hover) 40%,
-    var(--color-surface)       80%
-  );
-  background-size: 400% 100%;
-  animation: shimmer 1.6s ease-in-out infinite;
-  border-radius: 6px;
-}
-
-.skel-img { border-radius: 0; animation-delay: var(--skel-delay, 0ms); }
-
-.skel-line { height: 13px; }
-.skel-t1   { width: 82%; animation-delay: calc(var(--skel-delay, 0ms) + 60ms); }
-.skel-t2   { width: 100%; animation-delay: calc(var(--skel-delay, 0ms) + 100ms); }
-.skel-t3   { width: 65%; animation-delay: calc(var(--skel-delay, 0ms) + 140ms); }
-
-.skel-chips { display: flex; gap: 6px; margin-top: 2px; }
-.skel-chip    { height: 24px; width: 72px; border-radius: 8px; animation-delay: calc(var(--skel-delay, 0ms) + 180ms); }
-.skel-chip-sm { width: 54px; animation-delay: calc(var(--skel-delay, 0ms) + 210ms); }
-
-@keyframes shimmer {
-  0%   { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
-}
 
 /* ---- States (empty / error) ---- */
 .cat-state {

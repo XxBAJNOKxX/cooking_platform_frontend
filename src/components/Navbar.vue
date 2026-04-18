@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import BaseButton from '@/components/BaseButton.vue'
 import { useRouter } from 'vue-router'
@@ -55,12 +55,23 @@ const hasUnread = ref(false)
 let unreadTimer = null
 
 async function checkUnread() {
-  if (!authStore.isAuthenticated) return
+  if (!authStore.isAuthenticated) {
+    hasUnread.value = false
+    return
+  }
   try {
     const res = await api.get('/messages/unread-count')
     hasUnread.value = (res.data?.count ?? 0) > 0
   } catch { /* silent */ }
 }
+
+watch(() => authStore.isAuthenticated, (isAuth) => {
+  if (isAuth) {
+    checkUnread()
+  } else {
+    hasUnread.value = false
+  }
+})
 
 const handleLogout = async () => {
   closeProfileMenu()

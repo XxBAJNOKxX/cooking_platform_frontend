@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import ToolCard from '@/components/tools/ToolCard.vue'
+import ToolSkeletonCard from '@/components/tools/ToolSkeletonCard.vue'
 import Pagination from '@/components/Pagination.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -201,15 +202,8 @@ const activeFilterCount = computed(() => {
 
     <!-- Tools grid -->
     <section class="tm-grid-col">
-      <div v-if="loading" class="tm-grid" aria-busy="true">
-        <div v-for="i in 6" :key="i" class="tm-skel" :style="`--d: ${i * 40}ms`">
-          <div class="tm-skel-img" />
-          <div class="tm-skel-body">
-            <div class="tm-skel-line tm-skel-1" />
-            <div class="tm-skel-line tm-skel-2" />
-            <div class="tm-skel-line tm-skel-3" />
-          </div>
-        </div>
+      <div v-if="loading" class="tm-grid" aria-busy="true" aria-label="Eszközök betöltése">
+        <ToolSkeletonCard v-for="i in 6" :key="i" :index="i" />
       </div>
 
       <div v-else-if="error" class="tm-empty">
@@ -383,28 +377,6 @@ const activeFilterCount = computed(() => {
 }
 @media (max-width: 1199px) { .tm-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 479px)  { .tm-grid { grid-template-columns: 1fr; } }
-
-/* skeleton */
-.tm-skel {
-  border-radius: 18px;
-  border: 1.5px solid var(--color-stroke);
-  overflow: hidden;
-  background: var(--color-bg);
-  animation: tmSkelIn 250ms var(--ease-ui-out) var(--d, 0ms) both;
-}
-@keyframes tmSkelIn { from { opacity: 0 } to { opacity: 1 } }
-.tm-skel-img { aspect-ratio: 3/2; background: var(--color-surface); }
-.tm-skel-body { padding: 0.875rem; display: flex; flex-direction: column; gap: 0.5rem; }
-.tm-skel-line {
-  height: 0.75rem; border-radius: 0.35rem;
-  background: linear-gradient(90deg, var(--color-surface), var(--color-surface-hover), var(--color-surface));
-  background-size: 400% 100%;
-  animation: tmShimmer 1.6s ease-in-out infinite;
-}
-.tm-skel-1 { width: 70%; }
-.tm-skel-2 { width: 100%; }
-.tm-skel-3 { width: 45%; }
-@keyframes tmShimmer { 0%{background-position:100% 0} 100%{background-position:-100% 0} }
 
 .tm-empty {
   display: flex; flex-direction: column; align-items: center;

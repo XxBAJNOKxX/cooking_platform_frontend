@@ -30,12 +30,24 @@ const handleLogin = async () => {
 
     router.push('/')
   } catch (error) {
-    if (error.response?.status === 422) {
-      errors.value = error.response.data.errors
-    } else if (error.response?.status === 401) {
-      generalError.value = 'Hibás e-mail cím vagy jelszó.'
+    const status = error.response?.status
+    const data = error.response?.data
+
+    if (status === 422) {
+      errors.value = data?.errors || {}
+      if (!data?.errors && data?.message) {
+        generalError.value = data.message
+      }
+    } else if (status === 429) {
+      generalError.value = data?.errors?.email?.[0]
+        || data?.message
+        || 'Túl sok próbálkozás. Próbáld újra később.'
+    } else if (!error.response) {
+      generalError.value = 'Nem sikerült elérni a szervert. Ellenőrizd az internetkapcsolatot.'
+    } else if (status >= 500) {
+      generalError.value = 'Szerverhiba történt. Kérjük, próbáld újra később.'
     } else {
-      generalError.value = 'Váratlan hiba történt. Kérjük, próbáld újra később.'
+      generalError.value = data?.message || 'Váratlan hiba történt. Kérjük, próbáld újra később.'
     }
   } finally {
     loading.value = false

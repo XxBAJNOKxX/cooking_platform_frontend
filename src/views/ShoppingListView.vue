@@ -186,31 +186,10 @@ function printList() {
       </button>
     </div>
 
-    <!-- ── Controls (picker + view toggle) ─────────────────────────── -->
+    <!-- ── Controls (picker only) ──────────────────────────────────── -->
     <div class="controls no-print">
       <div class="picker-card">
         <DateRangePicker v-model="dateRange" />
-      </div>
-
-      <div class="view-toggle" role="tablist">
-        <button
-          class="view-pill"
-          role="tab"
-          :aria-selected="viewMode === 'aggregated'"
-          :class="{ active: viewMode === 'aggregated' }"
-          @click="viewMode = 'aggregated'"
-        >
-          Összes
-        </button>
-        <button
-          class="view-pill"
-          role="tab"
-          :aria-selected="viewMode === 'by_recipe'"
-          :class="{ active: viewMode === 'by_recipe' }"
-          @click="viewMode = 'by_recipe'"
-        >
-          Receptenként
-        </button>
       </div>
     </div>
 
@@ -231,107 +210,195 @@ function printList() {
       <p class="empty-sub">Erre az időszakra nincs betervezett étkezés. Adj hozzá recepteket a <RouterLink to="/calendar" class="empty-link">naptárban</RouterLink>!</p>
     </div>
 
-    <!-- ── Aggregated view ─────────────────────────────────────────── -->
-    <template v-else-if="viewMode === 'aggregated' && aggregated.length">
-      <div class="list-card">
-        <div class="list-header no-print">
-          <div class="progress-row">
-            <span class="progress-label">
-              <strong>{{ checkedCount }}</strong> / {{ totalCount }} cikk
-            </span>
-            <button
-              v-if="checkedCount > 0"
-              class="reset-btn"
-              @click="resetAll"
-            >
-              Visszaállítás
-            </button>
-          </div>
-          <div class="progress-track" role="progressbar" :aria-valuenow="checkedCount" :aria-valuemax="totalCount">
-            <div class="progress-fill" :style="{ width: `${progress}%` }"></div>
-          </div>
-        </div>
-
-        <div class="print-header print-only">
-          <div class="print-logo">Cookr<span class="print-logo-dot">.</span></div>
-          <p class="print-title">Bevásárlólista</p>
-          <p class="print-range">{{ rangeLabel }}</p>
-        </div>
-
-        <TransitionGroup name="sl-item" tag="div" class="items-list">
-          <CheckableListItem
-            v-for="(item, i) in sortedAggregated"
-            :key="item.id"
-            :item="item"
-            :checked="checkedIds.has(item.id)"
-            :index="i"
-            @toggle="toggle"
-          />
-        </TransitionGroup>
-
-        <Transition name="done-fade">
-          <div v-if="checkedCount === totalCount && totalCount > 0" class="all-done no-print">
-            <span>🎉</span> Minden megvan!
-          </div>
-        </Transition>
+    <!-- ── Shared mode toolbar (stable position) ─────────────────── -->
+    <div v-else-if="hasAnyItems" class="mode-toolbar no-print">
+      <div class="view-toggle" role="tablist" aria-label="Nézet">
+        <button
+          class="view-pill"
+          role="tab"
+          :aria-selected="viewMode === 'aggregated'"
+          :class="{ active: viewMode === 'aggregated' }"
+          @click="viewMode = 'aggregated'"
+        >Összes</button>
+        <button
+          class="view-pill"
+          role="tab"
+          :aria-selected="viewMode === 'by_recipe'"
+          :class="{ active: viewMode === 'by_recipe' }"
+          @click="viewMode = 'by_recipe'"
+        >Receptenként</button>
       </div>
-    </template>
+    </div>
 
-    <!-- ── By-recipe view ──────────────────────────────────────────── -->
-    <template v-else-if="viewMode === 'by_recipe' && byRecipe.length">
-      <div class="recipes-grid">
-        <section v-for="entry in byRecipe" :key="entry.recipe.id" class="recipe-card">
-          <header class="recipe-head">
-            <RouterLink
-              :to="{ name: 'recipe-detail', params: { id: entry.recipe.id } }"
-              class="recipe-thumb-link"
-              :aria-label="entry.recipe.title"
-            >
-              <img v-if="entry.recipe.image_url"
-                   :src="entry.recipe.image_url"
-                   :alt="entry.recipe.title"
-                   class="recipe-thumb"
-                   loading="lazy" />
-              <div v-else class="recipe-thumb recipe-thumb-fallback" aria-hidden="true">🍲</div>
-            </RouterLink>
+    <!-- ── Print header (both modes) ─────────────────────────────── -->
+    <div v-if="hasAnyItems" class="print-header print-only">
+      <div class="print-head-top">
+        <div class="print-logo">Cookr<span class="print-logo-dot">.</span></div>
+        <p class="print-range">{{ rangeLabel }}</p>
+      </div>
+      <p class="print-title">Bevásárlólista</p>
+    </div>
 
-            <div class="recipe-meta">
-              <RouterLink
-                :to="{ name: 'recipe-detail', params: { id: entry.recipe.id } }"
-                class="recipe-title"
-              >{{ entry.recipe.title }}</RouterLink>
+    <!-- ── Content: crossfade between modes ──────────────────────── -->
+    <Transition name="mode-fade" mode="out-in">
 
-              <div class="recipe-plans">
-                <span
-                  v-for="plan in entry.plans"
-                  :key="plan.id"
-                  class="plan-chip"
-                  :style="{ '--dot': MEAL_COLORS[plan.meal_type] || 'var(--color-accent)' }"
-                >
-                  {{ planLabel(plan) }}
-                  <span v-if="plan.servings" class="plan-serv">· {{ plan.servings }} fő</span>
-                </span>
-              </div>
+      <!-- Aggregated -->
+      <div
+        v-if="hasLoaded && viewMode === 'aggregated' && aggregated.length"
+        key="aggregated"
+        class="mode-pane"
+      >
+        <div class="list-card">
+          <div class="list-header no-print">
+            <div class="progress-row">
+              <span class="progress-label">
+                <strong>{{ checkedCount }}</strong> / {{ totalCount }} cikk
+              </span>
+              <button
+                v-if="checkedCount > 0"
+                class="reset-btn"
+                @click="resetAll"
+              >
+                Visszaállítás
+              </button>
             </div>
-          </header>
+            <div class="progress-track" role="progressbar" :aria-valuenow="checkedCount" :aria-valuemax="totalCount">
+              <div class="progress-fill" :style="{ width: `${progress}%` }"></div>
+            </div>
+          </div>
 
-          <ul class="ings-list" role="list">
+          <TransitionGroup name="sl-item" tag="div" class="items-list no-print">
+            <CheckableListItem
+              v-for="(item, i) in sortedAggregated"
+              :key="item.id"
+              :item="item"
+              :checked="checkedIds.has(item.id)"
+              :index="i"
+              @toggle="toggle"
+            />
+          </TransitionGroup>
+
+          <!-- Print-only ingredient list (reflects checked state) -->
+          <ul class="print-only print-items" role="list">
             <li
-              v-for="ing in entry.ingredients"
-              :key="recipeKey(entry.recipe.id, ing.id) + ':' + ing.unit"
-              class="ing-row"
+              v-for="item in aggregated"
+              :key="`p-agg-${item.id}-${item.unit}`"
+              class="print-item"
+              :class="{ 'print-item-checked': checkedIds.has(item.id) }"
             >
-              <span class="ing-dot" aria-hidden="true"></span>
-              <span class="ing-name">{{ ing.name }}</span>
-              <span class="ing-qty">
-                <span class="qty-num">{{ ing.quantity % 1 === 0 ? ing.quantity : ing.quantity.toFixed(1) }}</span>
-                <span v-if="ing.unit" class="qty-unit">{{ ing.unit }}</span>
+              <span
+                class="print-checkbox"
+                :class="{ 'print-checkbox-checked': checkedIds.has(item.id) }"
+                aria-hidden="true"
+              >{{ checkedIds.has(item.id) ? '✓' : '' }}</span>
+              <span class="print-name">{{ item.name }}</span>
+              <span class="print-qty">
+                {{ item.quantity % 1 === 0 ? item.quantity : item.quantity.toFixed(2) }}<span v-if="item.unit"> {{ item.unit }}</span>
               </span>
             </li>
           </ul>
-        </section>
+
+          <Transition name="done-fade">
+            <div v-if="checkedCount === totalCount && totalCount > 0" class="all-done no-print">
+              <span>🎉</span> Minden megvan!
+            </div>
+          </Transition>
+        </div>
       </div>
-    </template>
+
+      <!-- By-recipe -->
+      <div
+        v-else-if="hasLoaded && viewMode === 'by_recipe' && byRecipe.length"
+        key="by_recipe"
+        class="mode-pane"
+      >
+        <div class="recipes-grid no-print">
+          <section v-for="entry in byRecipe" :key="entry.recipe.id" class="recipe-card">
+            <header class="recipe-head">
+              <RouterLink
+                :to="{ name: 'recipe-detail', params: { id: entry.recipe.id } }"
+                class="recipe-thumb-link"
+                :aria-label="entry.recipe.title"
+              >
+                <img v-if="entry.recipe.image_url"
+                     :src="entry.recipe.image_url"
+                     :alt="entry.recipe.title"
+                     class="recipe-thumb"
+                     loading="lazy" />
+                <div v-else class="recipe-thumb recipe-thumb-fallback" aria-hidden="true">🍲</div>
+              </RouterLink>
+
+              <div class="recipe-meta">
+                <RouterLink
+                  :to="{ name: 'recipe-detail', params: { id: entry.recipe.id } }"
+                  class="recipe-title"
+                >{{ entry.recipe.title }}</RouterLink>
+
+                <div class="recipe-plans">
+                  <span
+                    v-for="plan in entry.plans"
+                    :key="plan.id"
+                    class="plan-chip"
+                    :style="{ '--dot': MEAL_COLORS[plan.meal_type] || 'var(--color-accent)' }"
+                  >
+                    {{ planLabel(plan) }}
+                    <span v-if="plan.servings" class="plan-serv">· {{ plan.servings }} fő</span>
+                  </span>
+                </div>
+              </div>
+            </header>
+
+            <ul class="ings-list" role="list">
+              <li
+                v-for="ing in entry.ingredients"
+                :key="recipeKey(entry.recipe.id, ing.id) + ':' + ing.unit"
+                class="ing-row"
+              >
+                <span class="ing-dot" aria-hidden="true"></span>
+                <span class="ing-name">{{ ing.name }}</span>
+                <span class="ing-qty">
+                  <span class="qty-num">{{ ing.quantity % 1 === 0 ? ing.quantity : ing.quantity.toFixed(1) }}</span>
+                  <span v-if="ing.unit" class="qty-unit">{{ ing.unit }}</span>
+                </span>
+              </li>
+            </ul>
+          </section>
+        </div>
+
+        <!-- Print-only by-recipe layout -->
+        <div class="print-only print-recipes">
+          <section
+            v-for="entry in byRecipe"
+            :key="`p-r-${entry.recipe.id}`"
+            class="print-recipe"
+          >
+            <h3 class="print-recipe-title">{{ entry.recipe.title }}</h3>
+            <p class="print-recipe-meta">
+              <span
+                v-for="(plan, idx) in entry.plans"
+                :key="plan.id"
+              >
+                <template v-if="idx > 0"> · </template>
+                {{ planLabel(plan) }}<template v-if="plan.servings"> · {{ plan.servings }} fő</template>
+              </span>
+            </p>
+            <ul class="print-items" role="list">
+              <li
+                v-for="ing in entry.ingredients"
+                :key="`p-${entry.recipe.id}-${ing.id}-${ing.unit}`"
+                class="print-item"
+              >
+                <span class="print-checkbox" aria-hidden="true"></span>
+                <span class="print-name">{{ ing.name }}</span>
+                <span class="print-qty">
+                  {{ ing.quantity % 1 === 0 ? ing.quantity : ing.quantity.toFixed(2) }}<span v-if="ing.unit"> {{ ing.unit }}</span>
+                </span>
+              </li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </Transition>
 
   </div>
 </template>
@@ -403,14 +470,7 @@ function printList() {
 
 /* ── Controls ──────────────────────────────────────────────────── */
 .controls {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.875rem;
-  align-items: stretch;
-}
-
-@media (max-width: 640px) {
-  .controls { grid-template-columns: 1fr; }
+  display: block;
 }
 
 .picker-card {
@@ -420,26 +480,27 @@ function printList() {
   padding: 1rem 1.125rem;
 }
 
+/* ── View toggle (compact, lives inside list-card / by-recipe toolbar) */
 .view-toggle {
   display: inline-flex;
-  align-self: center;
   background: var(--color-surface);
-  border: 1.5px solid var(--color-stroke);
+  border: 1px solid var(--color-stroke);
   border-radius: 999px;
-  padding: 0.25rem;
-  gap: 0.125rem;
+  padding: 0.125rem;
+  gap: 0.0625rem;
 }
 
 .view-pill {
-  padding: 0.4rem 0.95rem;
+  padding: 0.2rem 0.55rem;
   border-radius: 999px;
   border: none;
   background: transparent;
-  font-size: 0.8125rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: var(--color-muted);
   cursor: pointer;
   white-space: nowrap;
+  letter-spacing: 0.01em;
   transition:
     background 160ms ease,
     color 160ms ease,
@@ -456,7 +517,30 @@ function printList() {
   box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 
-.view-pill:active { transform: scale(0.96); }
+.view-pill:active { transform: scale(0.94); }
+
+/* Shared, stable-position toolbar above mode content. */
+.mode-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.mode-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Smooth crossfade between aggregated ↔ by-recipe. */
+.mode-fade-enter-active,
+.mode-fade-leave-active {
+  transition: opacity 220ms var(--ease-ui-out), transform 220ms var(--ease-ui-out);
+}
+.mode-fade-enter-from { opacity: 0; transform: translateY(4px); }
+.mode-fade-leave-to   { opacity: 0; transform: translateY(-4px); }
 
 /* ── States ────────────────────────────────────────────────────── */
 .state-center {
@@ -745,43 +829,174 @@ function printList() {
 /* ── Print styles ──────────────────────────────────────────────── */
 .print-only { display: none; }
 
-.print-header { padding: 0.75rem 1rem 0; }
-
-.print-logo {
-  font-size: 1.5rem;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  color: #000;
-  line-height: 1;
-  margin-bottom: 0.125rem;
-}
-.print-logo-dot { color: #e9692c; }
-.print-title {
-  font-size: 1rem;
-  font-weight: 800;
-  color: #000;
-  margin: 0.1rem 0;
-}
-.print-range {
-  font-size: 0.875rem;
-  color: #555;
-  font-weight: 600;
-}
-
 @media print {
   .no-print { display: none !important; }
   .print-only { display: block !important; }
-  header, nav { display: none !important; }
-  .sl-page { padding: 0; max-width: 100%; gap: 0.5rem; }
-  .sl-title { font-size: 1.25rem; color: #000; }
-  .list-card {
-    border: none;
-    border-radius: 0;
-    max-width: 100%;
+  ul.print-only { display: block !important; }
+
+  /* Hide layout chrome */
+  header, nav, footer { display: none !important; }
+
+  @page {
+    size: A4;
+    margin: 14mm 14mm 16mm;
   }
-  .items-list { padding: 0; }
-  .recipes-grid { grid-template-columns: 1fr; gap: 0.5rem; }
-  .recipe-card { border: none; border-bottom: 1px solid #ddd; border-radius: 0; }
+
+  /* Reset page surface */
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  .sl-page {
+    padding: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    gap: 0 !important;
+    color: #000;
+  }
+
+  .sl-header { display: none !important; }
+
+  /* Print header — clean banner */
+  .print-header {
+    padding: 0 0 8pt 0;
+    border-bottom: 1.5pt solid #000;
+    margin-bottom: 12pt;
+  }
+  .print-head-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .print-logo {
+    font-size: 18pt;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: #000;
+    line-height: 1;
+  }
+  .print-logo-dot { color: #e9692c; }
+  .print-range {
+    font-size: 10pt;
+    color: #444;
+    font-weight: 600;
+    margin: 0;
+  }
+  .print-title {
+    font-size: 14pt;
+    font-weight: 800;
+    color: #000;
+    margin: 6pt 0 0;
+    letter-spacing: -0.01em;
+  }
+
+  /* Card chrome reset */
+  .list-card {
+    border: none !important;
+    border-radius: 0 !important;
+    max-width: 100% !important;
+    background: transparent !important;
+    overflow: visible !important;
+  }
+
+  /* Aggregated print list — two columns where possible */
+  .print-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    column-count: 2;
+    column-gap: 14mm;
+    column-rule: 1px solid #e5e5e5;
+  }
+  .print-item {
+    display: flex;
+    align-items: baseline;
+    gap: 6pt;
+    padding: 3pt 0;
+    border-bottom: 0.5pt dotted #bbb;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .print-checkbox {
+    flex-shrink: 0;
+    width: 9pt;
+    height: 9pt;
+    border: 1pt solid #000;
+    border-radius: 1.5pt;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transform: translateY(1pt);
+    /* Ensure black ink when browsers strip background colors in print. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-checkbox-checked {
+    background: #000;
+    color: #fff;
+    font-size: 8pt;
+    font-weight: 900;
+  }
+  .print-item-checked .print-name,
+  .print-item-checked .print-qty {
+    text-decoration: line-through;
+    text-decoration-thickness: 0.7pt;
+    color: #777 !important;
+  }
+  .print-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 10.5pt;
+    color: #000;
+    overflow-wrap: anywhere;
+  }
+  .print-qty {
+    flex-shrink: 0;
+    font-size: 10pt;
+    font-weight: 700;
+    color: #000;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* By-recipe print — stacked sections, single column per recipe */
+  .print-recipes {
+    display: block;
+  }
+  .print-recipe {
+    margin-bottom: 10pt;
+    padding-bottom: 6pt;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .print-recipe + .print-recipe {
+    margin-top: 6pt;
+    padding-top: 8pt;
+    border-top: 0.5pt solid #ddd;
+  }
+  .print-recipe-title {
+    font-size: 12pt;
+    font-weight: 800;
+    color: #000;
+    margin: 0 0 2pt;
+    letter-spacing: -0.005em;
+  }
+  .print-recipe-meta {
+    font-size: 9pt;
+    color: #555;
+    margin: 0 0 5pt;
+    font-weight: 500;
+  }
+  .print-recipe .print-items {
+    column-count: 1;
+    column-rule: none;
+  }
 }
 
 /* ── Responsive ────────────────────────────────────────────────── */

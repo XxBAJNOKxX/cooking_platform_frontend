@@ -3,7 +3,9 @@ import { ref, computed, onMounted, watch } from 'vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import RecipeCard from '@/components/RecipeCard.vue'
+import RecipeSkeletonCard from '@/components/RecipeSkeletonCard.vue'
 import ToolCard from '@/components/tools/ToolCard.vue'
+import ToolSkeletonCard from '@/components/tools/ToolSkeletonCard.vue'
 import SettingsModal from '@/components/SettingsModal.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import BaseButton from '@/components/BaseButton.vue'
@@ -76,7 +78,7 @@ async function fetchMyTools(page = 1) {
   toolsLoading.value = true
   toolsError.value = null
   try {
-    const res = await api.get('/tools', {
+    const res = await api.get('/kitchen-tools', {
       params: { user_id: profile.value.id, per_page: 12, page },
     })
     tools.value = res.data.data ?? []
@@ -132,7 +134,7 @@ async function doDelete() {
       recipes.value = recipes.value.filter(r => r.id !== deleteTarget.value.id)
       recipesTotal.value = Math.max(0, recipesTotal.value - 1)
     } else if (deleteKind.value === 'tool') {
-      await api.delete(`/tools/${deleteTarget.value.id}`)
+      await api.delete(`/kitchen-tools/${deleteTarget.value.id}`)
       tools.value = tools.value.filter(t => t.id !== deleteTarget.value.id)
       toolsTotal.value = Math.max(0, toolsTotal.value - 1)
     }
@@ -148,7 +150,10 @@ const deleteTitle = computed(() =>
   deleteKind.value === 'tool' ? 'Eszköz törlése' : 'Recept törlése'
 )
 
-onMounted(fetchMyRecipes)
+onMounted(() => {
+  fetchMyRecipes()
+  fetchMyTools()
+})
 </script>
 
 <template>
@@ -250,18 +255,11 @@ onMounted(fetchMyRecipes)
       </div>
 
       <div v-if="recipesLoading" class="items-grid" aria-busy="true" aria-label="Receptek betöltése">
-        <div v-for="i in 6" :key="i" class="skel-card" :style="`--skel-delay: ${i * 45}ms`">
-          <div class="skel-img" />
-          <div class="skel-body">
-            <div class="skel-line skel-t1" />
-            <div class="skel-line skel-t2" />
-            <div class="skel-line skel-t3" />
-            <div class="skel-chips">
-              <div class="skel-chip" />
-              <div class="skel-chip skel-chip-sm" />
-            </div>
-          </div>
-        </div>
+        <RecipeSkeletonCard
+          v-for="i in 6"
+          :key="i"
+          :index="i"
+        />
       </div>
 
       <p v-else-if="recipesError" class="error-text">{{ recipesError }}</p>
@@ -329,18 +327,11 @@ onMounted(fetchMyRecipes)
       </div>
 
       <div v-if="toolsLoading" class="items-grid" aria-busy="true" aria-label="Eszközök betöltése">
-        <div v-for="i in 6" :key="i" class="skel-card" :style="`--skel-delay: ${i * 45}ms`">
-          <div class="skel-img" />
-          <div class="skel-body">
-            <div class="skel-line skel-t1" />
-            <div class="skel-line skel-t2" />
-            <div class="skel-line skel-t3" />
-            <div class="skel-chips">
-              <div class="skel-chip" />
-              <div class="skel-chip skel-chip-sm" />
-            </div>
-          </div>
-        </div>
+        <ToolSkeletonCard
+          v-for="i in 6"
+          :key="i"
+          :index="i"
+        />
       </div>
 
       <p v-else-if="toolsError" class="error-text">{{ toolsError }}</p>
@@ -617,49 +608,6 @@ onMounted(fetchMyRecipes)
 .new-btn svg { width: 0.875rem; height: 0.875rem; }
 .new-btn:hover { background: var(--color-accent-hover); }
 .new-btn:active { transform: scale(0.96); }
-
-/* ── Skeleton ── */
-.skel-card {
-  border-radius: 18px;
-  border: 1.5px solid var(--color-stroke);
-  overflow: hidden;
-  background: var(--color-bg);
-  animation: skelIn 250ms var(--ease-ui-out) var(--skel-delay, 0ms) both;
-}
-
-@keyframes skelIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-.skel-line,
-.skel-img,
-.skel-chip {
-  background: linear-gradient(
-    90deg,
-    var(--color-surface)       0%,
-    var(--color-surface-hover) 40%,
-    var(--color-surface)       80%
-  );
-  background-size: 400% 100%;
-  animation: shimmer 1.6s ease-in-out infinite;
-  border-radius: 6px;
-}
-
-@keyframes shimmer {
-  0%   { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
-}
-
-.skel-img { aspect-ratio: 3 / 2; border-radius: 0; animation-delay: var(--skel-delay, 0ms); }
-.skel-body { padding: 14px 15px 15px; display: flex; flex-direction: column; gap: 8px; }
-.skel-line { height: 13px; }
-.skel-t1   { width: 82%; animation-delay: calc(var(--skel-delay, 0ms) + 60ms); }
-.skel-t2   { width: 100%; animation-delay: calc(var(--skel-delay, 0ms) + 100ms); }
-.skel-t3   { width: 65%; animation-delay: calc(var(--skel-delay, 0ms) + 140ms); }
-.skel-chips { display: flex; gap: 6px; margin-top: 2px; }
-.skel-chip    { height: 24px; width: 72px; border-radius: 8px; animation-delay: calc(var(--skel-delay, 0ms) + 180ms); }
-.skel-chip-sm { width: 54px; animation-delay: calc(var(--skel-delay, 0ms) + 210ms); }
 
 /* ── States ── */
 .error-text { font-size: 0.875rem; color: var(--color-danger); text-align: center; }

@@ -20,8 +20,8 @@ const messagesEnd = ref(null)
 
 async function fetchMessages() {
   try {
-    const res = await api.get('/messages', { params: { per_page: 100 } })
-    allMessages.value = res.data.data ?? []
+    const msgRes = await api.get('/messages', { params: { per_page: 100 } })
+    allMessages.value = msgRes.data.data ?? []
   } catch {
     // silent on poll errors
   } finally {
@@ -40,16 +40,18 @@ const conversations = computed(() => {
     const key = partner.id
 
     if (!map.has(key)) {
-      map.set(key, { partner, messages: [], unread: 0 })
+      map.set(key, { partner, messages: [] })
     }
-    const conv = map.get(key)
-    conv.messages.push(msg)
-    if (!msg.is_read && msg.receiver?.id === myId.value) conv.unread++
+    map.get(key).messages.push(msg)
   }
 
   return [...map.values()]
     .map(c => ({
       ...c,
+      unread: c.messages.reduce(
+        (n, m) => n + (m.sender?.id !== myId.value && m.is_read === false ? 1 : 0),
+        0,
+      ),
       messages: [...c.messages].sort((a, b) => new Date(a.sent_at) - new Date(b.sent_at)),
     }))
     .sort((a, b) => {
@@ -97,18 +99,21 @@ function selectConversation(conv) {
 }
 
 function markConversationRead(conv) {
-  let changed = false
-  conv.messages.forEach(msg => {
-    if (!msg.is_read && msg.receiver?.id === myId.value) {
+  if (!conv?.partner?.id) return
+  if (conv.unread === 0) return
+
+  // Optimistic local update so the badge disappears immediately.
+  for (const msg of allMessages.value) {
+    if (msg.sender?.id === conv.partner.id && msg.is_read === false) {
       msg.is_read = true
-      changed = true
-      api.put(`/messages/${msg.id}`, { is_read: true }).catch(() => {})
     }
-  })
-  if (changed) {
-    // Let the navbar refresh its unread badge immediately.
-    window.dispatchEvent(new CustomEvent('unread:refresh'))
   }
+
+  api.post(`/messages/conversations/${conv.partner.id}/mark-read`)
+    .then(() => {
+      window.dispatchEvent(new CustomEvent('unread:refresh'))
+    })
+    .catch(() => {})
 }
 
 // Watch URL params on mount
