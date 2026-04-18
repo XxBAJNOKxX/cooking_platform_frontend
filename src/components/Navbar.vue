@@ -55,11 +55,8 @@ let unreadTimer = null
 async function checkUnread() {
   if (!authStore.isAuthenticated) return
   try {
-    const res = await api.get('/messages', { params: { per_page: 100 } })
-    const myId = authStore.user?.id
-    hasUnread.value = (res.data.data ?? []).some(
-      m => !m.is_read && m.receiver?.id === myId
-    )
+    const res = await api.get('/messages/unread-count')
+    hasUnread.value = (res.data?.count ?? 0) > 0
   } catch { /* silent */ }
 }
 
