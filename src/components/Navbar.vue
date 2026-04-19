@@ -87,7 +87,7 @@ const handleLogout = async () => {
 </script>
 
 <template>
-  <header class="sticky top-0 z-40 w-full border-b border-stroke bg-[#ffe0c2]/90 backdrop-blur-md">
+  <header class="sticky top-0 z-40 w-full border-b border-stroke bg-[#ffeddb]/90 backdrop-blur-md">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="flex h-16 items-center justify-between">
 
