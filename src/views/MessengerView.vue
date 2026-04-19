@@ -122,7 +122,11 @@ onMounted(async () => {
 
   await fetchMessages()
 
-  const urlUserIdRaw = route.query.userId ? parseInt(route.query.userId) : null
+  const urlUserIdRaw = route.query.userId
+    ? parseInt(route.query.userId)
+    : route.query.to
+      ? parseInt(route.query.to)
+      : null
   const urlToolId = route.query.toolId ? parseInt(route.query.toolId) : null
 
   // Guard: don't open a chat with yourself.
@@ -361,11 +365,23 @@ const showPanel = ref(false)
             </svg>
           </button>
 
-          <div class="chat-partner-avatar">
-            <img v-if="activePartner?.avatar_url" :src="activePartner.avatar_url" :alt="activePartner.username" class="conv-avatar-img"/>
+          <RouterLink
+            v-if="activePartner?.id"
+            :to="{ name: 'user-profile', params: { id: activePartner.id } }"
+            class="chat-partner-avatar chat-partner-link"
+          >
+            <img v-if="activePartner.avatar_url" :src="activePartner.avatar_url" :alt="activePartner.username" class="conv-avatar-img"/>
             <span v-else>{{ initials(activePartner) }}</span>
+          </RouterLink>
+          <div v-else class="chat-partner-avatar">
+            <span>{{ initials(activePartner) }}</span>
           </div>
-          <span class="chat-partner-name">{{ activePartner?.username }}</span>
+          <RouterLink
+            v-if="activePartner?.id"
+            :to="{ name: 'user-profile', params: { id: activePartner.id } }"
+            class="chat-partner-name chat-partner-link"
+          >{{ activePartner.username }}</RouterLink>
+          <span v-else class="chat-partner-name">{{ activePartner?.username }}</span>
         </div>
 
         <!-- Tool context banner -->
@@ -623,6 +639,15 @@ const showPanel = ref(false)
   font-size: 1rem; font-weight: 700;
   color: var(--color-text);
 }
+
+.chat-partner-link {
+  text-decoration: none;
+  color: inherit;
+  transition: color 150ms var(--ease-ui-out), opacity 150ms var(--ease-ui-out);
+}
+.chat-partner-name.chat-partner-link:hover { color: var(--color-accent); }
+.chat-partner-avatar.chat-partner-link { cursor: pointer; }
+.chat-partner-avatar.chat-partner-link:hover { opacity: 0.85; }
 
 /* ── Messages area ── */
 .messages-area {

@@ -11,6 +11,7 @@ defineProps({
       <div class="skel-line skel-t1" />
       <div class="skel-line skel-t2" />
       <div class="skel-line skel-t3" />
+      <div class="skel-line skel-t4" />
       <div class="skel-chips">
         <div class="skel-chip" />
         <div class="skel-chip skel-chip-sm" />
@@ -67,10 +68,11 @@ defineProps({
 .skel-t1   { width: 82%;  animation-delay: calc(var(--skel-delay, 0ms) + 60ms); }
 .skel-t2   { width: 100%; animation-delay: calc(var(--skel-delay, 0ms) + 100ms); }
 .skel-t3   { width: 65%;  animation-delay: calc(var(--skel-delay, 0ms) + 140ms); }
+.skel-t4   { width: 88%;  animation-delay: calc(var(--skel-delay, 0ms) + 175ms); }
 
 .skel-chips { display: flex; gap: 6px; margin-top: auto; padding-top: 8px; }
-.skel-chip    { height: 24px; width: 72px; border-radius: 8px; animation-delay: calc(var(--skel-delay, 0ms) + 180ms); }
-.skel-chip-sm { width: 54px; animation-delay: calc(var(--skel-delay, 0ms) + 210ms); }
+.skel-chip    { height: 24px; width: 72px; border-radius: 8px; animation-delay: calc(var(--skel-delay, 0ms) + 210ms); }
+.skel-chip-sm { width: 54px; animation-delay: calc(var(--skel-delay, 0ms) + 240ms); }
 
 @keyframes shimmer {
   0%   { background-position: 100% 0; }

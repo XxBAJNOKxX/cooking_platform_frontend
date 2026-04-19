@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import BaseInput from '@/components/BaseInput.vue'
+import RecipeIngredientEditor from '@/components/recipe/RecipeIngredientEditor.vue'
 
 const route     = useRoute()
 const router    = useRouter()
@@ -39,14 +40,6 @@ const units             = ref([])
 const imgBroken      = ref(false)
 const imageUploading = ref(false)
 const fileInputRef   = ref(null)
-
-// ---- Ingredient search ----
-const ingQuery     = ref('')
-const ingResults   = ref([])
-const ingSearching = ref(false)
-const ingDropdown  = ref(false)
-const ingWrapRef   = ref(null)
-let   ingTimer     = null
 
 const DIFFICULTIES = [
   { key: 'Könnyű',  cls: 'easy'   },
@@ -105,6 +98,7 @@ async function fetchRecipe() {
         name:     i.name,
         quantity: i.quantity ?? '',
         unit:     i.unit     ?? '',
+        group:    i.group    ?? '',
       })),
     }
   } catch {
@@ -157,90 +151,50 @@ function onImgDrop(e) {
   }
 }
 
-// ---- Ingredient search ----
-const ingCreating = ref(false)
-
-function onIngInput(e) {
-  ingQuery.value = e.target.value
-  clearTimeout(ingTimer)
-  if (!ingQuery.value.trim()) {
-    ingResults.value  = []
-    ingDropdown.value = false
-    return
-  }
-  ingTimer = setTimeout(async () => {
-    ingSearching.value = true
-    try {
-      const { data } = await api.get('/ingredients', { params: { search: ingQuery.value } })
-      const used = new Set(form.value.ingredients.map(i => i.id))
-      ingResults.value  = data.data.filter(i => !used.has(i.id))
-      // Dropdown stays open even with no results so we can show "create new"
-      ingDropdown.value = true
-    } finally {
-      ingSearching.value = false
-    }
-  }, 250)
-}
-
-// Exact-match helper: is the current query already in the local results?
-const queryExists = computed(() => {
-  const q = ingQuery.value.trim().toLowerCase()
-  if (!q) return false
-  return ingResults.value.some(i => i.name.trim().toLowerCase() === q)
-})
-
-function selectIngredient(ing) {
-  form.value.ingredients.push({ id: ing.id, name: ing.name, quantity: '', unit: '' })
-  ingQuery.value    = ''
-  ingResults.value  = []
-  ingDropdown.value = false
-}
-
-async function createAndAddIngredient() {
-  const name = ingQuery.value.trim()
-  if (!name || ingCreating.value) return
-  ingCreating.value = true
-  try {
-    const { data } = await api.post('/ingredients', { name })
-    const created = data.data
-    // Guard against double-create in case the backend returned an existing row
-    // that we already have in the form.
-    if (!form.value.ingredients.some(i => i.id === created.id)) {
-      selectIngredient(created)
-    } else {
-      ingQuery.value    = ''
-      ingResults.value  = []
-      ingDropdown.value = false
-    }
-  } catch {
-    serverError.value = 'Nem sikerült létrehozni a hozzávalót.'
-  } finally {
-    ingCreating.value = false
-  }
-}
-
-function removeIngredient(idx) {
-  form.value.ingredients.splice(idx, 1)
-}
-
 function toggleCategory(id) {
   const idx = form.value.category_ids.indexOf(id)
   if (idx === -1) form.value.category_ids.push(id)
   else            form.value.category_ids.splice(idx, 1)
 }
 
-// ---- Close dropdown on outside click ----
-function onDocClick(e) {
-  if (ingWrapRef.value && !ingWrapRef.value.contains(e.target)) {
-    ingDropdown.value = false
-  }
+// ---- Client-side validation (Hungarian messages) ----
+function validate() {
+  const errs = {}
+  if (!form.value.title.trim())
+    errs.title = ['A recept neve kötelező.']
+  if (!form.value.description.trim())
+    errs.description = ['A leírás kötelező.']
+  if (!form.value.steps.trim())
+    errs.steps = ['Az elkészítés lépései kötelezők.']
+  if (!form.value.prep_time || Number(form.value.prep_time) < 1)
+    errs.prep_time = ['Az elkészítési idő kötelező (min. 1 perc).']
+  if (!form.value.difficulty)
+    errs.difficulty = ['A nehézségi szint kötelező.']
+  form.value.ingredients.forEach((ing, idx) => {
+    if (!ing.unit || !String(ing.unit).trim())
+      errs[`ingredients.${idx}.unit`] = [`A(z) „${ing.name}" hozzávalónál kötelező a mértékegység.`]
+  })
+  return errs
 }
 
 // ---- Submit ----
 async function submit() {
-  saving.value      = true
   errors.value      = {}
   serverError.value = ''
+
+  const clientErrors = validate()
+  if (Object.keys(clientErrors).length > 0) {
+    errors.value = clientErrors
+    await nextTick()
+    const firstErr = document.querySelector(
+      '[aria-invalid="true"], .field-ta--err, .ing-input--err, .field-err'
+    )
+    firstErr?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    firstErr?.focus({ preventScroll: true })
+    return
+  }
+
+  saving.value      = true
 
   const payload = {
     title:        form.value.title,
@@ -255,6 +209,7 @@ async function submit() {
       id:       i.id,
       quantity: (i.quantity == null || String(i.quantity).trim() === '') ? null : Number(i.quantity),
       unit:     i.unit,
+      group:    (i.group ?? '').trim() || null,
     })),
   }
 
@@ -270,6 +225,12 @@ async function submit() {
   } catch (err) {
     if (err.response?.status === 422) {
       errors.value = err.response.data.errors ?? {}
+      await nextTick()
+      const firstErr = document.querySelector(
+        '[aria-invalid="true"], .field-ta--err, .ing-input--err, .field-err'
+      )
+      firstErr?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      firstErr?.focus({ preventScroll: true })
     } else {
       serverError.value = 'Valami hiba történt. Kérjük, próbáld újra.'
     }
@@ -278,14 +239,8 @@ async function submit() {
 }
 
 onMounted(() => {
-  document.addEventListener('click', onDocClick)
   Promise.all([fetchCategories(), fetchUnits()])
   if (isEdit.value) fetchRecipe()
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', onDocClick)
-  clearTimeout(ingTimer)
 })
 </script>
 
@@ -357,9 +312,6 @@ onBeforeUnmount(() => {
 
       <!-- ── Form ── -->
       <form @submit.prevent="submit" class="re-form" novalidate>
-        <datalist id="re-units-list">
-          <option v-for="u in units" :key="u" :value="u" />
-        </datalist>
 
         <!-- ─── Alapadatok ─── -->
         <section class="re-card">
@@ -531,103 +483,11 @@ onBeforeUnmount(() => {
           <h2 class="re-card-title">Hozzávalók</h2>
 
           <div class="re-fields">
-
-            <!-- Added ingredient list -->
-            <div v-if="form.ingredients.length" class="ing-list">
-              <div class="ing-list-hdr">
-                <span>Hozzávaló</span>
-                <span>Mennyiség</span>
-                <span>Egység</span>
-                <span />
-              </div>
-              <div
-                v-for="(ing, idx) in form.ingredients"
-                :key="ing.id"
-                class="ing-row"
-              >
-                <span class="ing-name">{{ ing.name }}</span>
-                <input
-                  v-model="ing.quantity"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  class="ing-input ing-qty"
-                  :class="{ 'ing-input--err': errors[`ingredients.${idx}.quantity`] }"
-                  placeholder="0"
-                />
-                <div class="ing-unit-wrap">
-                  <input
-                    v-model="ing.unit"
-                    list="re-units-list"
-                    class="ing-input ing-unit"
-                    :class="{ 'ing-input--err': errors[`ingredients.${idx}.unit`] }"
-                    placeholder="Egység"
-                    autocomplete="off"
-                    spellcheck="false"
-                  />
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="ing-unit-chev" aria-hidden="true">
-                    <polyline points="6,9 12,15 18,9"/>
-                  </svg>
-                </div>
-                <button type="button" class="ing-rm" @click="removeIngredient(idx)" aria-label="Eltávolítás">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                    <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <!-- Ingredient search -->
-            <div class="ing-search" ref="ingWrapRef">
-              <div class="ing-search-box">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="ing-search-ico" aria-hidden="true">
-                  <circle cx="11" cy="11" r="8"/>
-                  <path d="m21 21-4.35-4.35" stroke-linecap="round"/>
-                </svg>
-                <input
-                  :value="ingQuery"
-                  @input="onIngInput"
-                  type="text"
-                  class="ing-search-input"
-                  placeholder="Hozzávaló keresése…"
-                  autocomplete="off"
-                />
-                <svg v-if="ingSearching" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="ing-spinner" aria-hidden="true">
-                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke-linecap="round"/>
-                </svg>
-              </div>
-
-              <div v-if="ingDropdown" class="ing-dropdown" role="listbox">
-                <button
-                  v-for="ing in ingResults"
-                  :key="ing.id"
-                  type="button"
-                  class="ing-option"
-                  role="option"
-                  @mousedown.prevent @click="selectIngredient(ing)"
-                >{{ ing.name }}</button>
-
-                <button
-                  v-if="ingQuery.trim() && !queryExists"
-                  type="button"
-                  class="ing-option ing-option--create"
-                  :disabled="ingCreating || ingSearching"
-                  @mousedown.prevent
-                  @click="createAndAddIngredient"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                    <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
-                  </svg>
-                  <span>
-                    <span v-if="ingCreating">Létrehozás…</span>
-                    <template v-else>
-                      Új hozzávaló: <strong>{{ ingQuery.trim() }}</strong>
-                    </template>
-                  </span>
-                </button>
-              </div>
-            </div>
-
+            <RecipeIngredientEditor
+              v-model="form.ingredients"
+              :units="units"
+              :errors="errors"
+            />
           </div>
         </section>
 
@@ -1046,220 +906,9 @@ onBeforeUnmount(() => {
   padding: 5px 0;
 }
 
-/* ── Ingredient list ── */
-.ing-list {
-  border: 1.5px solid var(--color-stroke);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.ing-list-hdr {
-  display: grid;
-  grid-template-columns: 1fr 100px 116px 36px;
-  gap: 8px;
-  padding: 7px 12px;
-  background: var(--color-surface);
-  font-size: 0.69rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-muted);
-}
-
-.ing-row {
-  display: grid;
-  grid-template-columns: 1fr 100px 116px 36px;
-  gap: 8px;
-  align-items: center;
-  padding: 9px 12px;
-  border-top: 1.5px solid var(--color-stroke);
-  transition: background 150ms var(--ease-ui-out);
-}
-.ing-row:hover { background: var(--color-surface); }
-
-.ing-name {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ing-input {
-  width: 100%;
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1.5px solid var(--color-stroke);
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-size: 0.8rem;
-  font-family: inherit;
-  outline: none;
-  box-sizing: border-box;
-  transition: border-color 150ms var(--ease-ui-out), box-shadow 150ms var(--ease-ui-out);
-}
-.ing-input:focus  { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent); }
-.ing-input--err   { border-color: var(--color-danger); }
-.ing-qty          { text-align: right; }
-
-/* Unit select wrapper */
-.ing-unit-wrap {
-  position: relative;
-  width: 100%;
-}
-
-.ing-unit {
-  -webkit-appearance: none;
-  appearance: none;
-  padding-right: 26px;
-  cursor: pointer;
-}
-
-.ing-unit-chev {
-  position: absolute;
-  right: 7px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 11px; height: 11px;
-  color: var(--color-muted);
-  pointer-events: none;
-}
-
-.ing-rm {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px; height: 30px;
-  border-radius: 8px;
-  border: 1.5px solid var(--color-stroke);
-  background: transparent;
-  color: var(--color-muted);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition:
-    background    150ms var(--ease-ui-out),
-    color         150ms var(--ease-ui-out),
-    border-color  150ms var(--ease-ui-out),
-    transform     150ms var(--ease-ui-out);
-}
-.ing-rm svg    { width: 13px; height: 13px; }
-.ing-rm:hover  { background: color-mix(in srgb, var(--color-danger) 10%, transparent); color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 40%, transparent); }
-.ing-rm:active { transform: scale(0.9); }
-
-/* ── Ingredient search ── */
-.ing-search { position: relative; }
-
-.ing-search-box {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 14px;
-  border-radius: 12px;
-  border: 1.5px solid var(--color-stroke);
-  background: var(--color-bg);
-  transition: border-color 150ms var(--ease-ui-out), box-shadow 150ms var(--ease-ui-out);
-}
-.ing-search-box:focus-within {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 1px var(--color-accent);
-}
-
-.ing-search-ico { width: 15px; height: 15px; color: var(--color-muted); flex-shrink: 0; }
-
-.ing-search-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--color-text);
-  font-size: 0.875rem;
-  font-family: inherit;
-}
-.ing-search-input::placeholder { color: var(--color-muted); }
-
-@keyframes spinIco { to { transform: rotate(360deg); } }
-.ing-spinner {
-  width: 15px; height: 15px;
-  color: var(--color-accent);
-  flex-shrink: 0;
-  animation: spinIco 0.8s linear infinite;
-}
-
-.ing-dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0; right: 0;
-  z-index: 50;
-  border: 1.5px solid var(--color-stroke);
-  border-radius: 12px;
-  background: var(--color-bg);
-  box-shadow: 0 8px 28px -6px rgba(47, 30, 23, 0.16);
-  overflow: hidden;
-  animation: dropIn 160ms var(--ease-ui-out) both;
-}
-
-@keyframes dropIn {
-  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
-  to   { opacity: 1; transform: none; }
-}
-
-.ing-option {
-  display: block;
-  width: 100%;
-  padding: 10px 14px;
-  text-align: left;
-  border: none;
-  border-bottom: 1px solid var(--color-stroke);
-  background: transparent;
-  color: var(--color-text);
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 120ms var(--ease-ui-out);
-}
-.ing-option:last-child { border-bottom: none; }
-.ing-option:hover      { background: var(--color-surface); }
-
-.ing-option--create {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--color-accent);
-  font-weight: 600;
-  background: color-mix(in srgb, var(--color-accent) 5%, transparent);
-}
-.ing-option--create svg { width: 14px; height: 14px; flex-shrink: 0; }
-.ing-option--create strong { font-weight: 700; }
-.ing-option--create:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
-}
-.ing-option--create:disabled { opacity: 0.6; cursor: wait; }
-
 /* ── Mobile ── */
 @media (max-width: 540px) {
   .re-card { padding: 16px; }
-
-  .ing-list-hdr,
-  .ing-row {
-    grid-template-columns: 1fr 80px 96px 32px;
-    gap: 6px;
-    padding: 8px 10px;
-  }
-
   .img-upload-btn span { display: none; }
-}
-
-@media (max-width: 420px) {
-  .ing-list-hdr { display: none; }
-  .ing-row {
-    grid-template-columns: 1fr 32px;
-    grid-template-rows: auto auto auto;
-    row-gap: 6px;
-  }
-  .ing-name         { grid-column: 1; grid-row: 1; }
-  .ing-rm           { grid-column: 2; grid-row: 1; }
-  .ing-qty          { grid-column: 1 / -1; grid-row: 2; }
-  .ing-unit-wrap    { grid-column: 1 / -1; grid-row: 3; }
 }
 </style>

@@ -7,16 +7,27 @@
     <div v-else class="reviews">
       <article v-for="(review, i) in reviews" :key="review.id" class="review-card" :style="`--i: ${i}`">
         <div class="card-header">
-          <div class="avatar-wrap">
-            <img v-if="review.user?.avatar_url" :src="review.user.avatar_url" :alt="review.user.username"
-              class="avatar" />
+          <RouterLink
+            v-if="review.user?.id"
+            :to="{ name: 'user-profile', params: { id: review.user.id } }"
+            class="avatar-wrap avatar-link"
+          >
+            <img v-if="review.user.avatar_url" :src="review.user.avatar_url" :alt="review.user.username" class="avatar" />
             <div v-else class="avatar-placeholder">
-              {{ review.user?.username?.[0]?.toUpperCase() ?? '?' }}
+              {{ review.user.username?.[0]?.toUpperCase() ?? '?' }}
             </div>
+          </RouterLink>
+          <div v-else class="avatar-wrap">
+            <div class="avatar-placeholder">?</div>
           </div>
 
           <div class="meta">
-            <span class="username">{{ review.user?.username ?? 'Ismeretlen' }}</span>
+            <RouterLink
+              v-if="review.user?.id"
+              :to="{ name: 'user-profile', params: { id: review.user.id } }"
+              class="username username-link"
+            >{{ review.user.username ?? 'Ismeretlen' }}</RouterLink>
+            <span v-else class="username">Ismeretlen</span>
             <time class="date">{{ formatDate(review.created_at) }}</time>
           </div>
 
@@ -144,6 +155,10 @@ function formatDate(str) {
   font-size: 0.9rem;
   color: var(--color-text);
 }
+
+.username-link { text-decoration: none; transition: color 150ms var(--ease-ui-out); }
+.username-link:hover { color: var(--color-accent); }
+.avatar-link { display: block; border-radius: 50%; }
 
 .date {
   font-size: 0.775rem;

@@ -101,7 +101,7 @@ function resetAll() {
 const checkedCount = computed(() => {
   let n = 0
   for (const it of aggregated.value) {
-    if (checkedIds.value.has(it.id)) n++
+    if (checkedIds.value.has(itemKey(it))) n++
   }
   return n
 })
@@ -112,8 +112,8 @@ const progress = computed(() =>
 )
 
 const sortedAggregated = computed(() => {
-  const unchecked = aggregated.value.filter(i => !checkedIds.value.has(i.id))
-  const checked   = aggregated.value.filter(i =>  checkedIds.value.has(i.id))
+  const unchecked = aggregated.value.filter(i => !checkedIds.value.has(itemKey(i)))
+  const checked   = aggregated.value.filter(i =>  checkedIds.value.has(itemKey(i)))
   return [...unchecked, ...checked]
 })
 
@@ -148,11 +148,16 @@ function planLabel(plan) {
   return plan.meal_type ? `${date} · ${plan.meal_type}` : date
 }
 
-// Each recipe has its own checkbox keys (we namespace by recipe id to avoid
-// collisions with the aggregated view).
-function recipeKey(recipeId, ingId) {
-  return `r${recipeId}:${ingId}`
+// Composite key for aggregated items: same ingredient can appear with diff units.
+function itemKey(item) {
+  return `${item.id}:${item.unit ?? ''}`
 }
+
+// Per-recipe key (namespaced to avoid collisions with aggregated view).
+function recipeIngKey(recipeId, ing) {
+  return `r${recipeId}:${ing.id}:${ing.unit ?? ''}`
+}
+
 
 // ─── Print ───────────────────────────────────────────────────────────────────
 
@@ -270,11 +275,11 @@ function printList() {
           <TransitionGroup name="sl-item" tag="div" class="items-list no-print">
             <CheckableListItem
               v-for="(item, i) in sortedAggregated"
-              :key="item.id"
+              :key="itemKey(item)"
               :item="item"
-              :checked="checkedIds.has(item.id)"
+              :checked="checkedIds.has(itemKey(item))"
               :index="i"
-              @toggle="toggle"
+              @toggle="() => toggle(itemKey(item))"
             />
           </TransitionGroup>
 
@@ -282,15 +287,15 @@ function printList() {
           <ul class="print-only print-items" role="list">
             <li
               v-for="item in aggregated"
-              :key="`p-agg-${item.id}-${item.unit}`"
+              :key="`p-agg-${itemKey(item)}`"
               class="print-item"
-              :class="{ 'print-item-checked': checkedIds.has(item.id) }"
+              :class="{ 'print-item-checked': checkedIds.has(itemKey(item)) }"
             >
               <span
                 class="print-checkbox"
-                :class="{ 'print-checkbox-checked': checkedIds.has(item.id) }"
+                :class="{ 'print-checkbox-checked': checkedIds.has(itemKey(item)) }"
                 aria-hidden="true"
-              >{{ checkedIds.has(item.id) ? '✓' : '' }}</span>
+              >{{ checkedIds.has(itemKey(item)) ? '✓' : '' }}</span>
               <span class="print-name">{{ item.name }}</span>
               <span class="print-qty">
                 {{ item.quantity % 1 === 0 ? item.quantity : item.quantity.toFixed(2) }}<span v-if="item.unit"> {{ item.unit }}</span>
@@ -348,20 +353,16 @@ function printList() {
               </div>
             </header>
 
-            <ul class="ings-list" role="list">
-              <li
-                v-for="ing in entry.ingredients"
-                :key="recipeKey(entry.recipe.id, ing.id) + ':' + ing.unit"
-                class="ing-row"
-              >
-                <span class="ing-dot" aria-hidden="true"></span>
-                <span class="ing-name">{{ ing.name }}</span>
-                <span class="ing-qty">
-                  <span class="qty-num">{{ ing.quantity % 1 === 0 ? ing.quantity : ing.quantity.toFixed(1) }}</span>
-                  <span v-if="ing.unit" class="qty-unit">{{ ing.unit }}</span>
-                </span>
-              </li>
-            </ul>
+            <div class="ings-list">
+              <CheckableListItem
+                v-for="(ing, ingIdx) in entry.ingredients"
+                :key="recipeIngKey(entry.recipe.id, ing)"
+                :item="ing"
+                :checked="checkedIds.has(recipeIngKey(entry.recipe.id, ing))"
+                :index="ingIdx"
+                @toggle="() => toggle(recipeIngKey(entry.recipe.id, ing))"
+              />
+            </div>
           </section>
         </div>
 
@@ -387,8 +388,13 @@ function printList() {
                 v-for="ing in entry.ingredients"
                 :key="`p-${entry.recipe.id}-${ing.id}-${ing.unit}`"
                 class="print-item"
+                :class="{ 'print-item-checked': checkedIds.has(recipeIngKey(entry.recipe.id, ing)) }"
               >
-                <span class="print-checkbox" aria-hidden="true"></span>
+                <span
+                  class="print-checkbox"
+                  :class="{ 'print-checkbox-checked': checkedIds.has(recipeIngKey(entry.recipe.id, ing)) }"
+                  aria-hidden="true"
+                >{{ checkedIds.has(recipeIngKey(entry.recipe.id, ing)) ? '✓' : '' }}</span>
                 <span class="print-name">{{ ing.name }}</span>
                 <span class="print-qty">
                   {{ ing.quantity % 1 === 0 ? ing.quantity : ing.quantity.toFixed(2) }}<span v-if="ing.unit"> {{ ing.unit }}</span>

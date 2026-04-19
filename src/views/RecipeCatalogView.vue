@@ -148,6 +148,11 @@ const resultLabel = computed(() => {
 function removeFilter(key) {
   onFiltersUpdate({ ...filters.value, [key]: '' })
 }
+
+function onFavoriteToggled({ id, favorited }) {
+  const recipe = recipes.value.find(r => r.id === id)
+  if (recipe) recipe.is_favorited = favorited
+}
 </script>
 
 <template>
@@ -247,6 +252,7 @@ function removeFilter(key) {
             :key="recipe.id"
             :recipe="recipe"
             :index="i"
+            @favorite-toggled="onFavoriteToggled"
           />
         </div>
 

@@ -93,9 +93,49 @@ async function fetchMyTools(page = 1) {
   }
 }
 
+// ─── Favorites ────────────────────────────────────────────────────────────────
+
+const favorites = ref([])
+const favoritesLoading = ref(false)
+const favoritesError = ref(null)
+const favoritesPage = ref(1)
+const favoritesLastPage = ref(1)
+const favoritesTotal = ref(0)
+const favoritesLoaded = ref(false)
+
+async function fetchFavorites(page = 1) {
+  favoritesLoading.value = true
+  favoritesError.value = null
+  try {
+    const res = await api.get('/favorites', { params: { per_page: 12, page } })
+    favorites.value = res.data.data ?? []
+    favoritesPage.value = res.data.meta?.current_page ?? 1
+    favoritesLastPage.value = res.data.meta?.last_page ?? 1
+    favoritesTotal.value = res.data.meta?.total ?? favorites.value.length
+    favoritesLoaded.value = true
+  } catch {
+    favoritesError.value = 'Nem sikerült betölteni a kedvenceket.'
+  } finally {
+    favoritesLoading.value = false
+  }
+}
+
+function onFavoriteToggled({ id, favorited }) {
+  if (!favorited) {
+    favorites.value = favorites.value.filter(r => r.id !== id)
+    favoritesTotal.value = Math.max(0, favoritesTotal.value - 1)
+  } else {
+    const r = recipes.value.find(x => x.id === id)
+    if (r) r.is_favorited = true
+  }
+}
+
 watch(activeTab, (tab) => {
   if (tab === 'tools' && !toolsLoaded.value && !toolsLoading.value) {
     fetchMyTools(1)
+  }
+  if (tab === 'favorites' && !favoritesLoaded.value && !favoritesLoading.value) {
+    fetchFavorites(1)
   }
 })
 
@@ -153,6 +193,7 @@ const deleteTitle = computed(() =>
 onMounted(() => {
   fetchMyRecipes()
   fetchMyTools()
+  fetchFavorites()
 })
 </script>
 
@@ -203,6 +244,10 @@ onMounted(() => {
         <span class="stat-num">{{ toolsTotal }}</span>
         <span class="stat-lbl">eszköz</span>
       </div>
+      <div class="stat-chip">
+        <span class="stat-num">{{ favoritesTotal }}</span>
+        <span class="stat-lbl">kedvenc</span>
+      </div>
       <RouterLink to="/messages" class="stat-chip stat-link">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="stat-icon" aria-hidden="true">
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
@@ -240,6 +285,19 @@ onMounted(() => {
         Eszközök
         <span class="tab-count">{{ toolsTotal }}</span>
       </button>
+      <button
+        class="tab"
+        :class="{ 'tab-active': activeTab === 'favorites' }"
+        role="tab"
+        :aria-selected="activeTab === 'favorites'"
+        @click="activeTab = 'favorites'"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Kedvencek
+        <span class="tab-count">{{ favoritesTotal }}</span>
+      </button>
     </div>
 
     <!-- ── Recipes panel ────────────────────────────────────────── -->
@@ -271,7 +329,7 @@ onMounted(() => {
 
       <div v-else class="items-grid">
         <div v-for="(recipe, i) in recipes" :key="recipe.id" class="item-wrap">
-          <RecipeCard :recipe="recipe" :index="i" />
+          <RecipeCard :recipe="recipe" :index="i" :show-favorite="false" @favorite-toggled="onFavoriteToggled" />
           <div class="item-actions">
             <RouterLink :to="{ name: 'recipe-edit', params: { id: recipe.id } }" class="action-btn action-edit" title="Szerkesztés" aria-label="Szerkesztés">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
@@ -386,6 +444,62 @@ onMounted(() => {
       </div>
     </section>
 
+    <!-- ── Favorites panel ──────────────────────────────────────── -->
+    <section v-else-if="activeTab === 'favorites'" class="panel" role="tabpanel">
+      <div class="section-header">
+        <h2 class="section-title">Kedvenceim</h2>
+      </div>
+
+      <div v-if="favoritesLoading" class="items-grid" aria-busy="true" aria-label="Kedvencek betöltése">
+        <RecipeSkeletonCard
+          v-for="i in 6"
+          :key="i"
+          :index="i"
+        />
+      </div>
+
+      <p v-else-if="favoritesError" class="error-text">{{ favoritesError }}</p>
+
+      <div v-else-if="favorites.length === 0" class="empty-state">
+        <p class="empty-text">Még nincs kedvenc recepted.</p>
+        <RouterLink :to="{ name: 'recipes' }" class="empty-cta">Fedezz fel recepteket →</RouterLink>
+      </div>
+
+      <div v-else class="items-grid">
+        <RecipeCard
+          v-for="(recipe, i) in favorites"
+          :key="recipe.id"
+          :recipe="recipe"
+          :index="i"
+          @favorite-toggled="onFavoriteToggled"
+        />
+      </div>
+
+      <div v-if="favoritesLastPage > 1" class="pagination">
+        <button
+          class="page-btn"
+          :disabled="favoritesPage === 1"
+          @click="fetchFavorites(favoritesPage - 1)"
+          aria-label="Előző oldal"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <polyline points="15,18 9,12 15,6"/>
+          </svg>
+        </button>
+        <span class="page-info">{{ favoritesPage }} / {{ favoritesLastPage }}</span>
+        <button
+          class="page-btn"
+          :disabled="favoritesPage === favoritesLastPage"
+          @click="fetchFavorites(favoritesPage + 1)"
+          aria-label="Következő oldal"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <polyline points="9,18 15,12 9,6"/>
+          </svg>
+        </button>
+      </div>
+    </section>
+
     <!-- ── Settings modal ───────────────────────────────────────── -->
     <SettingsModal v-model="showSettings" />
 
@@ -422,6 +536,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  width: 100%;
 }
 
 /* ── Profile card ──────────────────────────────────────────────── */
@@ -625,6 +740,7 @@ onMounted(() => {
 /* ── Items grid (recipes + tools share) ── */
 .items-grid {
   display: grid;
+  width: 100%;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
 }

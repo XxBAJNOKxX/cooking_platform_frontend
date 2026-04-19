@@ -179,7 +179,12 @@ async function confirmDelete() {
               </div>
               <div>
                 <p class="td-owner-label">Tulajdonos</p>
-                <p class="td-owner-name">{{ tool.owner?.username ?? '—' }}</p>
+                <RouterLink
+                  v-if="tool.owner?.id"
+                  :to="{ name: 'user-profile', params: { id: tool.owner.id } }"
+                  class="td-owner-name td-owner-link"
+                >{{ tool.owner.username }}</RouterLink>
+                <p v-else class="td-owner-name">—</p>
               </div>
             </div>
 
@@ -393,6 +398,8 @@ async function confirmDelete() {
 
 .td-owner-label { margin: 0; font-size: 0.72rem; color: var(--color-muted); }
 .td-owner-name  { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--color-text); }
+.td-owner-link  { text-decoration: none; transition: color 150ms var(--ease-ui-out); }
+.td-owner-link:hover { color: var(--color-accent); }
 
 .td-owner-actions { display: flex; flex-direction: column; gap: 0.5rem; }
 

@@ -28,21 +28,37 @@
               Vissza
             </button>
 
-            <div v-if="isOwner" class="owner-actions">
-              <router-link :to="{ name: 'recipe-edit', params: { id: recipe.id } }" class="btn-owner">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke-linecap="round"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke-linecap="round"/>
+            <div class="owner-actions">
+              <button
+                v-if="authStore.isAuthenticated && !isOwner"
+                class="btn-owner btn-fav"
+                :class="{ 'btn-fav--on': favorited }"
+                :disabled="favLoading"
+                @click="toggleFavorite"
+                :aria-label="favorited ? 'Eltávolítás a kedvencek közül' : 'Hozzáadás a kedvencekhez'"
+                :aria-pressed="favorited"
+              >
+                <svg viewBox="0 0 24 24" :fill="favorited ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                Szerkesztés
-              </router-link>
-              <button class="btn-owner btn-danger-owner" @click="showDeleteModal = true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/>
-                  <path d="M10 11v6M14 11v6M9 6V4h6v2" stroke-linecap="round"/>
-                </svg>
-                Törlés
+                {{ favorited ? 'Kedvenc' : 'Kedvencekhez' }}
               </button>
+              <template v-if="isOwner">
+                <router-link :to="{ name: 'recipe-edit', params: { id: recipe.id } }" class="btn-owner">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke-linecap="round"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke-linecap="round"/>
+                  </svg>
+                  Szerkesztés
+                </router-link>
+                <button class="btn-owner btn-danger-owner" @click="showDeleteModal = true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/>
+                    <path d="M10 11v6M14 11v6M9 6V4h6v2" stroke-linecap="round"/>
+                  </svg>
+                  Törlés
+                </button>
+              </template>
             </div>
           </div>
 
@@ -71,12 +87,16 @@
                 </svg>
                 {{ recipe.servings }} fő
               </span>
-              <span v-if="recipe.author" class="meta-chip">
+              <RouterLink
+                v-if="recipe.author"
+                :to="{ name: 'user-profile', params: { id: recipe.author.id } }"
+                class="meta-chip meta-link"
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chip-icon">
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
                 </svg>
                 {{ recipe.author.username }}
-              </span>
+              </RouterLink>
               <span v-if="averageRating" class="meta-chip meta-stars">
                 <StarRating :model-value="averageRating" :show-count="true" :count="recipe.reviews.length" />
               </span>
@@ -281,6 +301,8 @@ const recipe = ref(null)
 const loading = ref(true)
 const error = ref('')
 const portions = ref(4)
+const favorited = ref(false)
+const favLoading = ref(false)
 
 const defaultPortions = computed(() => recipe.value?.servings ?? 4)
 watch(defaultPortions, v => { portions.value = v })
@@ -363,12 +385,28 @@ async function fetchRecipe() {
   try {
     const { data } = await api.get(`/recipes/${route.params.id}`)
     recipe.value = data.data
+    favorited.value = Boolean(data.data.is_favorited)
   } catch (err) {
     error.value = err.response?.status === 404
       ? 'A recept nem található.'
       : 'Hiba történt a recept betöltésekor.'
   } finally {
     loading.value = false
+  }
+}
+
+async function toggleFavorite() {
+  if (!authStore.isAuthenticated || favLoading.value || !recipe.value) return
+  favLoading.value = true
+  const prev = favorited.value
+  favorited.value = !prev
+  try {
+    const { data } = await api.post(`/favorites/${recipe.value.id}/toggle`)
+    favorited.value = Boolean(data.favorited)
+  } catch {
+    favorited.value = prev
+  } finally {
+    favLoading.value = false
   }
 }
 
@@ -531,6 +569,27 @@ onMounted(fetchRecipe)
 }
 .btn-danger-owner:hover { background: rgba(255,100,100,0.32); }
 
+.btn-fav { border-color: rgba(255,255,255,0.4); }
+.btn-fav svg { width: 14px; height: 14px; }
+.btn-fav--on {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #fff;
+}
+.btn-fav--on:hover { background: var(--color-danger-hover, var(--color-danger)); }
+.btn-fav:disabled { opacity: 0.7; cursor: wait; }
+
+.hero-no-img .btn-fav {
+  border-color: var(--color-stroke);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+.hero-no-img .btn-fav--on {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #fff;
+}
+
 .hero-body {
   display: flex;
   flex-direction: column;
@@ -600,6 +659,13 @@ onMounted(fetchRecipe)
 .chip-icon { width: 13px; height: 13px; flex-shrink: 0; }
 
 .meta-stars { background: rgba(233,105,44,0.4); }
+
+.meta-link {
+  text-decoration: none;
+  transition: background 150ms var(--ease-ui-out);
+}
+.meta-link:hover { background: rgba(0,0,0,0.45); }
+.hero-no-img .meta-link:hover { background: var(--color-surface-hover, var(--color-surface)); }
 
 .content-grid {
   display: grid;

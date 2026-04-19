@@ -1,13 +1,30 @@
 <template>
-  <ul class="ingredient-list" role="list">
-    <li v-for="(ing, index) in scaledIngredients" :key="ing.id" class="ingredient-item" :style="`--i: ${index}`">
-      <span class="amount">
-        <span class="qty">{{ formatQty(ing.scaledQty) }}</span>
-        <span v-if="ing.unit" class="unit">{{ ing.unit }}</span>
-      </span>
-      <span class="name">{{ ing.name }}</span>
-    </li>
-  </ul>
+  <div class="ingredient-groups">
+    <section
+      v-for="group in scaledGroups"
+      :key="group.name || '_default'"
+      class="ing-group"
+    >
+      <h3 v-if="group.name" class="ing-group-title">{{ group.name }}</h3>
+      <ul class="ingredient-list" role="list">
+        <li
+          v-for="(ing, index) in group.items"
+          :key="ing.id"
+          class="ingredient-item"
+          :style="`--i: ${index}`"
+        >
+          <span v-if="ing.scaledQty != null" class="amount">
+            <span class="qty">{{ formatQty(ing.scaledQty) }}</span>
+            <span v-if="ing.unit" class="unit">{{ ing.unit }}</span>
+          </span>
+          <span v-else-if="ing.unit" class="amount amount--taste">
+            <span class="unit">{{ ing.unit }}</span>
+          </span>
+          <span class="name">{{ ing.name }}</span>
+        </li>
+      </ul>
+    </section>
+  </div>
 </template>
 
 <script setup>
@@ -19,12 +36,21 @@ const props = defineProps({
   currentPortions: { type: Number, default: 4 },
 })
 
-const scaledIngredients = computed(() => {
+const scaledGroups = computed(() => {
   const ratio = props.currentPortions / props.basePortions
-  return props.ingredients.map(ing => ({
-    ...ing,
-    scaledQty: ing.quantity != null ? ing.quantity * ratio : null,
-  }))
+  const buckets = new Map()
+  for (const ing of props.ingredients) {
+    const key = (ing.group ?? '').toString()
+    if (!buckets.has(key)) buckets.set(key, [])
+    buckets.get(key).push({
+      ...ing,
+      scaledQty: ing.quantity != null ? ing.quantity * ratio : null,
+    })
+  }
+  const out = []
+  if (buckets.has('')) out.push({ name: '', items: buckets.get('') })
+  for (const [name, items] of buckets) if (name !== '') out.push({ name, items })
+  return out
 })
 
 function formatQty(v) {
@@ -35,6 +61,24 @@ function formatQty(v) {
 </script>
 
 <style scoped>
+.ingredient-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ing-group { display: flex; flex-direction: column; gap: 4px; }
+
+.ing-group-title {
+  margin: 2px 0 2px;
+  padding: 0 10px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--color-accent);
+  text-transform: none;
+}
+
 .ingredient-list {
   list-style: none;
   padding: 0;
@@ -91,6 +135,11 @@ function formatQty(v) {
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--color-muted);
+}
+
+.amount--taste {
+  min-width: unset;
+  font-style: italic;
 }
 
 .name {
