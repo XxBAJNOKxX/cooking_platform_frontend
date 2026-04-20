@@ -111,7 +111,13 @@ function sendMessage() {
     router.push({ name: 'login' })
     return
   }
-  router.push({ name: 'messages', query: { to: route.params.id } })
+  router.push({
+    name: 'messages',
+    query: {
+      to: route.params.id,
+      username: profile.value.username
+    }
+  })
 }
 
 onMounted(() => {
@@ -134,7 +140,9 @@ watch(() => route.params.id, (id) => {
   <div class="profile-page">
 
     <div v-if="profileLoading" class="profile-card pc-skel" aria-busy="true">
-      <div class="avatar-wrap"><div class="avatar-initials skel-av" /></div>
+      <div class="avatar-wrap">
+        <div class="avatar-initials skel-av" />
+      </div>
       <div class="profile-info">
         <div class="skel-bar skel-bar-wide" />
         <div class="skel-bar" />
@@ -157,13 +165,9 @@ watch(() => route.params.id, (id) => {
         <div class="profile-info">
           <div class="profile-name-row">
             <h1 class="profile-name">{{ profile.username }}</h1>
-            <button
-              v-if="!isSelf && authStore.isAuthenticated"
-              class="msg-btn"
-              @click="sendMessage"
-            >
+            <button v-if="!isSelf && authStore.isAuthenticated" class="msg-btn" @click="sendMessage">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
               </svg>
               Üzenet
             </button>
@@ -182,19 +186,13 @@ watch(() => route.params.id, (id) => {
 
       <!-- Tabs -->
       <div class="tabs-row" role="tablist">
-        <button
-          class="tab" :class="{ 'tab-active': activeTab === 'recipes' }"
-          role="tab" :aria-selected="activeTab === 'recipes'"
-          @click="activeTab = 'recipes'"
-        >
+        <button class="tab" :class="{ 'tab-active': activeTab === 'recipes' }" role="tab"
+          :aria-selected="activeTab === 'recipes'" @click="activeTab = 'recipes'">
           Receptek
           <span class="tab-count">{{ recipeCount }}</span>
         </button>
-        <button
-          class="tab" :class="{ 'tab-active': activeTab === 'tools' }"
-          role="tab" :aria-selected="activeTab === 'tools'"
-          @click="activeTab = 'tools'"
-        >
+        <button class="tab" :class="{ 'tab-active': activeTab === 'tools' }" role="tab"
+          :aria-selected="activeTab === 'tools'" @click="activeTab = 'tools'">
           Eszközök
           <span class="tab-count">{{ toolCount }}</span>
         </button>
@@ -215,7 +213,8 @@ watch(() => route.params.id, (id) => {
         <div v-if="recipesLastPage > 1" class="pagination">
           <button class="page-btn" :disabled="recipesPage === 1" @click="fetchRecipes(recipesPage - 1)">‹</button>
           <span class="page-info">{{ recipesPage }} / {{ recipesLastPage }}</span>
-          <button class="page-btn" :disabled="recipesPage === recipesLastPage" @click="fetchRecipes(recipesPage + 1)">›</button>
+          <button class="page-btn" :disabled="recipesPage === recipesLastPage"
+            @click="fetchRecipes(recipesPage + 1)">›</button>
         </div>
       </section>
 
@@ -265,15 +264,25 @@ watch(() => route.params.id, (id) => {
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.avatar-wrap { flex-shrink: 0; }
+.avatar-wrap {
+  flex-shrink: 0;
+}
 
 .avatar-img,
 .avatar-initials {
-  width: 5rem; height: 5rem;
+  width: 5rem;
+  height: 5rem;
   border-radius: 999px;
   object-fit: cover;
   border: 3px solid var(--color-bg);
@@ -281,19 +290,33 @@ watch(() => route.params.id, (id) => {
 }
 
 .avatar-initials {
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--color-accent);
   color: var(--color-bg);
   font-size: 1.375rem;
   font-weight: 800;
 }
 
-.profile-info { flex: 1; display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
+.profile-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
 
-.profile-name-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
 
 .profile-name {
-  font-size: 1.375rem; font-weight: 800;
+  font-size: 1.375rem;
+  font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--color-text);
   overflow-wrap: anywhere;
@@ -301,19 +324,32 @@ watch(() => route.params.id, (id) => {
 }
 
 .msg-btn {
-  display: inline-flex; align-items: center; gap: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.4rem 1rem;
   border-radius: 999px;
   border: 1.5px solid var(--color-accent);
   background: color-mix(in srgb, var(--color-accent) 8%, transparent);
   color: var(--color-accent);
-  font-size: 0.8rem; font-weight: 700;
+  font-size: 0.8rem;
+  font-weight: 700;
   cursor: pointer;
   transition: background 150ms ease, transform 150ms var(--ease-ui-out);
 }
-.msg-btn svg { width: 0.875rem; height: 0.875rem; }
-.msg-btn:hover { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
-.msg-btn:active { transform: scale(0.95); }
+
+.msg-btn svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.msg-btn:hover {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
+.msg-btn:active {
+  transform: scale(0.95);
+}
 
 .profile-bio {
   margin: 0.25rem 0 0;
@@ -346,8 +382,17 @@ watch(() => route.params.id, (id) => {
   border: 1.5px solid var(--color-stroke);
 }
 
-.stat-num { font-weight: 800; font-size: 1.05rem; color: var(--color-text); }
-.stat-lbl { font-size: 0.78rem; color: var(--color-muted); font-weight: 600; }
+.stat-num {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--color-text);
+}
+
+.stat-lbl {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  font-weight: 600;
+}
 
 /* Tabs */
 .tabs-row {
@@ -371,8 +416,15 @@ watch(() => route.params.id, (id) => {
   margin-bottom: -1.5px;
   transition: color 150ms ease, border-color 150ms ease;
 }
-.tab:hover { color: var(--color-text); }
-.tab-active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.tab-active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
 
 .tab-count {
   font-size: 0.72rem;
@@ -382,30 +434,55 @@ watch(() => route.params.id, (id) => {
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
 }
+
 .tab-active .tab-count {
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
   color: var(--color-accent);
 }
 
-.panel { display: flex; flex-direction: column; gap: 1rem; }
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
 
 .items-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
 }
-@media (max-width: 1023px) { .items-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 479px)  { .items-grid { grid-template-columns: 1fr; } }
 
-.empty-state, .error-card {
+@media (max-width: 1023px) {
+  .items-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 479px) {
+  .items-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.empty-state,
+.error-card {
   text-align: center;
   padding: 3rem 1rem;
   background: var(--color-surface);
   border: 1.5px dashed var(--color-stroke);
   border-radius: 1rem;
 }
-.empty-text { color: var(--color-muted); margin: 0; }
-.error-text { color: var(--color-danger); font-weight: 600; margin: 0 0 1rem; }
+
+.empty-text {
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.error-text {
+  color: var(--color-danger);
+  font-weight: 600;
+  margin: 0 0 1rem;
+}
 
 .btn-ghost {
   padding: 0.5rem 1rem;
@@ -425,7 +502,8 @@ watch(() => route.params.id, (id) => {
 }
 
 .page-btn {
-  width: 2.25rem; height: 2.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 0.625rem;
   border: 1.5px solid var(--color-stroke);
   background: var(--color-bg);
@@ -433,11 +511,23 @@ watch(() => route.params.id, (id) => {
   font-weight: 700;
   cursor: pointer;
 }
-.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.page-info { font-size: 0.875rem; color: var(--color-muted); font-weight: 700; }
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  font-weight: 700;
+}
 
 /* Loading skeleton */
-.pc-skel .skel-av { background: var(--color-stroke); }
+.pc-skel .skel-av {
+  background: var(--color-stroke);
+}
+
 .skel-bar {
   height: 14px;
   border-radius: 6px;
@@ -445,9 +535,18 @@ watch(() => route.params.id, (id) => {
   background-size: 200% 100%;
   animation: shimmerUp 1.4s infinite;
 }
-.skel-bar-wide { width: 60%; }
+
+.skel-bar-wide {
+  width: 60%;
+}
+
 @keyframes shimmerUp {
-  0%   { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
 }
 </style>

@@ -138,9 +138,19 @@ onMounted(async () => {
       selectConversation(found)
     } else {
       selectedPartnerId.value = urlUserId
-      externalPartner.value = {
-        id: urlUserId,
-        username: route.query.username ?? `Felhasználó #${urlUserId}`,
+
+      if (route.query.username) {
+        externalPartner.value = {
+          id: urlUserId,
+          username: route.query.username,
+        }
+      } else {
+        externalPartner.value = { id: urlUserId, username: 'Betöltés...' }
+        api.get(`/users/${urlUserId}`).then(res => {
+          externalPartner.value = res.data.data.user
+        }).catch(() => {
+          externalPartner.value = { id: urlUserId, username: `Felhasználó #${urlUserId}` }
+        })
       }
     }
   }
