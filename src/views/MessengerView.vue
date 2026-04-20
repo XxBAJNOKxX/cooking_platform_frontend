@@ -113,7 +113,7 @@ function markConversationRead(conv) {
     .then(() => {
       window.dispatchEvent(new CustomEvent('unread:refresh'))
     })
-    .catch(() => {})
+    .catch(() => { })
 }
 
 // Watch URL params on mount
@@ -269,10 +269,10 @@ function timeAgo(str) {
   const now = new Date()
   const diffMs = now - d
   const diffMin = Math.floor(diffMs / 60_000)
-  if (diffMin < 1)  return 'most'
+  if (diffMin < 1) return 'most'
   if (diffMin < 60) return `${diffMin} perce`
   const diffH = Math.floor(diffMin / 60)
-  if (diffH < 24)  return `${diffH} órája`
+  if (diffH < 24) return `${diffH} órája`
   return d.toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' })
 }
 
@@ -318,15 +318,12 @@ const showPanel = ref(false)
       </div>
 
       <div v-else class="conv-list">
-        <button
-          v-for="conv in conversations"
-          :key="conv.partner.id"
-          class="conv-item"
+        <button v-for="conv in conversations" :key="conv.partner.id" class="conv-item"
           :class="{ active: conv.partner.id === selectedPartnerId }"
-          @click="selectConversation(conv); showPanel = true"
-        >
+          @click="selectConversation(conv); showPanel = true">
           <div class="conv-avatar">
-            <img v-if="conv.partner.avatar_url" :src="conv.partner.avatar_url" :alt="conv.partner.username" class="conv-avatar-img"/>
+            <img v-if="conv.partner.avatar_url" :src="conv.partner.avatar_url" :alt="conv.partner.username"
+              class="conv-avatar-img" />
             <span v-else>{{ initials(conv.partner) }}</span>
             <span v-if="conv.unread > 0" class="unread-dot" aria-label="Olvasatlan üzenetek">{{ conv.unread }}</span>
           </div>
@@ -350,8 +347,9 @@ const showPanel = ref(false)
 
       <!-- Empty state: no conversation selected -->
       <div v-if="!selectedPartnerId" class="chat-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="chat-empty-icon" aria-hidden="true">
-          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="chat-empty-icon"
+          aria-hidden="true">
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
         </svg>
         <p>Válassz egy beszélgetést a bal oldalról</p>
       </div>
@@ -361,33 +359,29 @@ const showPanel = ref(false)
         <div class="chat-header">
           <button class="back-btn" @click="showPanel = false" aria-label="Vissza">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-              <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
 
-          <RouterLink
-            v-if="activePartner?.id"
-            :to="{ name: 'user-profile', params: { id: activePartner.id } }"
-            class="chat-partner-avatar chat-partner-link"
-          >
-            <img v-if="activePartner.avatar_url" :src="activePartner.avatar_url" :alt="activePartner.username" class="conv-avatar-img"/>
+          <RouterLink v-if="activePartner?.id" :to="{ name: 'user-profile', params: { id: activePartner.id } }"
+            class="chat-partner-avatar chat-partner-link">
+            <img v-if="activePartner.avatar_url" :src="activePartner.avatar_url" :alt="activePartner.username"
+              class="conv-avatar-img" />
             <span v-else>{{ initials(activePartner) }}</span>
           </RouterLink>
           <div v-else class="chat-partner-avatar">
             <span>{{ initials(activePartner) }}</span>
           </div>
-          <RouterLink
-            v-if="activePartner?.id"
-            :to="{ name: 'user-profile', params: { id: activePartner.id } }"
-            class="chat-partner-name chat-partner-link"
-          >{{ activePartner.username }}</RouterLink>
+          <RouterLink v-if="activePartner?.id" :to="{ name: 'user-profile', params: { id: activePartner.id } }"
+            class="chat-partner-name chat-partner-link">{{ activePartner.username }}</RouterLink>
           <span v-else class="chat-partner-name">{{ activePartner?.username }}</span>
         </div>
 
         <!-- Tool context banner -->
         <div v-if="activeTool" class="tool-banner" :class="{ 'tool-banner-rented': !activeTool.is_available }">
           <RouterLink :to="{ name: 'tool-detail', params: { id: activeTool.id } }" class="tool-banner-link">
-            <img v-if="activeTool.image_url" :src="activeTool.image_url" :alt="activeTool.name" class="tool-banner-img" />
+            <img v-if="activeTool.image_url" :src="activeTool.image_url" :alt="activeTool.name"
+              class="tool-banner-img" />
             <div v-else class="tool-banner-img tool-banner-img-fallback" aria-hidden="true">🧰</div>
             <div class="tool-banner-body">
               <span class="tool-banner-label">
@@ -398,23 +392,14 @@ const showPanel = ref(false)
           </RouterLink>
 
           <div v-if="activeTool.is_owner" class="tool-banner-actions">
-            <button
-              v-if="activeTool.is_available"
-              class="tool-action tool-action-primary"
-              :disabled="toolActing"
-              @click="markToolRented"
-            >
+            <button v-if="activeTool.is_available" class="tool-action tool-action-primary" :disabled="toolActing"
+              @click="markToolRented">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M20 7L9 18l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20 7L9 18l-5-5" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
               Kiadva jelölés
             </button>
-            <button
-              v-else
-              class="tool-action"
-              :disabled="toolActing"
-              @click="markToolAvailable"
-            >
+            <button v-else class="tool-action" :disabled="toolActing" @click="markToolAvailable">
               Újra elérhetővé
             </button>
           </div>
@@ -425,16 +410,13 @@ const showPanel = ref(false)
         <!-- Messages -->
         <div class="messages-area">
           <template v-if="activeConversation">
-            <template v-for="item in groupByDay(activeConversation.messages)" :key="item.type === 'day' ? item.day : item.msg.id">
+            <template v-for="item in groupByDay(activeConversation.messages)"
+              :key="item.type === 'day' ? item.day : item.msg.id">
               <div v-if="item.type === 'day'" class="day-sep" aria-label="Dátum elválasztó">
                 <span>{{ dayLabel(item.day + 'T12:00:00') }}</span>
               </div>
-              <ChatBubble
-                v-else
-                :message="item.msg"
-                :is-mine="item.msg.sender?.id === myId"
-                :show-avatar="item.msg.sender?.id !== myId"
-              />
+              <ChatBubble v-else :message="item.msg" :is-mine="item.msg.sender?.id === myId"
+                :show-avatar="item.msg.sender?.id !== myId" />
             </template>
           </template>
 
@@ -518,61 +500,95 @@ const showPanel = ref(false)
   transition: background 150ms ease;
 }
 
-.conv-item:hover { background: color-mix(in srgb, var(--color-stroke) 40%, transparent); }
-.conv-item.active { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+.conv-item:hover {
+  background: color-mix(in srgb, var(--color-stroke) 40%, transparent);
+}
+
+.conv-item.active {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
 
 .conv-avatar {
-  width: 2.5rem; height: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 999px;
   flex-shrink: 0;
   background: var(--color-accent);
   color: var(--color-bg);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.75rem; font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
   position: relative;
 }
 
-.conv-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 999px; }
+.conv-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 999px;
+}
 
 .unread-dot {
-  position: absolute; top: -2px; right: -2px;
-  min-width: 1.1rem; height: 1.1rem;
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 1.1rem;
+  height: 1.1rem;
   border-radius: 999px;
   background: var(--color-danger);
   color: white;
-  font-size: 0.6rem; font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0 0.2rem;
   border: 2px solid var(--color-surface);
 }
 
-.conv-info { flex: 1; min-width: 0; }
+.conv-info {
+  flex: 1;
+  min-width: 0;
+}
 
 .conv-info-top {
-  display: flex; align-items: baseline;
+  display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: 0.25rem;
   margin-bottom: 0.15rem;
 }
 
 .conv-name {
-  font-size: 0.875rem; font-weight: 700;
+  font-size: 0.875rem;
+  font-weight: 700;
   color: var(--color-text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .conv-time {
-  font-size: 0.7rem; color: var(--color-muted);
+  font-size: 0.7rem;
+  color: var(--color-muted);
   flex-shrink: 0;
 }
 
 .conv-preview {
-  font-size: 0.78rem; color: var(--color-muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   margin: 0;
 }
 
-.preview-mine { color: var(--color-muted); font-weight: 600; }
+.preview-mine {
+  color: var(--color-muted);
+  font-weight: 600;
+}
 
 /* ── Chat panel ─────────────────────────────────────────────────── */
 .chat-panel {
@@ -595,7 +611,8 @@ const showPanel = ref(false)
 }
 
 .chat-empty-icon {
-  width: 3rem; height: 3rem;
+  width: 3rem;
+  height: 3rem;
   opacity: 0.35;
 }
 
@@ -612,8 +629,10 @@ const showPanel = ref(false)
 
 .back-btn {
   display: none;
-  align-items: center; justify-content: center;
-  width: 2rem; height: 2rem;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
   border-radius: 0.5rem;
   border: 1.5px solid var(--color-stroke);
   background: transparent;
@@ -621,22 +640,34 @@ const showPanel = ref(false)
   cursor: pointer;
   transition: background 150ms ease, transform 150ms var(--ease-ui-out);
 }
-.back-btn svg { width: 1rem; height: 1rem; }
-.back-btn:active { transform: scale(0.92); }
+
+.back-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.back-btn:active {
+  transform: scale(0.92);
+}
 
 .chat-partner-avatar {
-  width: 2.25rem; height: 2.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 999px;
   background: var(--color-accent);
   color: var(--color-bg);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.7rem; font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 800;
   overflow: hidden;
   flex-shrink: 0;
 }
 
 .chat-partner-name {
-  font-size: 1rem; font-weight: 700;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--color-text);
 }
 
@@ -645,9 +676,19 @@ const showPanel = ref(false)
   color: inherit;
   transition: color 150ms var(--ease-ui-out), opacity 150ms var(--ease-ui-out);
 }
-.chat-partner-name.chat-partner-link:hover { color: var(--color-accent); }
-.chat-partner-avatar.chat-partner-link { cursor: pointer; }
-.chat-partner-avatar.chat-partner-link:hover { opacity: 0.85; }
+
+.chat-partner-name.chat-partner-link:hover {
+  color: var(--color-accent);
+}
+
+.chat-partner-avatar.chat-partner-link {
+  cursor: pointer;
+  color: #ffffff
+}
+
+.chat-partner-avatar.chat-partner-link:hover {
+  opacity: 0.85;
+}
 
 /* ── Messages area ── */
 .messages-area {
@@ -662,7 +703,9 @@ const showPanel = ref(false)
 
 /* ── Tool context banner ── */
 .tool-banner {
-  display: flex; align-items: center; gap: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   padding: 0.55rem 0.75rem 0.55rem 0.55rem;
   margin: 0.6rem 0.75rem 0;
   border: 1.5px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
@@ -670,9 +713,17 @@ const showPanel = ref(false)
   border-radius: 0.875rem;
   animation: toolBannerIn 240ms var(--ease-ui-out) both;
 }
+
 @keyframes toolBannerIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .tool-banner-rented {
@@ -681,30 +732,43 @@ const showPanel = ref(false)
 }
 
 .tool-banner-link {
-  display: flex; align-items: center; gap: 0.6rem;
-  flex: 1; min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
   text-decoration: none;
   color: var(--color-text);
   transition: opacity 150ms var(--ease-ui-out);
 }
-.tool-banner-link:hover { opacity: 0.85; }
+
+.tool-banner-link:hover {
+  opacity: 0.85;
+}
 
 .tool-banner-img {
-  width: 2.25rem; height: 2.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 0.55rem;
   object-fit: cover;
   flex-shrink: 0;
   border: 1px solid var(--color-stroke);
 }
+
 .tool-banner-img-fallback {
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--color-surface);
   font-size: 1rem;
 }
 
 .tool-banner-body {
-  display: flex; flex-direction: column; gap: 0.05rem;
-  min-width: 0; flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .tool-banner-label {
@@ -718,33 +782,59 @@ const showPanel = ref(false)
 .tool-banner-name {
   font-size: 0.88rem;
   font-weight: 700;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.tool-banner-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+.tool-banner-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
 
 .tool-action {
-  display: inline-flex; align-items: center; gap: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   padding: 0.4rem 0.75rem;
   border-radius: 999px;
   border: 1.5px solid var(--color-stroke);
   background: var(--color-bg);
   color: var(--color-text);
-  font-size: 0.78rem; font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 700;
   cursor: pointer;
   transition: background 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out), border-color 150ms var(--ease-ui-out);
 }
-.tool-action:hover  { background: var(--color-surface); }
-.tool-action:active { transform: scale(0.96); }
-.tool-action:disabled { opacity: 0.55; cursor: wait; }
-.tool-action svg { width: 0.85rem; height: 0.85rem; }
+
+.tool-action:hover {
+  background: var(--color-surface);
+}
+
+.tool-action:active {
+  transform: scale(0.96);
+}
+
+.tool-action:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.tool-action svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
 
 .tool-action-primary {
   border-color: var(--color-accent);
   background: var(--color-accent);
   color: var(--color-bg);
 }
-.tool-action-primary:hover { background: var(--color-accent-hover); }
+
+.tool-action-primary:hover {
+  background: var(--color-accent-hover);
+}
 
 .tool-notice {
   margin: 0.4rem 0.85rem 0;
@@ -780,10 +870,21 @@ const showPanel = ref(false)
 
 /* ── Mobile ─────────────────────────────────────────────────────── */
 @media (max-width: 700px) {
-  .conv-sidebar { width: 100%; border-right: none; }
-  .chat-panel   { width: 100%; }
-  .back-btn { display: flex; }
+  .conv-sidebar {
+    width: 100%;
+    border-right: none;
+  }
 
-  .hidden-mobile { display: none; }
+  .chat-panel {
+    width: 100%;
+  }
+
+  .back-btn {
+    display: flex;
+  }
+
+  .hidden-mobile {
+    display: none;
+  }
 }
 </style>
