@@ -50,7 +50,7 @@ const goToCategory = (categoryId) => {
           v-for="category in categories"
           :key="category.id"
           @click="goToCategory(category.id)"
-          class="group relative overflow-hidden rounded-2xl border border-stroke/40 bg-gradient-to-br from-surface/60 to-surface/30 p-4 sm:p-5 transition-all duration-300 hover:border-accent/60 hover:shadow-lg hover:from-surface/80 hover:to-surface/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+          class="group relative overflow-hidden rounded-2xl border border-stroke/40 bg-linear-to-br from-surface/60 to-surface/30 p-4 sm:p-5 transition-all duration-300 hover:border-accent/60 hover:shadow-lg hover:from-surface/80 hover:to-surface/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         >
           <div class="relative z-10 flex flex-col items-center justify-center gap-3 text-center">
             <div class="text-3xl sm:text-4xl transition-transform group-hover:scale-110">
@@ -66,7 +66,7 @@ const goToCategory = (categoryId) => {
             </div>
           </div>
 
-          <div class="absolute inset-0 -z-10 bg-gradient-to-br from-accent/0 to-accent/10 opacity-0 transition-opacity group-hover:opacity-100" />
+          <div class="absolute inset-0 -z-10 bg-linear-to-br from-accent/0 to-accent/10 opacity-0 transition-opacity group-hover:opacity-100" />
         </button>
       </div>
     </div>

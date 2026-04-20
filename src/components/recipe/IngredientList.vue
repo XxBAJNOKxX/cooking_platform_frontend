@@ -68,8 +68,8 @@ function formatQty(v) {
 
 .ing-group-title {
   margin: 2px 0 2px;
-  padding: 0 10px;
-  font-size: 0.8rem;
+  padding: 0 4px;
+  font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.01em;
   color: var(--color-accent);
