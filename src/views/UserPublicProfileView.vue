@@ -394,6 +394,8 @@ watch(() => route.params.id, (id) => {
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
 }
+@media (max-width: 1023px) { .items-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 479px)  { .items-grid { grid-template-columns: 1fr; } }
 
 .empty-state, .error-card {
   text-align: center;

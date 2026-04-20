@@ -63,23 +63,26 @@
           </div>
 
           <div class="hero-body">
-            <div class="badge-row">
-              <span v-for="cat in recipe.categories" :key="cat.id" class="badge">{{ cat.name }}</span>
-            </div>
-            <h1 class="hero-title">{{ recipe.title }}</h1>
+              <h1 class="hero-title">{{ recipe.title }}</h1>
             <div class="hero-meta">
-              <span class="meta-chip">
+              <RouterLink
+                :to="{ name: 'recipes', query: { max_time: recipe.prep_time } }"
+                class="meta-chip meta-link"
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chip-icon">
                   <circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>
                 </svg>
                 {{ recipe.prep_time }} perc
-              </span>
-              <span class="meta-chip">
+              </RouterLink>
+              <RouterLink
+                :to="{ name: 'recipes', query: { difficulty: recipe.difficulty } }"
+                class="meta-chip meta-link"
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chip-icon">
                   <path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z"/>
                 </svg>
                 {{ difficultyLabel }}
-              </span>
+              </RouterLink>
               <span v-if="recipe.servings" class="meta-chip">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chip-icon">
                   <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
@@ -102,8 +105,30 @@
               </span>
             </div>
 
-            <div v-if="authStore.isAuthenticated" class="hero-cta-row">
-              <button class="btn-add-cal" @click="openCalModal">
+            <div class="hero-cta-row">
+              <div class="hero-cats">
+                <RouterLink
+                  v-for="cat in visibleCats"
+                  :key="cat.id"
+                  :to="{ name: 'recipes', query: { category: cat.name } }"
+                  class="badge badge-link"
+                >{{ cat.name }}</RouterLink>
+                <button
+                  v-if="hiddenCatsCount > 0 && !showAllCats"
+                  type="button"
+                  class="badge badge-more"
+                  @click="showAllCats = true"
+                >+{{ hiddenCatsCount }}</button>
+                <template v-if="showAllCats">
+                  <RouterLink
+                    v-for="cat in hiddenCats"
+                    :key="`h-${cat.id}`"
+                    :to="{ name: 'recipes', query: { category: cat.name } }"
+                    class="badge badge-link"
+                  >{{ cat.name }}</RouterLink>
+                </template>
+              </div>
+              <button v-if="authStore.isAuthenticated" class="btn-add-cal" @click="openCalModal">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                   <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
@@ -361,8 +386,15 @@ async function submitCalModal() {
 }
 
 const difficultyLabel = computed(() => ({
+  Könnyű: 'Könnyű', Közepes: 'Közepes', Nehéz: 'Nehéz',
   easy: 'Könnyű', medium: 'Közepes', hard: 'Nehéz'
 })[recipe.value?.difficulty] ?? recipe.value?.difficulty)
+
+const CAT_VISIBLE_LIMIT = 3
+const showAllCats = ref(false)
+const visibleCats = computed(() => (recipe.value?.categories ?? []).slice(0, CAT_VISIBLE_LIMIT))
+const hiddenCats  = computed(() => (recipe.value?.categories ?? []).slice(CAT_VISIBLE_LIMIT))
+const hiddenCatsCount = computed(() => hiddenCats.value.length)
 
 const averageRating = computed(() => {
   const rs = recipe.value?.reviews
@@ -512,11 +544,11 @@ onMounted(fetchRecipe)
   border-radius: 10px;
   font-size: 0.875rem;
   font-weight: 600;
-  border: 1.5px solid rgba(255,255,255,0.35);
-  background: rgba(255,255,255,0.12);
+  border: 1.5px solid rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.24);
   color: #fff;
   cursor: pointer;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
   transition: background 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out);
   animation: fadeSlideDown 350ms var(--ease-ui-out) both;
 }
@@ -529,7 +561,7 @@ onMounted(fetchRecipe)
 }
 
 .btn-back svg { width: 16px; height: 16px; }
-.btn-back:hover { background: rgba(255,255,255,0.22); }
+.btn-back:hover { background: rgba(255,255,255,0.36); }
 .btn-back:active { transform: scale(0.96); }
 
 @keyframes fadeSlideDown {
@@ -552,15 +584,15 @@ onMounted(fetchRecipe)
   font-size: 0.825rem;
   font-weight: 600;
   cursor: pointer;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
   text-decoration: none;
   transition: background 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out);
-  border: 1.5px solid rgba(255,255,255,0.35);
-  background: rgba(255,255,255,0.15);
+  border: 1.5px solid rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.28);
   color: #fff;
 }
 .btn-owner svg { width: 14px; height: 14px; }
-.btn-owner:hover { background: rgba(255,255,255,0.28); }
+.btn-owner:hover { background: rgba(255,255,255,0.42); }
 .btn-owner:active { transform: scale(0.96); }
 
 .btn-danger-owner {
@@ -602,23 +634,32 @@ onMounted(fetchRecipe)
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.badge-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
 .badge {
   padding: 3px 12px;
   border-radius: 20px;
   font-size: 0.775rem;
   font-weight: 600;
-  border: 1px solid rgba(255,255,255,0.35);
-  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.60);
+  background: rgba(255,255,255,0.30);
   color: #fff;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
   letter-spacing: 0.02em;
+  text-decoration: none;
 }
+
+.badge-link {
+  transition: background 150ms, border-color 150ms;
+  cursor: pointer;
+}
+.badge-link:hover { background: rgba(255,255,255,0.45); border-color: rgba(255,255,255,0.8); }
+
+.badge-more {
+  border: 1px dashed rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.10);
+  cursor: pointer;
+  transition: background 150ms;
+}
+.badge-more:hover { background: rgba(255,255,255,0.25); }
 
 .hero-title {
   margin: 0;
@@ -646,9 +687,9 @@ onMounted(fetchRecipe)
   border-radius: 8px;
   font-size: 0.825rem;
   font-weight: 600;
-  background: rgba(0,0,0,0.3);
-  color: rgba(255,255,255,0.92);
-  backdrop-filter: blur(4px);
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  backdrop-filter: blur(6px);
 }
 
 .hero-no-img .meta-chip {
@@ -664,7 +705,7 @@ onMounted(fetchRecipe)
   text-decoration: none;
   transition: background 150ms var(--ease-ui-out);
 }
-.meta-link:hover { background: rgba(0,0,0,0.45); }
+.meta-link:hover { background: rgba(0,0,0,0.72); }
 .hero-no-img .meta-link:hover { background: var(--color-surface-hover, var(--color-surface)); }
 
 .content-grid {
@@ -861,10 +902,26 @@ onMounted(fetchRecipe)
 /* ── Hero CTA row ──────────────────────────────────────────────── */
 .hero-cta-row {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
   margin-top: 4px;
   animation: fadeSlideUp 320ms var(--ease-ui-out) 140ms both;
+}
+
+.hero-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .hero-cats {
+    max-height: calc(2 * (1.6em + 10px));
+    overflow: hidden;
+  }
 }
 
 .btn-add-cal {
@@ -901,6 +958,25 @@ onMounted(fetchRecipe)
   border-color: var(--color-accent);
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
   color: var(--color-accent);
+}
+
+.hero-no-img .badge {
+  border-color: var(--color-stroke);
+  background: var(--color-surface);
+  color: var(--color-text);
+  backdrop-filter: none;
+}
+
+.hero-no-img .badge-link:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.hero-no-img .badge-more {
+  border-color: var(--color-stroke);
+  background: transparent;
+  color: var(--color-muted);
 }
 
 /* ── Calendar Modal ────────────────────────────────────────────── */

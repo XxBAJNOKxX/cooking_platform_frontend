@@ -19,9 +19,11 @@ const local      = ref({ ...props.modelValue })
 let   searchTimer = null
 let   timeTimer   = null
 const mobileOpen  = ref(false)
-const catOpen     = ref(false)
-const catDropRef  = ref(null)
+const catOpen       = ref(false)
+const catSearch     = ref('')
+const catDropRef    = ref(null)
 const catOptionsRef = ref(null)
+const catSearchRef  = ref(null)
 
 watch(
   () => props.modelValue,
@@ -44,9 +46,24 @@ function onSearch(val) {
   searchTimer = setTimeout(() => emit('update:modelValue', { ...local.value }), 320)
 }
 
+const filteredCategories = computed(() => {
+  const q = catSearch.value.trim().toLowerCase()
+  if (!q) return props.categories
+  return props.categories.filter(c => c.name.toLowerCase().includes(q))
+})
+
 function selectCategory(name) {
   catOpen.value = false
+  catSearch.value = ''
   patch('category', name)
+}
+
+function openCatDropdown() {
+  catOpen.value = !catOpen.value
+  if (catOpen.value) {
+    catSearch.value = ''
+    setTimeout(() => catSearchRef.value?.focus(), 50)
+  }
 }
 
 function onCatKeydown(e) {
@@ -77,6 +94,7 @@ function reset() {
   clearTimeout(searchTimer)
   clearTimeout(timeTimer)
   catOpen.value = false
+  catSearch.value = ''
   local.value = { search: '', category: '', difficulty: '', max_time: '' }
   emit('update:modelValue', { ...local.value })
 }
@@ -170,8 +188,7 @@ const DIFFICULTIES = [
             :class="{ 'cat-trigger--active': local.category }"
             :disabled="categoriesLoading"
             :aria-expanded="catOpen"
-            @click="catOpen = !catOpen"
-            @keydown="onCatKeydown"
+            @click="openCatDropdown"
           >
             <span class="cat-trigger-text">
               {{ categoriesLoading ? 'Betöltés…' : (local.category || 'Összes kategória') }}
@@ -182,23 +199,40 @@ const DIFFICULTIES = [
             </svg>
           </button>
 
-          <div v-show="catOpen" class="cat-options" role="listbox" ref="catOptionsRef" @keydown="onCatKeydown" tabindex="0">
-            <button
-              type="button"
-              class="cat-option"
-              :class="{ on: local.category === '' }"
-              role="option"
-              @mousedown.prevent @click="selectCategory('')"
-            >Összes kategória</button>
-            <button
-              v-for="cat in categories"
-              :key="cat.id"
-              type="button"
-              class="cat-option"
-              :class="{ on: local.category === cat.name }"
-              role="option"
-              @mousedown.prevent @click="selectCategory(cat.name)"
-            >{{ cat.name }}</button>
+          <div v-show="catOpen" class="cat-options" role="listbox" ref="catOptionsRef">
+            <div class="cat-search-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="cat-search-ico" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" stroke-linecap="round"/>
+              </svg>
+              <input
+                ref="catSearchRef"
+                v-model="catSearch"
+                type="text"
+                class="cat-search-input"
+                placeholder="Keresés…"
+                autocomplete="off"
+                @keydown.esc="catOpen = false"
+              />
+            </div>
+            <div class="cat-list">
+              <button
+                type="button"
+                class="cat-option"
+                :class="{ on: local.category === '' }"
+                role="option"
+                @mousedown.prevent @click="selectCategory('')"
+              >Összes kategória</button>
+              <button
+                v-for="cat in filteredCategories"
+                :key="cat.id"
+                type="button"
+                class="cat-option"
+                :class="{ on: local.category === cat.name }"
+                role="option"
+                @mousedown.prevent @click="selectCategory(cat.name)"
+              >{{ cat.name }}</button>
+              <p v-if="catSearch && filteredCategories.length === 0" class="cat-no-result">Nincs találat</p>
+            </div>
           </div>
         </div>
       </div>
@@ -400,8 +434,45 @@ const DIFFICULTIES = [
   background: var(--color-bg);
   box-shadow: 0 8px 24px -6px rgba(47, 30, 23, 0.14);
   overflow: hidden;
-  max-height: 220px;
+  max-height: 260px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cat-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-stroke);
+  flex-shrink: 0;
+}
+
+.cat-search-ico { width: 13px; height: 13px; color: var(--color-muted); flex-shrink: 0; }
+
+.cat-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.825rem;
+  font-family: inherit;
+}
+.cat-search-input::placeholder { color: var(--color-muted); }
+
+.cat-no-result {
+  padding: 10px 13px;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+.cat-list {
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .cat-option {

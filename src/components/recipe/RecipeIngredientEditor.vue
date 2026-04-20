@@ -4,11 +4,11 @@ import api from '@/services/api'
 
 const props = defineProps({
   modelValue: { type: Array, required: true },
-  units: { type: Array, default: () => [] },
-  errors: { type: Object, default: () => ({}) },
+  units:      { type: Array, default: () => [] },
+  errors:     { type: Object, default: () => ({}) },
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'unit-created'])
 
 const ingQuery = ref('')
 const ingResults = ref([])
@@ -180,6 +180,72 @@ function onDocClick(e) {
   }
 }
 
+// --- Unit autocomplete ---
+const unitActiveIng    = ref(null)
+const unitQuery        = ref('')
+const unitDropdownPos  = ref({ top: 0, left: 0, width: 0 })
+const unitSaving       = ref(false)
+
+const filteredUnits = computed(() => {
+  const q = unitQuery.value.trim().toLowerCase()
+  if (!q) return props.units
+  return props.units.filter(u => u.toLowerCase().includes(q))
+})
+
+const unitQueryIsCustom = computed(() => {
+  const q = unitQuery.value.trim()
+  if (!q) return false
+  return !props.units.some(u => u.toLowerCase() === q.toLowerCase())
+})
+
+function openUnitDropdown(ing, e) {
+  const rect = e.target.getBoundingClientRect()
+  unitDropdownPos.value = { top: rect.bottom + 4, left: rect.left, width: rect.width }
+  unitActiveIng.value = ing
+  unitQuery.value     = ing.unit || ''
+}
+
+function onUnitInput(e, ing) {
+  unitActiveIng.value = ing
+  unitQuery.value     = e.target.value
+  updateField(ing, 'unit', e.target.value)
+}
+
+function selectUnit(unit) {
+  if (!unitActiveIng.value) return
+  updateField(unitActiveIng.value, 'unit', unit)
+  unitActiveIng.value = null
+  unitQuery.value     = ''
+}
+
+async function confirmUnit() {
+  if (!unitActiveIng.value || unitSaving.value) return
+  const name = unitQuery.value.trim()
+  const isCustom = name && unitQueryIsCustom.value
+  updateField(unitActiveIng.value, 'unit', name)
+  unitActiveIng.value = null
+  unitQuery.value     = ''
+  if (isCustom) {
+    unitSaving.value = true
+    try {
+      await api.post('/units', { name })
+      emit('unit-created', name)
+    } finally {
+      unitSaving.value = false
+    }
+  }
+}
+
+function onUnitBlur() {
+  setTimeout(() => {
+    if (unitActiveIng.value) {
+      updateField(unitActiveIng.value, 'unit', unitQuery.value.trim())
+      unitActiveIng.value = null
+      unitQuery.value     = ''
+    }
+  }, 150)
+}
+
 onMounted(() => document.addEventListener('click', onDocClick))
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
@@ -189,9 +255,6 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="rie-root">
-    <datalist id="rie-units-list">
-      <option v-for="u in units" :key="u" :value="u" />
-    </datalist>
 
     <!-- Groups toolbar -->
     <div class="rie-toolbar">
@@ -301,20 +364,23 @@ onBeforeUnmount(() => {
               :value="ing.quantity"
               @input="updateField(ing, 'quantity', $event.target.value)"
               type="number"
-              min="0.01"
+              min="0"
               step="0.01"
               class="ing-input ing-qty"
               :class="{ 'ing-input--err': errors[`ingredients.${modelValue.indexOf(ing)}.quantity`] }"
-              placeholder="0"
+              placeholder="—"
             />
             <div class="ing-unit-wrap">
               <input
-                :value="ing.unit"
-                @input="updateField(ing, 'unit', $event.target.value)"
-                list="rie-units-list"
+                :value="unitActiveIng === ing ? unitQuery : (ing.unit || '')"
+                @focus="openUnitDropdown(ing, $event)"
+                @input="onUnitInput($event, ing)"
+                @blur="onUnitBlur"
+                @keydown.enter.prevent="confirmUnit"
+                @keydown.esc="unitActiveIng = null; unitQuery = ''"
                 class="ing-input ing-unit"
                 :class="{ 'ing-input--err': errors[`ingredients.${modelValue.indexOf(ing)}.unit`] }"
-                placeholder="Egység"
+                placeholder="—"
                 autocomplete="off"
                 spellcheck="false"
               />
@@ -388,6 +454,40 @@ onBeforeUnmount(() => {
       </div>
     </div>
   </div>
+
+  <Teleport to="body">
+    <div
+      v-if="unitActiveIng && (filteredUnits.length || (unitQuery.trim() && unitQueryIsCustom))"
+      class="unit-dropdown"
+      :style="{
+        position: 'fixed',
+        top: unitDropdownPos.top + 'px',
+        left: unitDropdownPos.left + 'px',
+        width: unitDropdownPos.width + 'px',
+      }"
+    >
+      <button
+        v-for="u in filteredUnits"
+        :key="u"
+        type="button"
+        class="unit-option"
+        @mousedown.prevent
+        @click="selectUnit(u)"
+      >{{ u }}</button>
+      <button
+        v-if="unitQuery.trim() && unitQueryIsCustom"
+        type="button"
+        class="unit-option unit-option--custom"
+        @mousedown.prevent
+        @click="confirmUnit"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+        </svg>
+        <span>Egyéni: <strong>{{ unitQuery.trim() }}</strong></span>
+      </button>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -645,12 +745,7 @@ onBeforeUnmount(() => {
 .ing-qty          { text-align: right; }
 
 .ing-unit-wrap { position: relative; width: 100%; }
-.ing-unit {
-  -webkit-appearance: none;
-  appearance: none;
-  padding-right: 26px;
-  cursor: pointer;
-}
+.ing-unit { padding-right: 26px; }
 .ing-unit-chev {
   position: absolute;
   right: 7px;
@@ -659,6 +754,51 @@ onBeforeUnmount(() => {
   width: 11px; height: 11px;
   color: var(--color-muted);
   pointer-events: none;
+}
+
+/* ── Unit dropdown (teleported to body) ── */
+.unit-dropdown {
+  z-index: 9999;
+  border: 1.5px solid var(--color-stroke);
+  border-radius: 10px;
+  background: var(--color-bg);
+  box-shadow: 0 8px 24px -4px rgba(47, 30, 23, 0.16);
+  overflow: hidden;
+  max-height: 220px;
+  overflow-y: auto;
+  animation: rieDropIn 160ms var(--ease-ui-out) both;
+}
+
+.unit-option {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  border: none;
+  border-bottom: 1px solid var(--color-stroke);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.825rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms var(--ease-ui-out);
+  font-family: inherit;
+}
+.unit-option:last-child { border-bottom: none; }
+.unit-option:hover { background: var(--color-surface); }
+
+.unit-option--custom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-accent);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+}
+.unit-option--custom svg { width: 12px; height: 12px; flex-shrink: 0; }
+.unit-option--custom strong { font-weight: 700; }
+.unit-option--custom:hover {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
 .ing-rm {

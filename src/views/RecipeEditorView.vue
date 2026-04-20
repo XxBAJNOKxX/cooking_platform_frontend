@@ -5,6 +5,7 @@ import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import BaseInput from '@/components/BaseInput.vue'
 import RecipeIngredientEditor from '@/components/recipe/RecipeIngredientEditor.vue'
+import RecipeCategoryEditor from '@/components/recipe/RecipeCategoryEditor.vue'
 
 const route     = useRoute()
 const router    = useRouter()
@@ -170,10 +171,6 @@ function validate() {
     errs.prep_time = ['Az elkészítési idő kötelező (min. 1 perc).']
   if (!form.value.difficulty)
     errs.difficulty = ['A nehézségi szint kötelező.']
-  form.value.ingredients.forEach((ing, idx) => {
-    if (!ing.unit || !String(ing.unit).trim())
-      errs[`ingredients.${idx}.unit`] = [`A(z) „${ing.name}" hozzávalónál kötelező a mértékegység.`]
-  })
   return errs
 }
 
@@ -441,17 +438,12 @@ onMounted(() => {
 
             <div class="field">
               <label class="field-label">Kategóriák</label>
-              <div class="chip-row chip-row--wrap">
-                <span v-if="categoriesLoading" class="chip-loading">Betöltés…</span>
-                <button
-                  v-for="cat in categories"
-                  :key="cat.id"
-                  type="button"
-                  class="chip cat-chip"
-                  :class="{ on: form.category_ids.includes(cat.id) }"
-                  @click="toggleCategory(cat.id)"
-                >{{ cat.name }}</button>
-              </div>
+              <RecipeCategoryEditor
+                v-model="form.category_ids"
+                :categories="categories"
+                :loading="categoriesLoading"
+                @update:categories="categories = $event"
+              />
             </div>
           </div>
         </section>
@@ -487,6 +479,7 @@ onMounted(() => {
               v-model="form.ingredients"
               :units="units"
               :errors="errors"
+              @unit-created="name => { if (!units.includes(name)) units.push(name) }"
             />
           </div>
         </section>

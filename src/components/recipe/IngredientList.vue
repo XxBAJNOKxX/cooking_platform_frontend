@@ -13,12 +13,9 @@
           class="ingredient-item"
           :style="`--i: ${index}`"
         >
-          <span v-if="ing.scaledQty != null" class="amount">
-            <span class="qty">{{ formatQty(ing.scaledQty) }}</span>
+          <span class="amount" :class="{ 'amount--taste': !ing.scaledQty && ing.unit }">
+            <span v-if="ing.scaledQty != null && ing.scaledQty !== 0" class="qty">{{ formatQty(ing.scaledQty) }}</span>
             <span v-if="ing.unit" class="unit">{{ ing.unit }}</span>
-          </span>
-          <span v-else-if="ing.unit" class="amount amount--taste">
-            <span class="unit">{{ ing.unit }}</span>
           </span>
           <span class="name">{{ ing.name }}</span>
         </li>

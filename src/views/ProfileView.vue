@@ -747,7 +747,12 @@ onMounted(() => {
 @media (max-width: 1023px) { .items-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 479px)  { .items-grid { grid-template-columns: 1fr; } }
 
-.item-wrap { position: relative; }
+.item-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.item-wrap :deep(.rcard) { flex: 1; }
 
 .item-actions {
   position: absolute;
