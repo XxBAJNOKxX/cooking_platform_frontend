@@ -62,7 +62,10 @@ async function checkUnread() {
   try {
     const res = await api.get('/messages/unread-count')
     hasUnread.value = (res.data?.count ?? 0) > 0
-  } catch { /* silent */ }
+  } catch {
+    console.warn('Olvasatlan üzenetek lekérése sikertelen, feltételezzük, hogy nincs új üzenet.')
+    hasUnread.value = false
+   }
 }
 
 watch(() => authStore.isAuthenticated, (isAuth) => {
@@ -152,8 +155,12 @@ const handleLogout = async () => {
                     Profil
                   </RouterLink>
                   <RouterLink to="/messages" @click="closeProfileMenu"
-                    class="block px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors">
+                    class="flex items-center justify-between px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors">
                     Üzenetek
+                    <span v-if="hasUnread"
+                      class="bg-danger/10 text-danger px-2 py-0.5 rounded-full text-xs font-bold">
+                       új
+                    </span>
                   </RouterLink>
                 </div>
 
@@ -183,6 +190,7 @@ const handleLogout = async () => {
                 :d="isMobileMenuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'"
                 class="transition-all duration-300" />
             </svg>
+            <span v-if="hasUnread" class="nav-unread-dot" aria-label="Olvasatlan üzenetek"></span>
           </button>
         </div>
       </div>
@@ -201,8 +209,7 @@ const handleLogout = async () => {
             <span>Receptek</span>
           </RouterLink>
 
-          <RouterLink @click="closeMobileMenu" to="/tools" exact-active-class="mobile-link-active"
-            class="mobile-link">
+          <RouterLink @click="closeMobileMenu" to="/tools" exact-active-class="mobile-link-active" class="mobile-link">
             <span>Eszközök</span>
           </RouterLink>
 
@@ -246,6 +253,10 @@ const handleLogout = async () => {
                 <RouterLink @click="closeMobileMenu" to="/messages" exact-active-class="mobile-sub-link-active"
                   class="mobile-sub-link">
                   Üzenetek
+                  <span v-if="hasUnread"
+                    class="bg-danger/10 text-danger px-2 py-0.5 rounded-full text-xs font-bold ml-2">
+                    új
+                  </span>
                 </RouterLink>
 
                 <button @click="handleLogout" class="mobile-sub-link mobile-sub-link-danger">
@@ -318,11 +329,23 @@ const handleLogout = async () => {
 
 .nav-unread-dot {
   position: absolute;
-  top: -1px; right: -1px;
-  width: 0.625rem; height: 0.625rem;
+  top: -1px;
+  right: -1px;
+  width: 0.625rem;
+  height: 0.625rem;
   border-radius: 999px;
   background: var(--color-danger);
   border: 2px solid var(--color-bg);
+}
+
+@media (max-width: 768px) {
+  .nav-unread-dot {
+    top: -4px;
+    right: -4px;
+    width: 1rem;
+    height: 1rem;
+  }
+
 }
 
 .profile-dropdown {
