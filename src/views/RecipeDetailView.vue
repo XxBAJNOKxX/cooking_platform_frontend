@@ -487,6 +487,7 @@ onMounted(fetchRecipe)
   position: relative;
   min-height: 420px;
   overflow: hidden;
+  border-radius: 40px;
 }
 
 .hero-no-img {
@@ -521,6 +522,7 @@ onMounted(fetchRecipe)
     rgba(0,0,0,0.0) 35%,
     rgba(0,0,0,0.72) 100%
   );
+  border-radius: 40px;
 }
 
 .hero-no-img .hero-overlay {
