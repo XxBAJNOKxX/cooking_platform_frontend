@@ -17,7 +17,7 @@ const authStore = useAuthStore()
 const profile = computed(() => authStore.user)
 const initials = computed(() => {
   const name = profile.value?.username ?? '?'
-  return name.slice(0, 1).toUpperCase()
+  return name.slice(0, 2).toUpperCase()
 })
 
 const joinedLabel = computed(() => {

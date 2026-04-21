@@ -136,7 +136,7 @@ const handleLogout = async () => {
                 <div class="relative">
                   <div
                     class="h-9 w-9 rounded-full bg-accent text-bg flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-transparent hover:ring-stroke transition-all duration-200">
-                    {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
+                    {{ authStore.user?.username?.slice(0, 2).toUpperCase() || 'FE' }}
                   </div>
                   <span v-if="hasUnread" class="nav-unread-dot" aria-label="Olvasatlan üzenetek"></span>
                 </div>
@@ -236,7 +236,7 @@ const handleLogout = async () => {
               <div class="flex items-center gap-3 px-1 pb-3 border-b border-stroke/60">
                 <div
                   class="h-10 w-10 rounded-full bg-accent text-bg flex items-center justify-center font-black text-sm">
-                  {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
+                  {{ authStore.user?.username?.slice(0, 2).toUpperCase() || 'FE' }}
                 </div>
                 <div class="min-w-0">
                   <p class="text-sm font-bold text-text truncate">{{ authStore.user?.username || 'Felhasználó' }}</p>

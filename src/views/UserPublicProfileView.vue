@@ -19,7 +19,7 @@ const profileError = ref('')
 const recipeCount = ref(0)
 const toolCount = ref(0)
 
-const initials = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUpperCase())
+const initials = computed(() => (profile.value?.username ?? '?').slice(0, 2).toUpperCase())
 
 const joinedLabel = computed(() => {
   if (!profile.value?.joined_at) return ''
