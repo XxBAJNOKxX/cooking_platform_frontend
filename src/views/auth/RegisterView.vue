@@ -30,7 +30,7 @@ const handleRegister = async () => {
   try {
     await authStore.register(form.value)
 
-    router.push('/')
+    router.push('/verify-otp')
   } catch (error) {
     const status = error.response?.status
     const data = error.response?.data

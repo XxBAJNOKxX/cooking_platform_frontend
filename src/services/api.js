@@ -22,7 +22,18 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   response => response,
   error => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+    const status = error.response?.status;
+    const code = error.response?.data?.code;
+
+    // Unverified users hitting a protected endpoint → OTP screen (don't log them out)
+    if (status === 403 && code === 'VERIFICATION_REQUIRED') {
+      if (router.currentRoute.value.name !== 'verify-otp') {
+        router.push({ name: 'verify-otp' });
+      }
+      return Promise.reject(error);
+    }
+
+    if (status === 401 || status === 403) {
       import('@/stores/auth').then(({ useAuthStore }) => {
         useAuthStore().clearAuth();
       });

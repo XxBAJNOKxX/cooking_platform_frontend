@@ -5,6 +5,13 @@ import WeekGrid from '@/components/calendar/WeekGrid.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+
+function printCalendar() {
+  window.print()
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -125,6 +132,26 @@ async function confirmDelete() {
   }
 }
 
+// ─── Move (drag & drop) ───────────────────────────────────────────────────────
+async function handleMove({ id, date, meal_type }) {
+  const idx = mealPlans.value.findIndex((p) => p.id === id)
+  if (idx === -1) return
+  const current = mealPlans.value[idx]
+  if (current.planned_date === date && current.meal_type === meal_type) return
+
+  // Optimistic update — snapshot so we can roll back on failure.
+  const snapshot = { ...current }
+  mealPlans.value[idx] = { ...current, planned_date: date, meal_type }
+
+  try {
+    await api.put(`/meal-plans/${id}`, { planned_date: date, meal_type })
+  } catch {
+    mealPlans.value[idx] = snapshot
+    fetchError.value = 'Nem sikerült áthelyezni. Próbáld újra!'
+    setTimeout(() => { fetchError.value = null }, 3000)
+  }
+}
+
 // ─── Add Modal ────────────────────────────────────────────────────────────────
 
 const MEAL_TYPES = ['Reggeli', 'Tízórai', 'Ebéd', 'Uzsonna', 'Vacsora']
@@ -218,12 +245,37 @@ onUnmounted(() => clearTimeout(debounceTimer))
 <template>
   <div class="cal-page">
 
+    <!-- ── Print-only header strip ────────────────────────────────────── -->
+    <div class="print-header print-only">
+      <div class="print-head-top">
+        <div class="print-logo">Cookr<span class="print-logo-dot">.</span></div>
+        <p v-if="authStore.user?.username" class="print-user">{{ authStore.user.username }}</p>
+      </div>
+      <div class="print-head-bottom">
+        <p class="print-title">Étkezési napló</p>
+        <p class="print-range">{{ weekLabel }}</p>
+      </div>
+    </div>
+
     <!-- ── Page Header ─────────────────────────────────────────────────── -->
-    <div class="cal-header">
+    <div class="cal-header no-print">
       <div class="cal-title-row">
         <h1 class="cal-title">Étkezési napló</h1>
         <p class="cal-subtitle">Tervezd meg a heti étrendedet</p>
       </div>
+
+      <button
+        class="print-btn"
+        @click="printCalendar"
+        aria-label="Nyomtatás"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6,9 6,2 18,2 18,9"/>
+          <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+          <rect x="6" y="14" width="12" height="8"/>
+        </svg>
+        Nyomtatás
+      </button>
 
       <div class="week-nav">
         <button class="nav-arrow" @click="goWeek(-1)" aria-label="Előző hét">
@@ -269,6 +321,7 @@ onUnmounted(() => clearTimeout(debounceTimer))
           :today="new Date()"
           @add="openAddModal"
           @delete="handleDelete"
+          @move="handleMove"
         />
       </Transition>
     </div>
@@ -878,5 +931,152 @@ onUnmounted(() => clearTimeout(debounceTimer))
   .cal-header { flex-direction: column; align-items: stretch; padding: 0 0.25rem; }
   .week-nav { justify-content: center; }
   .cal-title { font-size: 1.375rem; }
+}
+
+/* ── Print button (screen) ─────────────────────────────────────── */
+.print-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.625rem;
+  border: 1.5px solid var(--color-stroke);
+  background: var(--color-surface);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms var(--ease-ui-out);
+}
+.print-btn svg { width: 1rem; height: 1rem; }
+@media (hover: hover) and (pointer: fine) {
+  .print-btn:hover {
+    background: var(--color-surface-hover);
+    border-color: var(--color-muted);
+    color: var(--color-text);
+  }
+}
+.print-btn:active { transform: scale(0.96); }
+
+/* ── Print styles ──────────────────────────────────────────────── */
+.print-only { display: none; }
+
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10pt;
+    line-height: 1.4;
+  }
+
+  .cal-page {
+    padding: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* Header strip (same visual language as ShoppingListView) */
+  .print-header {
+    padding: 0 0 8pt 0;
+    border-bottom: 1.5pt solid #000;
+    margin-bottom: 10pt;
+  }
+  .print-head-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .print-head-bottom {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 4pt;
+  }
+  .print-logo {
+    font-size: 16pt;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: #000;
+    line-height: 1;
+  }
+  .print-logo-dot { color: #e9692c; }
+  .print-user {
+    font-size: 9pt;
+    color: #000;
+    font-weight: 700;
+    margin: 0;
+  }
+  .print-title {
+    font-size: 13pt;
+    font-weight: 800;
+    color: #000;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .print-range {
+    font-size: 9pt;
+    color: #444;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  /* Flatten the grid wrapper so the calendar spans the whole landscape page. */
+  .table-scroll {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+  .week-table {
+    min-width: 0 !important;
+    width: 100% !important;
+    border: 1pt solid #000 !important;
+    border-radius: 0 !important;
+    page-break-inside: avoid;
+  }
+
+  /* Type headers / day labels — stripped to ink-only */
+  .type-hdr,
+  .day-label,
+  .corner {
+    background: #f3f3f3 !important;
+    border-color: #999 !important;
+  }
+  .slot { background: #fff !important; border-color: #ccc !important; }
+
+  /* Hide interactive bits inside cells */
+  .slot-add,
+  .del-btn { display: none !important; }
+
+  .slot-card {
+    background: #fff !important;
+    border: 1pt solid #999 !important;
+    cursor: default !important;
+  }
+  .slot-title { font-size: 8.5pt !important; }
+}
+</style>
+
+<!-- Unscoped: hide app chrome (navbar, footer) while printing the calendar. -->
+<style>
+@media print {
+  #app > div > header,
+  #app > div > nav,
+  #app > div > footer {
+    display: none !important;
+  }
 }
 </style>

@@ -70,34 +70,10 @@ const scaledGroups = computed(() => {
   return out
 })
 
-const FRACTIONS = [
-  { value: 0.25, word: 'negyed' },
-  { value: 1 / 3, word: 'harmad' },
-  { value: 0.5, word: 'fél' },
-  { value: 2 / 3, word: 'kétharmad' },
-  { value: 0.75, word: 'háromnegyed' },
-]
-
-function fractionWord(frac) {
-  for (const f of FRACTIONS) {
-    if (Math.abs(frac - f.value) < 0.02) return f.word
-  }
-  return null
-}
-
 function formatQty(v) {
   if (v == null) return ''
   if (Number.isInteger(v)) return String(v)
-
-  const rounded = Math.round(v * 100) / 100
-  const int = Math.floor(rounded)
-  const frac = rounded - int
-  const word = fractionWord(frac)
-
-  if (word === null) return parseFloat(rounded.toFixed(2)).toString().replace('.', ',')
-  if (int === 0) return word
-  if (int === 1 && word === 'fél') return 'másfél'
-  return `${int} és ${word}`
+  return parseFloat(v.toFixed(2)).toString()
 }
 
 </script>

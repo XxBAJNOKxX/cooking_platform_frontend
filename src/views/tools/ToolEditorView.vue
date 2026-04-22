@@ -451,7 +451,20 @@ async function submit() {
 }
 
 .te-actions {
-  display: flex; justify-content: flex-end; gap: 0.5rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+
+  /* Keep the save button reachable on long forms — the action bar pins to
+     the viewport bottom while scrolling. `dvh` accounts for mobile URL bars. */
+  position: sticky;
+  bottom: 0;
+  padding: 0.875rem 1rem;
+  margin: 1rem -1rem 0;
+  background: color-mix(in srgb, var(--color-bg) 94%, transparent);
+  backdrop-filter: blur(8px);
+  border-top: 1.5px solid var(--color-stroke);
+  z-index: 9999;
 }
 
 /* ── Image drop zone ── */

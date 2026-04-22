@@ -2,9 +2,10 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-  message:    { type: Object, required: true },
-  isMine:     { type: Boolean, default: false },
-  showAvatar: { type: Boolean, default: false },
+  message:       { type: Object, required: true },
+  isMine:        { type: Boolean, default: false },
+  showAvatar:    { type: Boolean, default: false },
+  showTimestamp: { type: Boolean, default: true },
 })
 
 const isSystem = computed(() => props.message?.type === 'system')
@@ -59,7 +60,7 @@ function initials(user) {
         </RouterLink>
         <div class="bubble-text">{{ message.content }}</div>
       </div>
-      <span class="time" :class="{ 'time-mine': isMine }">{{ timeLabel(message.sent_at) }}</span>
+      <span v-if="showTimestamp" class="time" :class="{ 'time-mine': isMine }">{{ timeLabel(message.sent_at) }}</span>
     </div>
   </div>
 </template>

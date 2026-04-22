@@ -23,6 +23,24 @@ const router = createRouter({
       meta: { requiresGuest: true, fullWidth: true }
     },
     {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('@/views/auth/ForgotPasswordView.vue'),
+      meta: { requiresGuest: true, fullWidth: true }
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('@/views/auth/ResetPasswordView.vue'),
+      meta: { requiresGuest: true, fullWidth: true }
+    },
+    {
+      path: '/verify-otp',
+      name: 'verify-otp',
+      component: () => import('@/views/auth/VerifyOtpView.vue'),
+      meta: { requiresAuth: true, fullWidth: true }
+    },
+    {
       path: '/recipes',
       name: 'recipes',
       component: () => import('@/views/RecipeCatalogView.vue'),
@@ -31,7 +49,7 @@ const router = createRouter({
       path: '/recipes/create',
       name: 'recipe-create',
       component: () => import('@/views/RecipeEditorView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, requiresVerified: true }
     },
     {
       path: '/recipes/:id',
@@ -42,7 +60,7 @@ const router = createRouter({
       path: '/recipes/:id/edit',
       name: 'recipe-edit',
       component: () => import('@/views/RecipeEditorView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, requiresVerified: true }
     },
     {
       path: '/tools',
@@ -53,7 +71,7 @@ const router = createRouter({
       path: '/tools/create',
       name: 'tool-create',
       component: () => import('@/views/tools/ToolEditorView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, requiresVerified: true }
     },
     {
       path: '/tools/:id',
@@ -64,7 +82,7 @@ const router = createRouter({
       path: '/tools/:id/edit',
       name: 'tool-edit',
       component: () => import('@/views/tools/ToolEditorView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, requiresVerified: true }
     },
     {
       path: '/profile',
@@ -81,7 +99,7 @@ const router = createRouter({
       path: '/messages',
       name: 'messages',
       component: () => import('@/views/MessengerView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, requiresVerified: true }
     },
     {
       path: '/shopping-list',
@@ -93,7 +111,13 @@ const router = createRouter({
       path: '/calendar',
       name: 'calendar',
       component: () => import('@/views/CalendarView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, requiresVerified: true }
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('@/views/AdminView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     },
     {
       path: '/:pathMatch(.*)*',
@@ -111,6 +135,12 @@ router.beforeEach((to, _from) => {
   }
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return { name: 'login' }
+  }
+  if (to.meta.requiresVerified && authStore.isAuthenticated && authStore.user && !authStore.user.is_verified) {
+    return { name: 'verify-otp' }
+  }
+  if (to.meta.requiresAdmin && !authStore.isAdmin) {
+    return { name: 'home' }
   }
 })
 

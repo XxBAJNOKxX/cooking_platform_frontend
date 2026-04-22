@@ -78,6 +78,13 @@ const handleLogin = async () => {
       <BaseInput v-model="password" type="password" label="Jelszó" placeholder="••••••••" id="password"
         :error="errors.password?.[0]" required :disabled="loading" />
 
+      <div class="flex justify-end -mt-2">
+        <RouterLink to="/forgot-password"
+          class="text-xs font-semibold text-muted hover:text-accent transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm">
+          Elfelejtett jelszó?
+        </RouterLink>
+      </div>
+
       <div class="pt-2">
         <BaseButton type="submit" variant="primary" block :loading="loading">
           Bejelentkezés

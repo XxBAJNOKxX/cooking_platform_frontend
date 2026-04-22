@@ -91,6 +91,13 @@ const handleLogout = async () => {
 
 <template>
   <header class="sticky top-0 z-40 w-full border-b border-stroke bg-[#ffeddb]/90 backdrop-blur-md">
+    <!-- Unverified account banner -->
+    <div v-if="authStore.isAuthenticated && authStore.user && !authStore.user.is_verified"
+         class="verify-banner" role="status">
+      <span>A fiókod még nincs hitelesítve — tartalmat csak böngészni és kedvencekhez adni tudsz.</span>
+      <RouterLink to="/verify-otp" class="verify-banner-link">Hitelesítés most</RouterLink>
+    </div>
+
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="flex h-16 items-center justify-between">
 
@@ -171,6 +178,11 @@ const handleLogout = async () => {
                     </span>
                   </RouterLink>
                 </div>
+
+                <RouterLink v-if="authStore.isAdmin" :to="{ name: 'admin' }" @click="closeProfileMenu"
+                  class="block px-4 py-2 text-sm font-semibold text-accent hover:bg-surface transition-colors border-t border-stroke">
+                  Admin
+                </RouterLink>
 
                 <div class="border-t border-stroke py-1">
                   <button @click="handleLogout"
@@ -275,6 +287,11 @@ const handleLogout = async () => {
                     class="bg-danger/10 text-danger px-2 py-0.5 rounded-full text-xs font-bold ml-2">
                     új
                   </span>
+                </RouterLink>
+
+                <RouterLink v-if="authStore.isAdmin" @click="closeMobileMenu" :to="{ name: 'admin' }"
+                  class="mobile-sub-link mobile-sub-link-admin">
+                  Admin
                 </RouterLink>
 
                 <button @click="handleLogout" class="mobile-sub-link mobile-sub-link-danger">
@@ -453,8 +470,43 @@ const handleLogout = async () => {
   color: var(--color-danger);
 }
 
+.mobile-sub-link-admin {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+.mobile-sub-link-admin:hover {
+  background-color: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent);
+}
+
 .mobile-sub-link-danger:hover {
   background-color: color-mix(in srgb, var(--color-danger) 12%, transparent);
   color: var(--color-danger);
 }
+
+/* Unverified account banner */
+.verify-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.4rem 1rem;
+  background: color-mix(in srgb, #f59e0b 18%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, #f59e0b 40%, transparent);
+  color: color-mix(in srgb, #92400e 90%, var(--color-text));
+  font-size: 0.78rem;
+  font-weight: 600;
+  flex-wrap: wrap;
+  text-align: center;
+}
+.verify-banner-link {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+.verify-banner-link:hover { background: var(--color-accent-hover); }
 </style>

@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import BaseInput from '@/components/BaseInput.vue'
@@ -80,7 +80,7 @@ async function fetchRecipe() {
     // Ensure user is loaded before ownership check
     if (!authStore.user) await authStore.fetchUser()
 
-    if (authStore.user?.id !== r.author?.id) {
+    if (authStore.user?.id !== r.author?.id && !authStore.isAdmin) {
       notAuthorized.value = true
       return
     }
@@ -217,6 +217,7 @@ async function submit() {
     } else {
       res = await api.post('/recipes', payload)
     }
+    clearDraft()
     saving.value = false
     router.push({ name: 'recipe-detail', params: { id: res.data.data.id } })
   } catch (err) {
@@ -235,9 +236,130 @@ async function submit() {
   }
 }
 
-onMounted(() => {
+// ── Draft autosave (localStorage) ──────────────────────────────────────────
+// Protects against accidental tab-close / navigate-away while editing a recipe.
+// Key is per-recipe (edit) or single 'new' (create). We stop the watcher until
+// initial data has loaded to avoid overwriting the draft with the blank seed.
+
+const draftKey = computed(() =>
+  isEdit.value ? `recipe_draft_${route.params.id}` : 'recipe_draft_new',
+)
+const draftAvailable = ref(false)
+const draftSnapshot = ref(null)      // the payload stored in localStorage
+const draftWatcherActive = ref(false)
+let draftTimer = null
+let stopWatcher = null
+
+function formIsEmpty(f) {
+  return !f.title.trim() && !f.description.trim() && !f.steps.trim() &&
+         !f.prep_time && !f.servings && !f.difficulty && !f.image_url &&
+         f.category_ids.length === 0 && f.ingredients.length === 0
+}
+
+function serializeDraft() {
+  return JSON.parse(JSON.stringify(form.value))
+}
+
+function saveDraftNow() {
+  if (!draftWatcherActive.value) return
+  if (formIsEmpty(form.value)) {
+    localStorage.removeItem(draftKey.value)
+    return
+  }
+  try {
+    localStorage.setItem(draftKey.value, JSON.stringify({
+      savedAt: Date.now(),
+      form: serializeDraft(),
+    }))
+  } catch {
+    // storage full / disabled — silent
+  }
+}
+
+function scheduleDraftSave() {
+  clearTimeout(draftTimer)
+  draftTimer = setTimeout(saveDraftNow, 600)
+}
+
+function activateDraftWatcher() {
+  if (stopWatcher) return
+  draftWatcherActive.value = true
+  stopWatcher = watch(form, scheduleDraftSave, { deep: true })
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(draftKey.value)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed?.form) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function restoreDraft() {
+  if (!draftSnapshot.value?.form) return
+  form.value = { ...form.value, ...draftSnapshot.value.form }
+  draftAvailable.value = false
+}
+
+function discardDraft() {
+  localStorage.removeItem(draftKey.value)
+  draftSnapshot.value = null
+  draftAvailable.value = false
+}
+
+function clearDraft() {
+  clearTimeout(draftTimer)
+  localStorage.removeItem(draftKey.value)
+  draftSnapshot.value = null
+}
+
+function hasUnsavedChanges() {
+  if (formIsEmpty(form.value)) return false
+  return !!localStorage.getItem(draftKey.value)
+}
+
+function beforeUnloadHandler(e) {
+  if (hasUnsavedChanges() && !saving.value) {
+    e.preventDefault()
+    e.returnValue = ''
+  }
+}
+
+onBeforeRouteLeave(() => {
+  if (saving.value) return true
+  if (!hasUnsavedChanges()) return true
+  return window.confirm(
+    'Vannak nem mentett változtatásaid. Biztosan el szeretnéd hagyni az oldalt? A piszkozat megmarad és később visszaállítható.',
+  )
+})
+
+onMounted(async () => {
   Promise.all([fetchCategories(), fetchUnits()])
-  if (isEdit.value) fetchRecipe()
+  window.addEventListener('beforeunload', beforeUnloadHandler)
+
+  if (isEdit.value) {
+    await fetchRecipe()
+    if (notAuthorized.value) return
+  }
+
+  // Offer restore if a draft exists; user decides whether to apply it.
+  const snap = loadDraft()
+  if (snap && !formIsEmpty(snap.form)) {
+    draftSnapshot.value = snap
+    draftAvailable.value = true
+  }
+
+  activateDraftWatcher()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', beforeUnloadHandler)
+  clearTimeout(draftTimer)
+  if (stopWatcher) stopWatcher()
 })
 </script>
 
@@ -272,6 +394,17 @@ onMounted(() => {
         {{ saving ? 'Mentés…' : 'Mentés' }}
       </button>
     </header>
+
+    <!-- ── Draft restore banner ── -->
+    <div v-if="draftAvailable" class="re-draft" role="status">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" class="re-draft-ico">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+      <span class="re-draft-msg">Nem mentett piszkozat található erről a receptről.</span>
+      <button type="button" class="re-draft-restore" @click="restoreDraft">Visszaállítás</button>
+      <button type="button" class="re-draft-discard" @click="discardDraft">Elvetés</button>
+    </div>
 
     <!-- ── Not authorized ── -->
     <div v-if="notAuthorized" class="re-unauth">
@@ -496,6 +629,49 @@ onMounted(() => {
   animation: reIn 280ms var(--ease-ui-out) both;
 }
 
+/* ── Draft banner ── */
+.re-draft {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.875rem;
+  margin: 0 0 1rem;
+  border-radius: 0.75rem;
+  border: 1.5px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-bg));
+  font-size: 0.85rem;
+  color: var(--color-text);
+  animation: reIn 240ms var(--ease-ui-out) both;
+}
+.re-draft-ico {
+  width: 1.05rem;
+  height: 1.05rem;
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+.re-draft-msg { flex: 1; font-weight: 600; }
+.re-draft-restore,
+.re-draft-discard {
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1.5px solid var(--color-stroke);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms var(--ease-ui-out);
+}
+.re-draft-restore {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+.re-draft-restore:hover { background: var(--color-accent-hover); }
+.re-draft-discard:hover { background: var(--color-surface); }
+.re-draft-restore:active,
+.re-draft-discard:active { transform: scale(0.96); }
+
 @keyframes reIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: none; }
@@ -506,10 +682,17 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 22px;
+  padding: 14px 0 14px;
   margin-bottom: 28px;
   border-bottom: 1.5px solid var(--color-stroke);
   gap: 12px;
+
+  /* Keep the save button reachable at every scroll position. The top offset
+     matches the sticky Navbar height (4rem). */
+  position: sticky;
+  top: 4rem;
+  z-index: 20;
+  background: var(--color-bg);
 }
 
 .re-header-left {

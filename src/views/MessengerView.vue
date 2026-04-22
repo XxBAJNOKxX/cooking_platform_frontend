@@ -296,16 +296,27 @@ function dayLabel(str) {
   })
 }
 
+// Group messages by day and flag the last message of each "5-min cluster"
+// (consecutive same-sender messages <=5min apart) so only the tail shows a
+// timestamp. Everything in between is visually continuous.
+const FIVE_MIN = 5 * 60_000
+
 function groupByDay(messages) {
   const groups = []
   let lastDay = null
-  for (const msg of messages) {
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i]
+    const next = messages[i + 1]
     const day = msg.sent_at?.slice(0, 10)
     if (day !== lastDay) {
       groups.push({ type: 'day', day })
       lastDay = day
     }
-    groups.push({ type: 'msg', msg })
+    const endOfCluster =
+      !next ||
+      next.sender?.id !== msg.sender?.id ||
+      parseUtc(next.sent_at) - parseUtc(msg.sent_at) > FIVE_MIN
+    groups.push({ type: 'msg', msg, showTimestamp: endOfCluster })
   }
   return groups
 }
@@ -427,7 +438,8 @@ function groupByDay(messages) {
                 <span>{{ dayLabel(item.day + 'T12:00:00') }}</span>
               </div>
               <ChatBubble v-else :message="item.msg" :is-mine="item.msg.sender?.id === myId"
-                :show-avatar="item.msg.sender?.id !== myId" />
+                :show-avatar="item.msg.sender?.id !== myId"
+                :show-timestamp="item.showTimestamp" />
             </template>
           </template>
 

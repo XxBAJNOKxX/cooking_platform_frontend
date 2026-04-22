@@ -1,11 +1,13 @@
 <script setup>
+import { ref } from 'vue'
+
 const props = defineProps({
   weekDays:    { type: Array,  required: true },
   mealsByDate: { type: Object, required: true },
   today:       { type: Date,   required: true },
 })
 
-const emit = defineEmits(['add', 'delete'])
+const emit = defineEmits(['add', 'delete', 'move'])
 
 const MEAL_TYPES  = ['Reggeli', 'Tízórai', 'Ebéd', 'Uzsonna', 'Vacsora']
 const MEAL_COLORS = {
@@ -32,6 +34,59 @@ function isToday(d) {
 
 function getMeals(day, type) {
   return (props.mealsByDate[toDateStr(day)] ?? []).filter(m => m.meal_type === type)
+}
+
+// ── Drag & drop ─────────────────────────────────────────────────────────────
+// Native HTML5 DnD. dragId tracks which card is being dragged (for styling),
+// dropKey tracks which cell is currently the drop target.
+const dragId = ref(null)
+const dropKey = ref(null)
+
+function onDragStart(e, meal) {
+  dragId.value = meal.id
+  e.dataTransfer.effectAllowed = 'move'
+  e.dataTransfer.setData('text/plain', String(meal.id))
+}
+
+function onDragEnd() {
+  dragId.value = null
+  dropKey.value = null
+}
+
+function onCellDragOver(e) {
+  if (dragId.value == null) return
+  e.preventDefault()
+  e.dataTransfer.dropEffect = 'move'
+}
+
+function onCellDragEnter(day, type) {
+  if (dragId.value == null) return
+  dropKey.value = `${toDateStr(day)}|${type}`
+}
+
+function onCellDragLeave(e, day, type) {
+  // Leave fires when moving over children too; only clear if pointer is
+  // really outside this cell's bounding box.
+  const r = e.currentTarget.getBoundingClientRect()
+  if (
+    e.clientX < r.left || e.clientX > r.right ||
+    e.clientY < r.top  || e.clientY > r.bottom
+  ) {
+    const k = `${toDateStr(day)}|${type}`
+    if (dropKey.value === k) dropKey.value = null
+  }
+}
+
+function onCellDrop(day, type) {
+  const id = dragId.value
+  dragId.value = null
+  dropKey.value = null
+  if (id == null) return
+  emit('move', { id, date: toDateStr(day), meal_type: type })
+}
+
+function cellKey(day, type) {
+  return `${toDateStr(day)}|${type}`
 }
 </script>
 
@@ -77,8 +132,13 @@ function getMeals(day, type) {
             'row-last':  i === weekDays.length - 1,
             'col-last':  type === MEAL_TYPES[MEAL_TYPES.length - 1],
             'is-empty':  getMeals(day, type).length === 0,
+            'is-drop':   dropKey === cellKey(day, type),
           }"
           :style="{ '--i': i }"
+          @dragover="onCellDragOver"
+          @dragenter.prevent="onCellDragEnter(day, type)"
+          @dragleave="onCellDragLeave($event, day, type)"
+          @drop.prevent="onCellDrop(day, type)"
         >
           <template v-if="getMeals(day, type).length === 0">
             <button
@@ -98,6 +158,10 @@ function getMeals(day, type) {
                 v-for="meal in getMeals(day, type)"
                 :key="meal.id"
                 class="slot-card"
+                :class="{ 'is-dragging': dragId === meal.id }"
+                draggable="true"
+                @dragstart="onDragStart($event, meal)"
+                @dragend="onDragEnd"
               >
                 <span class="slot-title">{{ meal.recipe?.title ?? '–' }}</span>
                 <span v-if="meal.servings" class="slot-servings" :aria-label="`${meal.servings} adag`">
@@ -268,6 +332,15 @@ function getMeals(day, type) {
 .slot.col-last { border-right: none; }
 .slot.row-last { border-bottom: none; }
 .slot.is-today { background: color-mix(in srgb, var(--color-accent) 4%, var(--color-bg)); }
+.slot.is-drop {
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg));
+  outline: 2px dashed var(--color-accent);
+  outline-offset: -3px;
+}
+
+.slot-card { cursor: grab; }
+.slot-card:active { cursor: grabbing; }
+.slot-card.is-dragging { opacity: 0.35; }
 
 /* ── Slot meals ── */
 .slot-meals {
