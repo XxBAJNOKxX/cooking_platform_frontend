@@ -1,5 +1,5 @@
 <script setup>
-import { computed, getCurrentInstance } from 'vue'
+import { computed, getCurrentInstance, ref } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -38,6 +38,15 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'blur', 'focus'])
 
+const showPassword = ref(false)
+
+const inputType = computed(() => {
+  if (props.type === 'password') {
+    return showPassword.value ? 'text' : 'password'
+  }
+  return props.type
+})
+
 const getFallbackId = () => {
   return typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
@@ -70,11 +79,31 @@ const inputClasses = computed(() => {
       <span v-if="error" class="text-danger text-xs font-semibold">{{ error }}</span>
     </label>
 
-    <div class="relative">
+    <div class="relative group">
       <slot name="prefix" />
-      <input :id="actualId" :type="type" :value="modelValue" @input="onInput" @blur="$emit('blur', $event)"
+      <input :id="actualId" :type="inputType" :value="modelValue" @input="onInput" @blur="$emit('blur', $event)"
         @focus="$emit('focus', $event)" :placeholder="placeholder" :disabled="disabled" :required="required"
-        :aria-invalid="!!error" :class="inputClasses" />
+        :aria-invalid="!!error" :class="[inputClasses, type === 'password' ? 'pr-11' : '']" />
+
+      <button v-if="type === 'password'" type="button" @click="showPassword = !showPassword"
+        class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted hover:text-accent hover:bg-surface transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        :aria-label="showPassword ? 'Jelszó elrejtése' : 'Jelszó megjelenítése'">
+        <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.88 9.88L4.62 4.62" />
+          <path d="M21 21L15.38 15.38" />
+          <path d="M15 15.82a3 3 0 0 1-4.24-4.24" />
+          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+          <path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+          <line x1="2" y1="2" x2="22" y2="22" />
+        </svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </button>
+
       <slot name="suffix" />
     </div>
 
