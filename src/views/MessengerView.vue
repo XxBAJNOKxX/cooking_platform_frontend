@@ -68,6 +68,7 @@ const externalPartner = ref(null)
 const externalTool = ref(null)
 const toolActing = ref(false)
 const toolNotice = ref('')
+const showPanel = ref(false)
 
 const activeConversation = computed(() =>
   conversations.value.find(c => c.partner.id === selectedPartnerId.value) ?? null
@@ -94,6 +95,7 @@ function selectConversation(conv) {
   externalPartner.value = null
   externalTool.value = null
   toolNotice.value = ''
+  showPanel.value = true
   markConversationRead(conv)
   scrollToBottom()
 }
@@ -138,20 +140,21 @@ onMounted(async () => {
       selectConversation(found)
     } else {
       selectedPartnerId.value = urlUserId
+      showPanel.value = true
 
-      if (route.query.username) {
-        externalPartner.value = {
-          id: urlUserId,
-          username: route.query.username,
-        }
-      } else {
-        externalPartner.value = { id: urlUserId, username: 'Betöltés...' }
-        api.get(`/users/${urlUserId}`).then(res => {
-          externalPartner.value = res.data.data.user
-        }).catch(() => {
-          externalPartner.value = { id: urlUserId, username: `Felhasználó #${urlUserId}` }
-        })
+      // Seed with whatever the URL gave us so the name shows immediately,
+      // then always fetch so avatar_url (and the rest) fill in.
+      externalPartner.value = {
+        id: urlUserId,
+        username: route.query.username ?? 'Betöltés...',
       }
+      api.get(`/users/${urlUserId}`).then(res => {
+        externalPartner.value = res.data.data.user
+      }).catch(() => {
+        if (!route.query.username) {
+          externalPartner.value = { id: urlUserId, username: `Felhasználó #${urlUserId}` }
+        }
+      })
     }
   }
 
@@ -306,8 +309,6 @@ function groupByDay(messages) {
   }
   return groups
 }
-
-const showPanel = ref(false)
 </script>
 
 <template>
@@ -450,10 +451,18 @@ const showPanel = ref(false)
 .messenger {
   display: flex;
   height: calc(100vh - 8rem);
+  height: calc(100dvh - 8rem);
   overflow: hidden;
   background: var(--color-bg);
   border: 1.5px solid var(--color-stroke);
   border-radius: 1rem;
+}
+
+@media (max-width: 700px) {
+  .messenger {
+    height: calc(100vh - 6rem);
+    height: calc(100dvh - 6rem);
+  }
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────── */

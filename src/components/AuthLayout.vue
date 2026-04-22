@@ -2,11 +2,8 @@
 </script>
 
 <template>
-  <div class="auth-layout flex-1 flex items-center justify-center p-4 py-8 relative overflow-hidden">
-    <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-accent/10 blur-[80px] pointer-events-none"></div>
-    <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-chip/10 blur-[80px] pointer-events-none"></div>
-
-    <div class="auth-card w-full max-w-md bg-[#ffe0c2]/40 backdrop-blur-md rounded-2xl shadow-xl border border-stroke p-8 sm:p-10 relative z-10">
+  <div class="auth-layout flex-1 flex items-center justify-center p-4 py-8">
+    <div class="auth-card w-full max-w-md bg-bg rounded-2xl shadow-xl border border-stroke p-8 sm:p-10">
       <div class="text-center mb-8">
         <slot name="subtitle">
           <p class="text-sm font-medium text-muted">Folytasd a főzést velünk!</p>

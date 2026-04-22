@@ -13,9 +13,9 @@
           class="ingredient-item"
           :style="`--i: ${index}`"
         >
-          <span class="amount" :class="{ 'amount--taste': !ing.scaledQty && ing.unit }">
+          <span class="amount" :class="{ 'amount--taste': !ing.scaledQty && ing.displayUnit }">
             <span v-if="ing.scaledQty != null && ing.scaledQty !== 0" class="qty">{{ formatQty(ing.scaledQty) }}</span>
-            <span v-if="ing.unit" class="unit">{{ ing.unit }}</span>
+            <span v-if="ing.displayUnit" class="unit">{{ ing.displayUnit }}</span>
           </span>
           <span class="name">{{ ing.name }}</span>
         </li>
@@ -33,15 +33,35 @@ const props = defineProps({
   currentPortions: { type: Number, default: 4 },
 })
 
+/**
+ * When scaling down a spoon amount yields a non-integer (e.g. 1 ek × 1/3 ≈ 0.33 ek),
+ * try the next-smaller spoon unit if it produces an integer (0.33 ek → 1 kk).
+ * If nothing cleaner exists, leave qty/unit alone so formatQty can render it as
+ * a Hungarian fraction word ("fél", "negyed" …).
+ */
+function preferredDisplay(qty, unit) {
+  if (qty == null || !unit) return { qty, unit }
+  if (Number.isInteger(qty)) return { qty, unit }
+  const u = unit.toLowerCase().trim()
+  if (u === 'ek' || u === 'evőkanál') {
+    const kk = Math.round(qty * 3 * 100) / 100
+    if (Number.isInteger(kk)) return { qty: kk, unit: 'kk' }
+  }
+  return { qty, unit }
+}
+
 const scaledGroups = computed(() => {
   const ratio = props.currentPortions / props.basePortions
   const buckets = new Map()
   for (const ing of props.ingredients) {
     const key = (ing.group ?? '').toString()
     if (!buckets.has(key)) buckets.set(key, [])
+    const raw = ing.quantity != null ? ing.quantity * ratio : null
+    const display = preferredDisplay(raw, ing.unit)
     buckets.get(key).push({
       ...ing,
-      scaledQty: ing.quantity != null ? ing.quantity * ratio : null,
+      scaledQty: display.qty,
+      displayUnit: display.unit,
     })
   }
   const out = []
@@ -50,11 +70,36 @@ const scaledGroups = computed(() => {
   return out
 })
 
+const FRACTIONS = [
+  { value: 0.25, word: 'negyed' },
+  { value: 1 / 3, word: 'harmad' },
+  { value: 0.5, word: 'fél' },
+  { value: 2 / 3, word: 'kétharmad' },
+  { value: 0.75, word: 'háromnegyed' },
+]
+
+function fractionWord(frac) {
+  for (const f of FRACTIONS) {
+    if (Math.abs(frac - f.value) < 0.02) return f.word
+  }
+  return null
+}
+
 function formatQty(v) {
   if (v == null) return ''
   if (Number.isInteger(v)) return String(v)
-  return parseFloat(v.toFixed(2)).toString()
+
+  const rounded = Math.round(v * 100) / 100
+  const int = Math.floor(rounded)
+  const frac = rounded - int
+  const word = fractionWord(frac)
+
+  if (word === null) return parseFloat(rounded.toFixed(2)).toString().replace('.', ',')
+  if (int === 0) return word
+  if (int === 1 && word === 'fél') return 'másfél'
+  return `${int} és ${word}`
 }
+
 </script>
 
 <style scoped>
@@ -133,6 +178,7 @@ function formatQty(v) {
   font-weight: 500;
   color: var(--color-muted);
 }
+
 
 .amount--taste {
   min-width: unset;

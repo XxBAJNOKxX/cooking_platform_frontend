@@ -154,6 +154,14 @@ const handleLogout = async () => {
                     class="block px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors">
                     Profil
                   </RouterLink>
+                  <RouterLink :to="{ path: '/profile', query: { tab: 'recipes' } }" @click="closeProfileMenu"
+                    class="block px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors">
+                    Saját receptjeim
+                  </RouterLink>
+                  <RouterLink :to="{ path: '/profile', query: { tab: 'favorites' } }" @click="closeProfileMenu"
+                    class="block px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors">
+                    Kedvencek
+                  </RouterLink>
                   <RouterLink to="/messages" @click="closeProfileMenu"
                     class="flex items-center justify-between px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors">
                     Üzenetek
@@ -248,6 +256,16 @@ const handleLogout = async () => {
                 <RouterLink @click="closeMobileMenu" to="/profile" exact-active-class="mobile-sub-link-active"
                   class="mobile-sub-link">
                   Profil
+                </RouterLink>
+
+                <RouterLink @click="closeMobileMenu" :to="{ path: '/profile', query: { tab: 'recipes' } }"
+                  class="mobile-sub-link">
+                  Saját receptjeim
+                </RouterLink>
+
+                <RouterLink @click="closeMobileMenu" :to="{ path: '/profile', query: { tab: 'favorites' } }"
+                  class="mobile-sub-link">
+                  Kedvencek
                 </RouterLink>
 
                 <RouterLink @click="closeMobileMenu" to="/messages" exact-active-class="mobile-sub-link-active"

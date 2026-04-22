@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import api from '@/services/api'
+import BaseSelect from '@/components/BaseSelect.vue'
+import BaseAutocomplete from '@/components/BaseAutocomplete.vue'
 
 const props = defineProps({
   modelValue: { type: Array, required: true },
@@ -107,6 +109,16 @@ function updateField(ing, field, value) {
   update(next)
 }
 
+function stepFor(val) {
+  if (val === '' || val === null || val === undefined) return 1
+  const s = String(val).replace(',', '.')
+  const dot = s.indexOf('.')
+  if (dot === -1) return 1
+  const decimals = s.length - dot - 1
+  if (decimals <= 0) return 1
+  return Math.pow(10, -Math.min(decimals, 4))
+}
+
 // --- Groups ---
 const activeGroup = ref('')
 
@@ -173,82 +185,29 @@ const groupNames = computed(() =>
   displayedGroups.value.map(g => g.name).filter(n => n !== ''),
 )
 
-// --- Close dropdown on outside click ---
-function onDocClick(e) {
+// Close the ingredient search dropdown on mousedown outside — we use mousedown
+// (not click) so the close fires before any focus change or blur race.
+function onDocMouseDown(e) {
   if (ingWrapRef.value && !ingWrapRef.value.contains(e.target)) {
     ingDropdown.value = false
   }
 }
 
-// --- Unit autocomplete ---
-const unitActiveIng = ref(null)
-const unitQuery = ref('')
-const unitDropdownPos = ref({ top: 0, left: 0, width: 0 })
-const unitSaving = ref(false)
-
-const filteredUnits = computed(() => {
-  const q = unitQuery.value.trim().toLowerCase()
-  if (!q) return props.units
-  return props.units.filter(u => u.toLowerCase().includes(q))
-})
-
-const unitQueryIsCustom = computed(() => {
-  const q = unitQuery.value.trim()
-  if (!q) return false
-  return !props.units.some(u => u.toLowerCase() === q.toLowerCase())
-})
-
-function openUnitDropdown(ing, e) {
-  const rect = e.target.getBoundingClientRect()
-  unitDropdownPos.value = { top: rect.bottom + 4, left: rect.left, width: rect.width }
-  unitActiveIng.value = ing
-  unitQuery.value = ing.unit || ''
-}
-
-function onUnitInput(e, ing) {
-  unitActiveIng.value = ing
-  unitQuery.value = e.target.value
-  updateField(ing, 'unit', e.target.value)
-}
-
-function selectUnit(unit) {
-  if (!unitActiveIng.value) return
-  updateField(unitActiveIng.value, 'unit', unit)
-  unitActiveIng.value = null
-  unitQuery.value = ''
-}
-
-async function confirmUnit() {
-  if (!unitActiveIng.value || unitSaving.value) return
-  const name = unitQuery.value.trim()
-  const isCustom = name && unitQueryIsCustom.value
-  updateField(unitActiveIng.value, 'unit', name)
-  unitActiveIng.value = null
-  unitQuery.value = ''
-  if (isCustom) {
-    unitSaving.value = true
-    try {
-      await api.post('/units', { name })
-      emit('unit-created', name)
-    } finally {
-      unitSaving.value = false
-    }
+// Called when BaseAutocomplete emits `custom` — a unit name not yet in the
+// catalog has been committed; persist it server-side so it appears for all.
+async function onUnitCustom(ing, name) {
+  updateField(ing, 'unit', name)
+  try {
+    await api.post('/units', { name })
+    emit('unit-created', name)
+  } catch {
+    // server-side creation is best-effort — the unit string is already on the ingredient
   }
 }
 
-function onUnitBlur() {
-  setTimeout(() => {
-    if (unitActiveIng.value) {
-      updateField(unitActiveIng.value, 'unit', unitQuery.value.trim())
-      unitActiveIng.value = null
-      unitQuery.value = ''
-    }
-  }, 150)
-}
-
-onMounted(() => document.addEventListener('click', onDocClick))
+onMounted(() => document.addEventListener('mousedown', onDocMouseDown))
 onBeforeUnmount(() => {
-  document.removeEventListener('click', onDocClick)
+  document.removeEventListener('mousedown', onDocMouseDown)
   clearTimeout(ingTimer)
 })
 </script>
@@ -260,11 +219,13 @@ onBeforeUnmount(() => {
     <div class="rie-toolbar">
       <p class="rie-hint">
         <template v-if="hasGroups || activeGroup">
-          Aktív csoport:
-          <select class="rie-active-select" :value="activeGroup" @change="activeGroup = $event.target.value">
-            <option value="">— Alap —</option>
-            <option v-for="name in groupNames" :key="name" :value="name">{{ name }}</option>
-          </select>
+          <span>Aktív csoport:</span>
+          <BaseSelect
+            v-model="activeGroup"
+            size="sm"
+            :options="[{ value: '', label: '— Alap —' }, ...groupNames.map(n => ({ value: n, label: n }))]"
+            class="rie-active-select"
+          />
         </template>
         <template v-else>
           Csoportokba rendezheted a hozzávalókat (pl. „A csirkéhez”, „A joghurtos öntethez”).
@@ -307,10 +268,10 @@ onBeforeUnmount(() => {
           </button>
         </header>
 
-        <div v-if="group.items.length" class="ing-list">
+        <div v-if="group.items.length" class="ing-list" :class="{ 'ing-list--no-groups': groupNames.length === 0 }">
           <div class="ing-list-hdr">
             <span>Hozzávaló</span>
-            <span>Lista</span>
+            <span v-if="groupNames.length > 0">Lista</span>
             <span>Mennyiség</span>
             <span>Egység</span>
             <span />
@@ -319,27 +280,32 @@ onBeforeUnmount(() => {
             <span class="ing-name">
               {{ ing.name }}
             </span>
-            <select v-if="groupNames.length > 0" class="ing-input ing-move" :value="ing.group || ''"
-              @change="moveToGroup(ing, $event.target.value)" title="Áthelyezés másik csoportba">
-              <option value="">— Alap —</option>
-              <option v-for="n in groupNames" :key="n" :value="n">{{ n }}</option>
-            </select>
+            <BaseSelect
+              v-if="groupNames.length > 0"
+              :model-value="ing.group || ''"
+              @update:model-value="moveToGroup(ing, $event)"
+              size="sm"
+              title="Áthelyezés másik csoportba"
+              :options="[{ value: '', label: '— Alap —' }, ...groupNames.map(n => ({ value: n, label: n }))]"
+              class="ing-move"
+            />
+
             <input :value="ing.quantity" @input="updateField(ing, 'quantity', $event.target.value)" type="number"
-              min="0" step="0.01" class="ing-input ing-qty"
+              min="0" :step="stepFor(ing.quantity)" class="ing-input ing-qty"
               :class="{ 'ing-input--err': errors[`ingredients.${modelValue.indexOf(ing)}.quantity`] }"
               placeholder="—" />
-            <div class="ing-unit-wrap">
-              <input :value="unitActiveIng === ing ? unitQuery : (ing.unit || '')"
-                @focus="openUnitDropdown(ing, $event)" @input="onUnitInput($event, ing)" @blur="onUnitBlur"
-                @keydown.enter.prevent="confirmUnit" @keydown.esc="unitActiveIng = null; unitQuery = ''"
-                class="ing-input ing-unit"
-                :class="{ 'ing-input--err': errors[`ingredients.${modelValue.indexOf(ing)}.unit`] }" placeholder="—"
-                autocomplete="off" spellcheck="false" />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="ing-unit-chev"
-                aria-hidden="true">
-                <polyline points="6,9 12,15 18,9" />
-              </svg>
-            </div>
+
+            <BaseAutocomplete
+              :model-value="ing.unit || ''"
+              :options="units"
+              :has-error="!!errors[`ingredients.${modelValue.indexOf(ing)}.unit`]"
+              placeholder="—"
+              custom-label="Új egység:"
+              @update:model-value="updateField(ing, 'unit', $event)"
+              @custom="onUnitCustom(ing, $event)"
+              class="ing-unit-ac"
+            />
+
             <button type="button" class="ing-rm" @click="removeIngredient(ing)" aria-label="Eltávolítás">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                 <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" />
@@ -374,10 +340,10 @@ onBeforeUnmount(() => {
 
       <div v-if="ingDropdown" class="ing-dropdown" role="listbox">
         <button v-for="ing in ingResults" :key="ing.id" type="button" class="ing-option" role="option"
-          @mousedown.prevent @click="selectIngredient(ing)">{{ ing.name }}</button>
+          @click="selectIngredient(ing)">{{ ing.name }}</button>
 
         <button v-if="ingQuery.trim() && !queryExists" type="button" class="ing-option ing-option--create"
-          :disabled="ingCreating || ingSearching" @mousedown.prevent @click="createAndAddIngredient">
+          :disabled="ingCreating || ingSearching" @click="createAndAddIngredient">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
             <path d="M12 5v14M5 12h14" stroke-linecap="round" />
           </svg>
@@ -392,25 +358,6 @@ onBeforeUnmount(() => {
     </div>
   </div>
 
-  <Teleport to="body">
-    <div v-if="unitActiveIng && (filteredUnits.length || (unitQuery.trim() && unitQueryIsCustom))" class="unit-dropdown"
-      :style="{
-        position: 'fixed',
-        top: unitDropdownPos.top + 'px',
-        left: unitDropdownPos.left + 'px',
-        width: unitDropdownPos.width + 'px',
-      }">
-      <button v-for="u in filteredUnits" :key="u" type="button" class="unit-option" @mousedown.prevent
-        @click="selectUnit(u)">{{ u }}</button>
-      <button v-if="unitQuery.trim() && unitQueryIsCustom" type="button" class="unit-option unit-option--custom"
-        @mousedown.prevent @click="confirmUnit">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-          <path d="M12 5v14M5 12h14" stroke-linecap="round" />
-        </svg>
-        <span>Egyéni: <strong>{{ unitQuery.trim() }}</strong></span>
-      </button>
-    </div>
-  </Teleport>
 </template>
 
 <style scoped>
@@ -670,6 +617,12 @@ onBeforeUnmount(() => {
   transition: background 150ms var(--ease-ui-out);
 }
 
+/* When no groups exist, the Lista column is removed from both header and rows. */
+.ing-list--no-groups .ing-list-hdr,
+.ing-list--no-groups .ing-row {
+  grid-template-columns: 1fr 100px 116px 36px;
+}
+
 .rie-group .ing-row:first-of-type {
   border-top: none;
 }
@@ -735,84 +688,8 @@ onBeforeUnmount(() => {
   text-align: right;
 }
 
-.ing-unit-wrap {
-  position: relative;
-  width: 100%;
-}
-
-.ing-unit {
-  padding-right: 26px;
-}
-
-.ing-unit-chev {
-  position: absolute;
-  right: 7px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 11px;
-  height: 11px;
-  color: var(--color-muted);
-  pointer-events: none;
-}
-
-/* ── Unit dropdown (teleported to body) ── */
-.unit-dropdown {
-  z-index: 9999;
-  border: 1.5px solid var(--color-stroke);
-  border-radius: 10px;
-  background: var(--color-bg);
-  box-shadow: 0 8px 24px -4px rgba(47, 30, 23, 0.16);
-  overflow: hidden;
-  max-height: 220px;
-  overflow-y: auto;
-  animation: rieDropIn 160ms var(--ease-ui-out) both;
-}
-
-.unit-option {
-  display: block;
-  width: 100%;
-  padding: 8px 12px;
-  text-align: left;
-  border: none;
-  border-bottom: 1px solid var(--color-stroke);
-  background: transparent;
-  color: var(--color-text);
-  font-size: 0.825rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 120ms var(--ease-ui-out);
-  font-family: inherit;
-}
-
-.unit-option:last-child {
-  border-bottom: none;
-}
-
-.unit-option:hover {
-  background: var(--color-surface);
-}
-
-.unit-option--custom {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-accent);
-  font-weight: 600;
-  background: color-mix(in srgb, var(--color-accent) 5%, transparent);
-}
-
-.unit-option--custom svg {
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
-}
-
-.unit-option--custom strong {
-  font-weight: 700;
-}
-
-.unit-option--custom:hover {
-  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+.ing-unit-ac {
+  min-width: 0;
 }
 
 .ing-rm {
@@ -986,6 +863,11 @@ onBeforeUnmount(() => {
     gap: 6px;
     padding: 8px 10px;
   }
+
+  .ing-list--no-groups .ing-list-hdr,
+  .ing-list--no-groups .ing-row {
+    grid-template-columns: 1fr 80px 96px 32px;
+  }
 }
 
 @media (max-width: 420px) {
@@ -993,7 +875,8 @@ onBeforeUnmount(() => {
     display: none;
   }
 
-  .ing-row {
+  .ing-row,
+  .ing-list--no-groups .ing-row {
     grid-template-columns: 1fr 32px;
     grid-template-rows: auto auto auto;
     row-gap: 6px;
@@ -1014,7 +897,7 @@ onBeforeUnmount(() => {
     grid-row: 2;
   }
 
-  .ing-unit-wrap {
+  .ing-unit-ac {
     grid-column: 1 / -1;
     grid-row: 3;
   }

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import RecipeCard from '@/components/RecipeCard.vue'
@@ -11,6 +12,13 @@ import BaseModal from '@/components/BaseModal.vue'
 import BaseButton from '@/components/BaseButton.vue'
 
 const authStore = useAuthStore()
+const route = useRoute()
+const router = useRouter()
+
+const VALID_TABS = ['recipes', 'tools', 'favorites']
+function tabFromQuery(v) {
+  return VALID_TABS.includes(v) ? v : 'recipes'
+}
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
 
@@ -31,7 +39,18 @@ const showSettings = ref(false)
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-const activeTab = ref('recipes')
+const activeTab = ref(tabFromQuery(route.query.tab))
+
+watch(() => route.query.tab, (v) => {
+  activeTab.value = tabFromQuery(v)
+})
+
+function setTab(tab) {
+  activeTab.value = tab
+  if (route.query.tab !== tab) {
+    router.replace({ query: { ...route.query, tab } })
+  }
+}
 
 // ─── My Recipes ───────────────────────────────────────────────────────────────
 
@@ -263,7 +282,7 @@ onMounted(() => {
         :class="{ 'tab-active': activeTab === 'recipes' }"
         role="tab"
         :aria-selected="activeTab === 'recipes'"
-        @click="activeTab = 'recipes'"
+        @click="setTab('recipes')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M18 3a3 3 0 00-3 3v11H3V6a3 3 0 016 0v2" stroke-linecap="round"/>
@@ -277,7 +296,7 @@ onMounted(() => {
         :class="{ 'tab-active': activeTab === 'tools' }"
         role="tab"
         :aria-selected="activeTab === 'tools'"
-        @click="activeTab = 'tools'"
+        @click="setTab('tools')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" stroke-linecap="round" stroke-linejoin="round"/>
@@ -290,7 +309,7 @@ onMounted(() => {
         :class="{ 'tab-active': activeTab === 'favorites' }"
         role="tab"
         :aria-selected="activeTab === 'favorites'"
-        @click="activeTab = 'favorites'"
+        @click="setTab('favorites')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke-linecap="round" stroke-linejoin="round"/>

@@ -1,11 +1,33 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
 defineProps({ disabled: { type: Boolean, default: false } })
 const emit = defineEmits(['send'])
 
 const text = ref('')
 const textareaRef = ref(null)
+
+// Touch devices: Enter = newline (no physical Enter key), send-button only.
+// Desktop: Enter = send, Shift+Enter = newline.
+const isTouch = ref(false)
+let mql = null
+
+function updateTouch() {
+  isTouch.value = window.matchMedia('(max-width: 700px), (pointer: coarse)').matches
+}
+
+onMounted(() => {
+  mql = window.matchMedia('(max-width: 700px), (pointer: coarse)')
+  isTouch.value = mql.matches
+  mql.addEventListener?.('change', updateTouch)
+})
+onBeforeUnmount(() => {
+  mql?.removeEventListener?.('change', updateTouch)
+})
+
+const placeholder = computed(() =>
+  isTouch.value ? 'Írj üzenetet…' : 'Írj üzenetet… (Enter = küld, Shift+Enter = sortörés)',
+)
 
 function autoResize() {
   const el = textareaRef.value
@@ -15,6 +37,7 @@ function autoResize() {
 }
 
 function handleKeydown(e) {
+  if (isTouch.value) return
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
     submit()
@@ -38,7 +61,7 @@ function submit() {
       ref="textareaRef"
       v-model="text"
       class="msg-textarea"
-      placeholder="Írj üzenetet… (Enter = küld, Shift+Enter = sortörés)"
+      :placeholder="placeholder"
       :disabled="disabled"
       rows="1"
       @input="autoResize"

@@ -6,6 +6,10 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  itemLabel: {
+    type: String,
+    default: 'recept',
+  },
 })
 
 const emit = defineEmits(['page-change'])
@@ -47,7 +51,7 @@ function go(page) {
   >
     <p class="pg-info">
       {{ meta.from }}–{{ meta.to }}
-      <span class="pg-info-total">/ {{ meta.total }} recept</span>
+      <span class="pg-info-total">/ {{ meta.total }} {{ itemLabel }}</span>
     </p>
 
     <div class="pg-buttons" role="list">

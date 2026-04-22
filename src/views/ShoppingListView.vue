@@ -4,6 +4,9 @@ import api from '@/services/api'
 import DateRangePicker from '@/components/DateRangePicker.vue'
 import CheckableListItem from '@/components/CheckableListItem.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
 
 // ─── Date range ──────────────────────────────────────────────────────────────
 
@@ -239,9 +242,12 @@ function printList() {
     <div v-if="hasAnyItems" class="print-header print-only">
       <div class="print-head-top">
         <div class="print-logo">Cookr<span class="print-logo-dot">.</span></div>
+        <p v-if="authStore.user?.username" class="print-user">{{ authStore.user.username }}</p>
+      </div>
+      <div class="print-head-bottom">
+        <p class="print-title">Bevásárlólista</p>
         <p class="print-range">{{ rangeLabel }}</p>
       </div>
-      <p class="print-title">Bevásárlólista</p>
     </div>
 
     <!-- ── Content: crossfade between modes ──────────────────────── -->
@@ -298,7 +304,7 @@ function printList() {
               >{{ checkedIds.has(itemKey(item)) ? '✓' : '' }}</span>
               <span class="print-name">{{ item.name }}</span>
               <span class="print-qty">
-                {{ item.quantity % 1 === 0 ? item.quantity : item.quantity.toFixed(2) }}<span v-if="item.unit"> {{ item.unit }}</span>
+                {{ item.quantity % 1 === 0 ? item.quantity : item.quantity.toFixed(2) }}<span v-if="item.unit">&nbsp;{{ item.unit }}</span>
               </span>
             </li>
           </ul>
@@ -397,7 +403,7 @@ function printList() {
                 >{{ checkedIds.has(recipeIngKey(entry.recipe.id, ing)) ? '✓' : '' }}</span>
                 <span class="print-name">{{ ing.name }}</span>
                 <span class="print-qty">
-                  {{ ing.quantity % 1 === 0 ? ing.quantity : ing.quantity.toFixed(2) }}<span v-if="ing.unit"> {{ ing.unit }}</span>
+                  {{ ing.quantity % 1 === 0 ? ing.quantity : ing.quantity.toFixed(2) }}<span v-if="ing.unit">&nbsp;{{ ing.unit }}</span>
                 </span>
               </li>
             </ul>
@@ -879,6 +885,13 @@ function printList() {
     justify-content: space-between;
     gap: 1rem;
   }
+  .print-head-bottom {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 6pt;
+  }
   .print-logo {
     font-size: 18pt;
     font-weight: 900;
@@ -887,6 +900,12 @@ function printList() {
     line-height: 1;
   }
   .print-logo-dot { color: #e9692c; }
+  .print-user {
+    font-size: 10pt;
+    color: #000;
+    font-weight: 700;
+    margin: 0;
+  }
   .print-range {
     font-size: 10pt;
     color: #444;
@@ -897,7 +916,7 @@ function printList() {
     font-size: 14pt;
     font-weight: 800;
     color: #000;
-    margin: 6pt 0 0;
+    margin: 0;
     letter-spacing: -0.01em;
   }
 
@@ -1020,5 +1039,16 @@ function printList() {
     height: 2.75rem;
   }
   .recipe-title { font-size: 0.9rem; }
+}
+</style>
+
+<!-- Unscoped: hides app chrome (navbar, footer) while printing this page. -->
+<style>
+@media print {
+  #app > div > header,
+  #app > div > nav,
+  #app > div > footer {
+    display: none !important;
+  }
 }
 </style>

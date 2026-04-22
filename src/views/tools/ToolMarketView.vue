@@ -228,6 +228,7 @@ const activeFilterCount = computed(() => {
       <Pagination
         v-if="!loading && meta && meta.last_page > 1"
         :meta="meta"
+        item-label="eszköz"
         @page-change="onPageChange"
         class="mt-6"
       />
