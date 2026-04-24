@@ -1,3 +1,5 @@
+<!-- Egy konyhai eszköz részletező (térkép, tulajdonos, üzenetküldés). -->
+
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -20,6 +22,11 @@ const actionMsg = ref('')
 const showDeleteModal = ref(false)
 const deleteError = ref('')
 
+function closeDeleteModal() {
+  showDeleteModal.value = false
+  deleteError.value = ''
+}
+
 async function fetchTool() {
   loading.value = true
   error.value = ''
@@ -36,7 +43,8 @@ async function fetchTool() {
 
 onMounted(fetchTool)
 
-const FALLBACK = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=1200&q=70'
+const FALLBACK =
+  'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=1200&q=70'
 
 const priceLabel = computed(() => {
   if (!tool.value) return ''
@@ -96,7 +104,9 @@ async function toggleAvailability() {
       is_available: !tool.value.is_available,
     })
     await fetchTool()
-    actionMsg.value = tool.value.is_available ? 'Az eszköz elérhető.' : 'Az eszköz jelenleg nem elérhető.'
+    actionMsg.value = tool.value.is_available
+      ? 'Az eszköz elérhető.'
+      : 'Az eszköz jelenleg nem elérhető.'
   } catch (e) {
     console.error('[toggleAvailability]', e)
     actionMsg.value = 'A művelet nem sikerült.'
@@ -134,8 +144,14 @@ async function confirmDelete() {
 
     <template v-else-if="tool">
       <button class="td-back" @click="router.back()" aria-label="Vissza">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-          <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          aria-hidden="true"
+        >
+          <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
         Vissza
       </button>
@@ -154,9 +170,15 @@ async function confirmDelete() {
           <div class="td-meta">
             <span class="td-price">{{ priceLabel }}</span>
             <span class="td-loc" v-if="tool.city">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-                <circle cx="12" cy="10" r="3"/>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                <circle cx="12" cy="10" r="3" />
               </svg>
               {{ tool.city }}<span v-if="tool.county">, {{ tool.county }}</span>
             </span>
@@ -174,7 +196,11 @@ async function confirmDelete() {
           <div class="td-owner-card">
             <div class="td-owner-row">
               <div class="td-avatar">
-                <img v-if="tool.owner?.avatar_url" :src="tool.owner.avatar_url" :alt="tool.owner.username" />
+                <img
+                  v-if="tool.owner?.avatar_url"
+                  :src="tool.owner.avatar_url"
+                  :alt="tool.owner.username"
+                />
                 <span v-else>{{ (tool.owner?.username ?? '?').slice(0, 2).toUpperCase() }}</span>
               </div>
               <div>
@@ -183,7 +209,8 @@ async function confirmDelete() {
                   v-if="tool.owner?.id"
                   :to="{ name: 'user-profile', params: { id: tool.owner.id } }"
                   class="td-owner-name td-owner-link"
-                >{{ tool.owner.username }}</RouterLink>
+                  >{{ tool.owner.username }}</RouterLink
+                >
                 <p v-else class="td-owner-name">—</p>
               </div>
             </div>
@@ -216,9 +243,7 @@ async function confirmDelete() {
               >
                 {{ tool.is_available ? 'Érdeklődöm' : 'Üzenet a tulajnak' }}
               </BaseButton>
-              <p class="td-note">
-                A pontos címet és bérlés részleteit a chaten beszélitek meg.
-              </p>
+              <p class="td-note">A pontos címet és bérlés részleteit a chaten beszélitek meg.</p>
             </template>
 
             <p v-if="actionMsg" class="td-action-msg">{{ actionMsg }}</p>
@@ -228,7 +253,10 @@ async function confirmDelete() {
             <h3 class="td-map-title">Helyszín</h3>
             <p class="td-map-sub">
               <template v-if="tool.is_owner">Pontos helyzet (csak neked látszik).</template>
-              <template v-else>Közelítő helyszín — kb. {{ Math.round((tool.location_radius_m ?? 700) / 100) * 100 }} m-es körben.</template>
+              <template v-else
+                >Közelítő helyszín — kb.
+                {{ Math.round((tool.location_radius_m ?? 700) / 100) * 100 }} m-es körben.</template
+              >
             </p>
             <div class="td-map">
               <ToolMap
@@ -247,15 +275,20 @@ async function confirmDelete() {
       </div>
     </template>
 
-    <BaseModal v-if="showDeleteModal" :model-value="true" title="Eszköz törlése" @close="showDeleteModal = false; deleteError = ''">
+    <BaseModal
+      v-if="showDeleteModal"
+      :model-value="true"
+      title="Eszköz törlése"
+      @close="closeDeleteModal"
+    >
       <p class="td-modal-text">
-        Biztosan törölni szeretnéd a(z) <strong>{{ tool?.name }}</strong> eszközt?
-        Ez a művelet nem vonható vissza.
+        Biztosan törölni szeretnéd a(z) <strong>{{ tool?.name }}</strong> eszközt? Ez a művelet nem
+        vonható vissza.
       </p>
       <p v-if="deleteError" class="td-modal-error">{{ deleteError }}</p>
       <template #footer>
         <div class="td-modal-actions">
-          <button class="td-ghost" @click="showDeleteModal = false; deleteError = ''">Mégse</button>
+          <button class="td-ghost" @click="closeDeleteModal">Mégse</button>
           <button class="td-danger-btn td-danger-solid" :disabled="acting" @click="confirmDelete">
             {{ acting ? 'Törlés...' : 'Törlés' }}
           </button>
@@ -266,31 +299,50 @@ async function confirmDelete() {
 </template>
 
 <style scoped>
-.td-root { padding-bottom: 4rem; }
+.td-root {
+  padding-bottom: 4rem;
+}
 
 .td-loading,
 .td-empty {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 0.75rem;
   min-height: 24rem;
   color: var(--color-muted);
 }
 
 .td-back {
-  display: inline-flex; align-items: center; gap: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   margin-bottom: 1rem;
   padding: 0.4rem 0.75rem 0.4rem 0.55rem;
   border: 1.5px solid var(--color-stroke);
   border-radius: 999px;
   background: transparent;
-  font-size: 0.82rem; font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 600;
   color: var(--color-muted);
   cursor: pointer;
-  transition: background 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out), color 150ms var(--ease-ui-out);
+  transition:
+    background 150ms var(--ease-ui-out),
+    transform 150ms var(--ease-ui-out),
+    color 150ms var(--ease-ui-out);
 }
-.td-back:hover  { background: var(--color-surface); color: var(--color-text); }
-.td-back:active { transform: scale(0.96); }
-.td-back svg { width: 0.95rem; height: 0.95rem; }
+.td-back:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.td-back:active {
+  transform: scale(0.96);
+}
+.td-back svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
 
 .td-layout {
   display: grid;
@@ -300,11 +352,19 @@ async function confirmDelete() {
   animation: tdIn 260ms var(--ease-ui-out) both;
 }
 @keyframes tdIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 @media (max-width: 959px) {
-  .td-layout { grid-template-columns: 1fr; }
+  .td-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* main column */
@@ -316,16 +376,31 @@ async function confirmDelete() {
   background: var(--color-surface);
   border: 1.5px solid var(--color-stroke);
 }
-.td-hero-img { width: 100%; height: 100%; object-fit: cover; }
+.td-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
 .td-badge {
-  position: absolute; top: 0.875rem; left: 0.875rem;
-  padding: 0.3rem 0.7rem; border-radius: 999px;
-  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em;
+  position: absolute;
+  top: 0.875rem;
+  left: 0.875rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   backdrop-filter: blur(6px);
 }
-.td-badge-free   { background: color-mix(in srgb, #5b7f43 88%, transparent); color: #fff; }
-.td-badge-rented { background: color-mix(in srgb, #2f1e17 80%, transparent); color: #fff; }
+.td-badge-free {
+  background: color-mix(in srgb, #5b7f43 88%, transparent);
+  color: #fff;
+}
+.td-badge-rented {
+  background: color-mix(in srgb, #2f1e17 80%, transparent);
+  color: #fff;
+}
 
 .td-title {
   margin: 1.1rem 0 0.5rem;
@@ -336,22 +411,32 @@ async function confirmDelete() {
 }
 
 .td-meta {
-  display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
   margin-bottom: 0.75rem;
 }
 .td-price {
-  font-size: 1rem; font-weight: 800;
+  font-size: 1rem;
+  font-weight: 800;
   color: var(--color-accent);
   background: color-mix(in srgb, var(--color-accent) 10%, transparent);
   padding: 0.35rem 0.75rem;
   border-radius: 0.55rem;
 }
 .td-loc {
-  display: inline-flex; align-items: center; gap: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   color: var(--color-muted);
   font-size: 0.88rem;
 }
-.td-loc svg { width: 0.95rem; height: 0.95rem; color: var(--color-accent); }
+.td-loc svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--color-accent);
+}
 
 .td-desc {
   margin: 0.25rem 0 0;
@@ -369,13 +454,28 @@ async function confirmDelete() {
   border: 1px dashed var(--color-accent-soft);
 }
 .td-address h3 {
-  margin: 0 0 0.35rem; font-size: 0.85rem; font-weight: 700; color: var(--color-text);
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
 }
-.td-address h3 span { font-weight: 500; color: var(--color-muted); font-size: 0.75rem; }
-.td-address p { margin: 0.15rem 0; font-size: 0.88rem; color: var(--color-text); }
+.td-address h3 span {
+  font-weight: 500;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+.td-address p {
+  margin: 0.15rem 0;
+  font-size: 0.88rem;
+  color: var(--color-text);
+}
 
 /* side column */
-.td-side { display: flex; flex-direction: column; gap: 1rem; }
+.td-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
 
 .td-owner-card,
 .td-map-card {
@@ -385,23 +485,56 @@ async function confirmDelete() {
   background: var(--color-bg);
 }
 
-.td-owner-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.875rem; }
+.td-owner-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.875rem;
+}
 
 .td-avatar {
-  width: 2.5rem; height: 2.5rem; border-radius: 999px;
-  background: var(--color-accent); color: var(--color-bg);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.78rem; font-weight: 800;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 800;
   overflow: hidden;
 }
-.td-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.td-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
-.td-owner-label { margin: 0; font-size: 0.72rem; color: var(--color-muted); }
-.td-owner-name  { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--color-text); }
-.td-owner-link  { text-decoration: none; transition: color 150ms var(--ease-ui-out); }
-.td-owner-link:hover { color: var(--color-accent); }
+.td-owner-label {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--color-muted);
+}
+.td-owner-name {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.td-owner-link {
+  text-decoration: none;
+  transition: color 150ms var(--ease-ui-out);
+}
+.td-owner-link:hover {
+  color: var(--color-accent);
+}
 
-.td-owner-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+.td-owner-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
 
 .td-danger-btn {
   padding: 0.55rem 1rem;
@@ -409,12 +542,19 @@ async function confirmDelete() {
   border: 1.5px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
   background: transparent;
   color: var(--color-danger);
-  font-size: 0.85rem; font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out);
+  transition:
+    background 150ms var(--ease-ui-out),
+    transform 150ms var(--ease-ui-out);
 }
-.td-danger-btn:hover  { background: color-mix(in srgb, var(--color-danger) 8%, transparent); }
-.td-danger-btn:active { transform: scale(0.97); }
+.td-danger-btn:hover {
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+}
+.td-danger-btn:active {
+  transform: scale(0.97);
+}
 
 .td-note {
   margin: 0.6rem 0 0;
@@ -429,52 +569,96 @@ async function confirmDelete() {
   color: var(--color-accent);
 }
 
-.td-map-title { margin: 0 0 0.25rem; font-size: 0.92rem; font-weight: 700; color: var(--color-text); }
-.td-map-sub   { margin: 0 0 0.55rem; font-size: 0.75rem; color: var(--color-muted); }
+.td-map-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.td-map-sub {
+  margin: 0 0 0.55rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
 
 .td-map {
   min-height: 18rem;
   display: flex;
 }
-.td-map :deep(.tmap-outer) { flex: 1; }
-.td-map :deep(.tmap)       { flex: 1; min-height: 16rem; }
+.td-map :deep(.tmap-outer) {
+  flex: 1;
+}
+.td-map :deep(.tmap) {
+  flex: 1;
+  min-height: 16rem;
+}
 
 .td-map-missing {
-  display: flex; align-items: center; justify-content: center;
-  min-height: 16rem; width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 16rem;
+  width: 100%;
   border: 1.5px dashed var(--color-stroke);
   border-radius: 1rem;
-  font-size: 0.82rem; color: var(--color-muted);
+  font-size: 0.82rem;
+  color: var(--color-muted);
 }
 
-.td-modal-text { margin: 0; color: var(--color-muted); line-height: 1.6; font-size: 0.95rem; }
+.td-modal-text {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
 .td-modal-error {
-  margin: 0.75rem 0 0; font-size: 0.875rem; color: var(--color-danger);
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-danger);
   background: color-mix(in srgb, var(--color-danger) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-danger) 20%, transparent);
-  border-radius: 0.5rem; padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
 }
-.td-modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.td-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
 .td-ghost {
   padding: 0.5rem 1.125rem;
   border: 1.5px solid var(--color-stroke);
   border-radius: 0.625rem;
   background: transparent;
   color: var(--color-muted);
-  font-size: 0.875rem; font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out);
+  transition:
+    background 150ms var(--ease-ui-out),
+    transform 150ms var(--ease-ui-out);
 }
-.td-ghost:hover { background: var(--color-surface); color: var(--color-text); }
-.td-ghost:active { transform: scale(0.97); }
+.td-ghost:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.td-ghost:active {
+  transform: scale(0.97);
+}
 .td-danger-solid {
   padding: 0.5rem 1.25rem;
   border: none;
   border-radius: 0.625rem;
   background: var(--color-danger);
   color: #fff;
-  font-weight: 700; font-size: 0.875rem;
+  font-weight: 700;
+  font-size: 0.875rem;
 }
-.td-danger-solid:hover:not(:disabled) { background: var(--color-danger-hover); }
-.td-danger-solid:disabled { opacity: 0.55; cursor: not-allowed; }
+.td-danger-solid:hover:not(:disabled) {
+  background: var(--color-danger-hover);
+}
+.td-danger-solid:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 </style>

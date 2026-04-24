@@ -1,3 +1,5 @@
+<!-- Eszköz létrehozása / szerkesztése. -->
+
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -83,8 +85,8 @@ function onImgDrop(e) {
   }
 }
 
-const hasCoords = computed(() =>
-  typeof form.latitude === 'number' && typeof form.longitude === 'number'
+const hasCoords = computed(
+  () => typeof form.latitude === 'number' && typeof form.longitude === 'number',
 )
 
 async function loadExisting() {
@@ -121,24 +123,36 @@ async function loadExisting() {
 onMounted(loadExisting)
 
 function onAddressSelect(hit) {
-  form.country      = hit.country      || form.country
-  form.county       = hit.county       || ''
-  form.city         = hit.city         || ''
-  form.postal_code  = hit.postalCode   || ''
-  form.street       = hit.street       || ''
-  form.house_number = hit.houseNumber  || ''
-  form.latitude     = hit.lat
-  form.longitude    = hit.lng
+  form.country = hit.country || form.country
+  form.county = hit.county || ''
+  form.city = hit.city || ''
+  form.postal_code = hit.postalCode || ''
+  form.street = hit.street || ''
+  form.house_number = hit.houseNumber || ''
+  form.latitude = hit.lat
+  form.longitude = hit.lng
 }
 
 function validate() {
-  Object.keys(fieldErrors).forEach(k => delete fieldErrors[k])
+  Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k])
   let ok = true
 
-  if (!form.name.trim()) { fieldErrors.name = 'Kötelező'; ok = false }
-  if (!(Number(form.price_per_day) >= 0)) { fieldErrors.price_per_day = 'Adj meg érvényes árat'; ok = false }
-  if (!form.city.trim()) { fieldErrors.city = 'Válassz címet a keresőből'; ok = false }
-  if (!hasCoords.value) { fieldErrors.address = 'Válassz egy címet a javaslatokból'; ok = false }
+  if (!form.name.trim()) {
+    fieldErrors.name = 'Kötelező'
+    ok = false
+  }
+  if (!(Number(form.price_per_day) >= 0)) {
+    fieldErrors.price_per_day = 'Adj meg érvényes árat'
+    ok = false
+  }
+  if (!form.city.trim()) {
+    fieldErrors.city = 'Válassz címet a keresőből'
+    ok = false
+  }
+  if (!hasCoords.value) {
+    fieldErrors.address = 'Válassz egy címet a javaslatokból'
+    ok = false
+  }
 
   return ok
 }
@@ -158,8 +172,11 @@ async function submit() {
     postal_code: form.postal_code || null,
     street: form.street || null,
     house_number: form.house_number || null,
-    address: [form.postal_code, form.city, form.street, form.house_number]
-      .filter(Boolean).join(' ').trim() || null,
+    address:
+      [form.postal_code, form.city, form.street, form.house_number]
+        .filter(Boolean)
+        .join(' ')
+        .trim() || null,
     latitude: form.latitude,
     longitude: form.longitude,
     is_available: form.is_available,
@@ -192,8 +209,14 @@ async function submit() {
 <template>
   <div class="te-root">
     <button class="te-back" @click="router.back()" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-        <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.2"
+        aria-hidden="true"
+      >
+        <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
       Vissza
     </button>
@@ -208,11 +231,22 @@ async function submit() {
       <div class="te-section">
         <h2 class="te-section-title">Alapadatok</h2>
 
-        <BaseInput v-model="form.name" label="Név" required :error="fieldErrors.name" placeholder="pl. Sous-vide készülék" />
+        <BaseInput
+          v-model="form.name"
+          label="Név"
+          required
+          :error="fieldErrors.name"
+          placeholder="pl. Sous-vide készülék"
+        />
 
         <label class="te-field">
           <span>Leírás</span>
-          <textarea v-model="form.description" rows="4" class="te-textarea" placeholder="Mire alkalmas, mit tartalmaz…"></textarea>
+          <textarea
+            v-model="form.description"
+            rows="4"
+            class="te-textarea"
+            placeholder="Mire alkalmas, mit tartalmaz…"
+          ></textarea>
         </label>
 
         <div class="te-field">
@@ -239,13 +273,31 @@ async function submit() {
                 :disabled="imageUploading"
                 @click="fileInputRef.click()"
               >
-                <svg v-if="imageUploading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="te-spin" aria-hidden="true">
-                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke-linecap="round"/>
+                <svg
+                  v-if="imageUploading"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  class="te-spin"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+                    stroke-linecap="round"
+                  />
                 </svg>
-                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-linecap="round"/>
-                  <polyline points="17,8 12,3 7,8" stroke-linecap="round"/>
-                  <line x1="12" y1="3" x2="12" y2="15" stroke-linecap="round"/>
+                <svg
+                  v-else
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  aria-hidden="true"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-linecap="round" />
+                  <polyline points="17,8 12,3 7,8" stroke-linecap="round" />
+                  <line x1="12" y1="3" x2="12" y2="15" stroke-linecap="round" />
                 </svg>
                 {{ imageUploading ? 'Feltöltés…' : 'Feltöltés' }}
               </button>
@@ -282,7 +334,10 @@ async function submit() {
 
       <div class="te-section">
         <h2 class="te-section-title">Helyszín</h2>
-        <p class="te-hint">A pontos címet csak te látod. A keresőből érkezőknek ebből csak város + kb. 700 m-es körzet látszik.</p>
+        <p class="te-hint">
+          A pontos címet csak te látod. A keresőből érkezőknek ebből csak város + kb. 700 m-es
+          körzet látszik.
+        </p>
 
         <AddressAutocomplete
           v-model="addressQuery"
@@ -343,20 +398,34 @@ async function submit() {
 }
 
 .te-back {
-  display: inline-flex; align-items: center; gap: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   margin-bottom: 1rem;
   padding: 0.4rem 0.75rem 0.4rem 0.55rem;
   border: 1.5px solid var(--color-stroke);
   border-radius: 999px;
   background: transparent;
-  font-size: 0.82rem; font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 600;
   color: var(--color-muted);
   cursor: pointer;
-  transition: background 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out), color 150ms var(--ease-ui-out);
+  transition:
+    background 150ms var(--ease-ui-out),
+    transform 150ms var(--ease-ui-out),
+    color 150ms var(--ease-ui-out);
 }
-.te-back:hover  { background: var(--color-surface); color: var(--color-text); }
-.te-back:active { transform: scale(0.96); }
-.te-back svg { width: 0.95rem; height: 0.95rem; }
+.te-back:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.te-back:active {
+  transform: scale(0.96);
+}
+.te-back svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
 
 .te-title {
   margin: 0 0 1.5rem;
@@ -365,12 +434,22 @@ async function submit() {
   letter-spacing: -0.02em;
 }
 
-.te-loading { display: flex; justify-content: center; padding: 3rem 0; }
+.te-loading {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 0;
+}
 
-.te-form { display: flex; flex-direction: column; gap: 1.25rem; }
+.te-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
 
 .te-section {
-  display: flex; flex-direction: column; gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
   padding: 1.1rem 1.2rem 1.25rem;
   border: 1.5px solid var(--color-stroke);
   border-radius: 1rem;
@@ -391,7 +470,14 @@ async function submit() {
   line-height: 1.5;
 }
 
-.te-field { display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.875rem; font-weight: 500; color: var(--color-muted); }
+.te-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-muted);
+}
 
 .te-textarea {
   width: 100%;
@@ -405,24 +491,39 @@ async function submit() {
   line-height: 1.5;
   resize: vertical;
   outline: none;
-  transition: border-color 150ms var(--ease-ui-out), box-shadow 150ms var(--ease-ui-out);
+  transition:
+    border-color 150ms var(--ease-ui-out),
+    box-shadow 150ms var(--ease-ui-out);
 }
 .te-textarea:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 
-.te-grid-3 { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 0.75rem; }
-.te-grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem; }
+.te-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  gap: 0.75rem;
+}
+.te-grid-2 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 0.75rem;
+}
 @media (max-width: 639px) {
-  .te-grid-3, .te-grid-2 { grid-template-columns: 1fr; }
+  .te-grid-3,
+  .te-grid-2 {
+    grid-template-columns: 1fr;
+  }
 }
 
 .te-map-preview {
   margin-top: 0.5rem;
   display: flex;
 }
-.te-map-preview :deep(.tmap) { min-height: 16rem; }
+.te-map-preview :deep(.tmap) {
+  min-height: 16rem;
+}
 
 .te-map-missing {
   padding: 1.1rem;
@@ -434,11 +535,18 @@ async function submit() {
 }
 
 .te-toggle {
-  display: inline-flex; align-items: center; gap: 0.55rem;
-  font-size: 0.9rem; font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.9rem;
+  font-weight: 600;
   color: var(--color-text);
 }
-.te-toggle input { accent-color: var(--color-accent); width: 1rem; height: 1rem; }
+.te-toggle input {
+  accent-color: var(--color-accent);
+  width: 1rem;
+  height: 1rem;
+}
 
 .te-error {
   margin: 0;
@@ -472,7 +580,9 @@ async function submit() {
   border-radius: 0.75rem;
   border: 1.5px dashed transparent;
   padding: 4px;
-  transition: border-color 160ms ease, background 160ms ease;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
 }
 .te-img-drop--over {
   border-color: var(--color-accent);
@@ -495,16 +605,22 @@ async function submit() {
   color: var(--color-text);
   font-size: 0.9rem;
   outline: none;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 .te-img-url:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
-.te-img-url--err { border-color: var(--color-danger); }
+.te-img-url--err {
+  border-color: var(--color-danger);
+}
 
 .te-img-upload {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 0.55rem 0.9rem;
   border-radius: 0.5rem;
   border: 1.5px solid var(--color-stroke);
@@ -515,14 +631,28 @@ async function submit() {
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: background 150ms ease, transform 150ms var(--ease-ui-out);
+  transition:
+    background 150ms ease,
+    transform 150ms var(--ease-ui-out);
 }
-.te-img-upload svg { width: 14px; height: 14px; }
-.te-img-upload:hover:not(:disabled) { background: var(--color-surface-hover, var(--color-stroke)); }
-.te-img-upload:active:not(:disabled) { transform: scale(0.96); }
-.te-img-upload:disabled { opacity: 0.55; cursor: not-allowed; }
+.te-img-upload svg {
+  width: 14px;
+  height: 14px;
+}
+.te-img-upload:hover:not(:disabled) {
+  background: var(--color-surface-hover, var(--color-stroke));
+}
+.te-img-upload:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.te-img-upload:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
-.te-img-file { display: none; }
+.te-img-file {
+  display: none;
+}
 
 .te-img-hint {
   margin: 4px 0 0;
@@ -552,10 +682,20 @@ async function submit() {
   display: block;
 }
 
-@keyframes te-spin { to { transform: rotate(360deg); } }
-.te-spin { width: 14px; height: 14px; animation: te-spin 0.8s linear infinite; }
+@keyframes te-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.te-spin {
+  width: 14px;
+  height: 14px;
+  animation: te-spin 0.8s linear infinite;
+}
 
 @media (max-width: 540px) {
-  .te-img-upload span { display: none; }
+  .te-img-upload span {
+    display: none;
+  }
 }
 </style>

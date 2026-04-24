@@ -1,10 +1,12 @@
+<!-- Másik felhasználó nyilvános profilja (receptjei, eszközei). -->
+
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
-import RecipeCard from '@/components/RecipeCard.vue'
-import RecipeSkeletonCard from '@/components/RecipeSkeletonCard.vue'
+import RecipeCard from '@/components/recipe/RecipeCard.vue'
+import RecipeSkeletonCard from '@/components/recipe/RecipeSkeletonCard.vue'
 import ToolCard from '@/components/tools/ToolCard.vue'
 import ToolSkeletonCard from '@/components/tools/ToolSkeletonCard.vue'
 
@@ -24,12 +26,14 @@ const initials = computed(() => (profile.value?.username ?? '?').slice(0, 2).toU
 const joinedLabel = computed(() => {
   if (!profile.value?.joined_at) return ''
   return new Date(profile.value.joined_at).toLocaleDateString('hu-HU', {
-    year: 'numeric', month: 'long', day: 'numeric',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   })
 })
 
-const isSelf = computed(() =>
-  authStore.user?.id && profile.value?.id && authStore.user.id === profile.value.id,
+const isSelf = computed(
+  () => authStore.user?.id && profile.value?.id && authStore.user.id === profile.value.id,
 )
 
 // ── Tabs ──
@@ -98,9 +102,10 @@ async function fetchProfile() {
     recipeCount.value = data.data.recipe_count ?? 0
     toolCount.value = data.data.tool_count ?? 0
   } catch (err) {
-    profileError.value = err.response?.status === 404
-      ? 'A felhasználó nem található.'
-      : 'Hiba történt a profil betöltésekor.'
+    profileError.value =
+      err.response?.status === 404
+        ? 'A felhasználó nem található.'
+        : 'Hiba történt a profil betöltésekor.'
   } finally {
     profileLoading.value = false
   }
@@ -115,8 +120,8 @@ function sendMessage() {
     name: 'messages',
     query: {
       to: route.params.id,
-      username: profile.value.username
-    }
+      username: profile.value.username,
+    },
   })
 }
 
@@ -125,20 +130,22 @@ onMounted(() => {
   fetchRecipes()
 })
 
-watch(() => route.params.id, (id) => {
-  if (!id) return
-  toolsLoaded.value = false
-  tools.value = []
-  recipes.value = []
-  activeTab.value = 'recipes'
-  fetchProfile()
-  fetchRecipes()
-})
+watch(
+  () => route.params.id,
+  (id) => {
+    if (!id) return
+    toolsLoaded.value = false
+    tools.value = []
+    recipes.value = []
+    activeTab.value = 'recipes'
+    fetchProfile()
+    fetchRecipes()
+  },
+)
 </script>
 
 <template>
   <div class="profile-page">
-
     <div v-if="profileLoading" class="profile-card pc-skel" aria-busy="true">
       <div class="avatar-wrap">
         <div class="avatar-initials skel-av" />
@@ -158,15 +165,30 @@ watch(() => route.params.id, (id) => {
       <!-- Header -->
       <div class="profile-card">
         <div class="avatar-wrap">
-          <img v-if="profile.avatar_url" :src="profile.avatar_url" :alt="profile.username" class="avatar-img" />
+          <img
+            v-if="profile.avatar_url"
+            :src="profile.avatar_url"
+            :alt="profile.username"
+            class="avatar-img"
+          />
           <div v-else class="avatar-initials">{{ initials }}</div>
         </div>
 
         <div class="profile-info">
           <div class="profile-name-row">
             <h1 class="profile-name">{{ profile.username }}</h1>
-            <button v-if="!isSelf && authStore.isAuthenticated" class="msg-btn" @click="sendMessage">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <button
+              v-if="!isSelf && authStore.isAuthenticated"
+              class="msg-btn"
+              @click="sendMessage"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
                 <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
               </svg>
               Üzenet
@@ -180,19 +202,35 @@ watch(() => route.params.id, (id) => {
 
       <!-- Stats -->
       <div class="stats-row">
-        <div class="stat-chip"><span class="stat-num">{{ recipeCount }}</span><span class="stat-lbl">recept</span></div>
-        <div class="stat-chip"><span class="stat-num">{{ toolCount }}</span><span class="stat-lbl">eszköz</span></div>
+        <div class="stat-chip">
+          <span class="stat-num">{{ recipeCount }}</span
+          ><span class="stat-lbl">recept</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-num">{{ toolCount }}</span
+          ><span class="stat-lbl">eszköz</span>
+        </div>
       </div>
 
       <!-- Tabs -->
       <div class="tabs-row" role="tablist">
-        <button class="tab" :class="{ 'tab-active': activeTab === 'recipes' }" role="tab"
-          :aria-selected="activeTab === 'recipes'" @click="activeTab = 'recipes'">
+        <button
+          class="tab"
+          :class="{ 'tab-active': activeTab === 'recipes' }"
+          role="tab"
+          :aria-selected="activeTab === 'recipes'"
+          @click="activeTab = 'recipes'"
+        >
           Receptek
           <span class="tab-count">{{ recipeCount }}</span>
         </button>
-        <button class="tab" :class="{ 'tab-active': activeTab === 'tools' }" role="tab"
-          :aria-selected="activeTab === 'tools'" @click="activeTab = 'tools'">
+        <button
+          class="tab"
+          :class="{ 'tab-active': activeTab === 'tools' }"
+          role="tab"
+          :aria-selected="activeTab === 'tools'"
+          @click="activeTab = 'tools'"
+        >
           Eszközök
           <span class="tab-count">{{ toolCount }}</span>
         </button>
@@ -211,10 +249,21 @@ watch(() => route.params.id, (id) => {
           <RecipeCard v-for="(r, i) in recipes" :key="r.id" :recipe="r" :index="i" />
         </div>
         <div v-if="recipesLastPage > 1" class="pagination">
-          <button class="page-btn" :disabled="recipesPage === 1" @click="fetchRecipes(recipesPage - 1)">‹</button>
+          <button
+            class="page-btn"
+            :disabled="recipesPage === 1"
+            @click="fetchRecipes(recipesPage - 1)"
+          >
+            ‹
+          </button>
           <span class="page-info">{{ recipesPage }} / {{ recipesLastPage }}</span>
-          <button class="page-btn" :disabled="recipesPage === recipesLastPage"
-            @click="fetchRecipes(recipesPage + 1)">›</button>
+          <button
+            class="page-btn"
+            :disabled="recipesPage === recipesLastPage"
+            @click="fetchRecipes(recipesPage + 1)"
+          >
+            ›
+          </button>
         </div>
       </section>
 
@@ -231,13 +280,20 @@ watch(() => route.params.id, (id) => {
           <ToolCard v-for="(t, i) in tools" :key="t.id" :tool="t" :index="i" />
         </div>
         <div v-if="toolsLastPage > 1" class="pagination">
-          <button class="page-btn" :disabled="toolsPage === 1" @click="fetchTools(toolsPage - 1)">‹</button>
+          <button class="page-btn" :disabled="toolsPage === 1" @click="fetchTools(toolsPage - 1)">
+            ‹
+          </button>
           <span class="page-info">{{ toolsPage }} / {{ toolsLastPage }}</span>
-          <button class="page-btn" :disabled="toolsPage === toolsLastPage" @click="fetchTools(toolsPage + 1)">›</button>
+          <button
+            class="page-btn"
+            :disabled="toolsPage === toolsLastPage"
+            @click="fetchTools(toolsPage + 1)"
+          >
+            ›
+          </button>
         </div>
       </section>
     </template>
-
   </div>
 </template>
 
@@ -261,18 +317,6 @@ watch(() => route.params.id, (id) => {
   border-radius: 1.25rem;
   padding: 1.75rem;
   animation: fadeUp 320ms var(--ease-ui-out) both;
-}
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .avatar-wrap {
@@ -335,7 +379,9 @@ watch(() => route.params.id, (id) => {
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 150ms ease, transform 150ms var(--ease-ui-out);
+  transition:
+    background 150ms ease,
+    transform 150ms var(--ease-ui-out);
 }
 
 .msg-btn svg {
@@ -414,7 +460,9 @@ watch(() => route.params.id, (id) => {
   cursor: pointer;
   border-bottom: 2.5px solid transparent;
   margin-bottom: -1.5px;
-  transition: color 150ms ease, border-color 150ms ease;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease;
 }
 
 .tab:hover {
@@ -531,7 +579,12 @@ watch(() => route.params.id, (id) => {
 .skel-bar {
   height: 14px;
   border-radius: 6px;
-  background: linear-gradient(90deg, var(--color-stroke) 0%, var(--color-surface) 50%, var(--color-stroke) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--color-stroke) 0%,
+    var(--color-surface) 50%,
+    var(--color-stroke) 100%
+  );
   background-size: 200% 100%;
   animation: shimmerUp 1.4s infinite;
 }

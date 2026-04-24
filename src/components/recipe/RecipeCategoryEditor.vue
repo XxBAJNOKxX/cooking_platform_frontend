@@ -1,41 +1,39 @@
+<!-- Kategória multi-select + új kategória létrehozás a szerkesztőben. -->
+
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import api from '@/services/api'
 
 const props = defineProps({
-  modelValue:  { type: Array, required: true },   // selected category ids
-  categories:  { type: Array, default: () => [] }, // { id, name }[]
-  loading:     { type: Boolean, default: false },
+  modelValue: { type: Array, required: true }, // selected category ids
+  categories: { type: Array, default: () => [] }, // { id, name }[]
+  loading: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:modelValue', 'update:categories'])
 
-const query      = ref('')
-const dropdown   = ref(false)
-const creating   = ref(false)
-const wrapRef    = ref(null)
+const query = ref('')
+const dropdown = ref(false)
+const creating = ref(false)
+const wrapRef = ref(null)
 
-const selectedCats = computed(() =>
-  props.categories.filter(c => props.modelValue.includes(c.id))
-)
+const selectedCats = computed(() => props.categories.filter((c) => props.modelValue.includes(c.id)))
 
 const filteredCats = computed(() => {
   const q = query.value.trim().toLowerCase()
   const selected = new Set(props.modelValue)
-  const pool = props.categories.filter(c => !selected.has(c.id))
+  const pool = props.categories.filter((c) => !selected.has(c.id))
   if (!q) return pool
-  return pool.filter(c => c.name.toLowerCase().includes(q))
+  return pool.filter((c) => c.name.toLowerCase().includes(q))
 })
 
 const queryExists = computed(() => {
   const q = query.value.trim().toLowerCase()
   if (!q) return false
-  return props.categories.some(c => c.name.toLowerCase() === q)
+  return props.categories.some((c) => c.name.toLowerCase() === q)
 })
 
-const showCreateBtn = computed(() =>
-  query.value.trim() && !queryExists.value && !creating.value
-)
+const showCreateBtn = computed(() => query.value.trim() && !queryExists.value && !creating.value)
 
 function onInput(e) {
   query.value = e.target.value
@@ -55,7 +53,10 @@ function selectCategory(cat) {
 }
 
 function removeCategory(id) {
-  emit('update:modelValue', props.modelValue.filter(i => i !== id))
+  emit(
+    'update:modelValue',
+    props.modelValue.filter((i) => i !== id),
+  )
 }
 
 async function createAndSelect() {
@@ -65,7 +66,7 @@ async function createAndSelect() {
   try {
     const { data } = await api.post('/categories', { name })
     const cat = data.data
-    if (!props.categories.some(c => c.id === cat.id)) {
+    if (!props.categories.some((c) => c.id === cat.id)) {
       emit('update:categories', [...props.categories, cat])
     }
     selectCategory(cat)
@@ -88,15 +89,22 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
   <div class="rce-root" ref="wrapRef">
     <!-- Selected chips -->
     <div v-if="selectedCats.length" class="rce-selected">
-      <span
-        v-for="cat in selectedCats"
-        :key="cat.id"
-        class="rce-chip"
-      >
+      <span v-for="cat in selectedCats" :key="cat.id" class="rce-chip">
         {{ cat.name }}
-        <button type="button" class="rce-chip-rm" @click="removeCategory(cat.id)" :aria-label="`${cat.name} eltávolítása`">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-            <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/>
+        <button
+          type="button"
+          class="rce-chip-rm"
+          @click="removeCategory(cat.id)"
+          :aria-label="`${cat.name} eltávolítása`"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            aria-hidden="true"
+          >
+            <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" />
           </svg>
         </button>
       </span>
@@ -104,9 +112,16 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 
     <!-- Search input -->
     <div class="rce-search-box" :class="{ 'rce-search-box--open': dropdown }">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="rce-ico" aria-hidden="true">
-        <circle cx="11" cy="11" r="8"/>
-        <path d="m21 21-4.35-4.35" stroke-linecap="round"/>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.2"
+        class="rce-ico"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.35-4.35" stroke-linecap="round" />
       </svg>
       <input
         :value="query"
@@ -117,8 +132,19 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
         placeholder="Kategória keresése…"
         autocomplete="off"
       />
-      <svg v-if="loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="rce-spinner" aria-hidden="true">
-        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke-linecap="round"/>
+      <svg
+        v-if="loading"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.2"
+        class="rce-spinner"
+        aria-hidden="true"
+      >
+        <path
+          d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+          stroke-linecap="round"
+        />
       </svg>
     </div>
 
@@ -131,7 +157,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
         class="rce-option"
         @mousedown.prevent
         @click="selectCategory(cat)"
-      >{{ cat.name }}</button>
+      >
+        {{ cat.name }}
+      </button>
 
       <button
         v-if="showCreateBtn"
@@ -140,10 +168,18 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
         @mousedown.prevent
         @click="createAndSelect"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-          <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          aria-hidden="true"
+        >
+          <path d="M12 5v14M5 12h14" stroke-linecap="round" />
         </svg>
-        <span>Új kategória: <strong>{{ query.trim() }}</strong></span>
+        <span
+          >Új kategória: <strong>{{ query.trim() }}</strong></span
+        >
       </button>
     </div>
   </div>
@@ -181,7 +217,8 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px; height: 16px;
+  width: 16px;
+  height: 16px;
   border: none;
   background: transparent;
   color: currentColor;
@@ -191,8 +228,13 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
   border-radius: 50%;
   transition: opacity 150ms;
 }
-.rce-chip-rm:hover { opacity: 1; }
-.rce-chip-rm svg { width: 10px; height: 10px; }
+.rce-chip-rm:hover {
+  opacity: 1;
+}
+.rce-chip-rm svg {
+  width: 10px;
+  height: 10px;
+}
 
 /* ── Search box ── */
 .rce-search-box {
@@ -203,7 +245,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
   border-radius: 12px;
   border: 1.5px solid var(--color-stroke);
   background: var(--color-bg);
-  transition: border-color 150ms var(--ease-ui-out), box-shadow 150ms var(--ease-ui-out);
+  transition:
+    border-color 150ms var(--ease-ui-out),
+    box-shadow 150ms var(--ease-ui-out);
 }
 .rce-search-box:focus-within,
 .rce-search-box--open {
@@ -211,7 +255,12 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
   box-shadow: 0 0 0 1px var(--color-accent);
 }
 
-.rce-ico { width: 15px; height: 15px; color: var(--color-muted); flex-shrink: 0; }
+.rce-ico {
+  width: 15px;
+  height: 15px;
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
 
 .rce-input {
   flex: 1;
@@ -222,11 +271,18 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
   font-size: 0.875rem;
   font-family: inherit;
 }
-.rce-input::placeholder { color: var(--color-muted); }
+.rce-input::placeholder {
+  color: var(--color-muted);
+}
 
-@keyframes rceSpin { to { transform: rotate(360deg); } }
+@keyframes rceSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .rce-spinner {
-  width: 15px; height: 15px;
+  width: 15px;
+  height: 15px;
   color: var(--color-accent);
   flex-shrink: 0;
   animation: rceSpin 0.8s linear infinite;
@@ -236,7 +292,8 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 .rce-dropdown {
   position: absolute;
   top: calc(100% + 4px);
-  left: 0; right: 0;
+  left: 0;
+  right: 0;
   z-index: 50;
   border: 1.5px solid var(--color-stroke);
   border-radius: 12px;
@@ -249,8 +306,14 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 }
 
 @keyframes rceDropIn {
-  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .rce-option {
@@ -268,8 +331,12 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
   transition: background 120ms var(--ease-ui-out);
   font-family: inherit;
 }
-.rce-option:last-child { border-bottom: none; }
-.rce-option:hover { background: var(--color-surface); }
+.rce-option:last-child {
+  border-bottom: none;
+}
+.rce-option:hover {
+  background: var(--color-surface);
+}
 
 .rce-option--create {
   display: flex;
@@ -279,8 +346,14 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
   font-weight: 600;
   background: color-mix(in srgb, var(--color-accent) 5%, transparent);
 }
-.rce-option--create svg { width: 14px; height: 14px; flex-shrink: 0; }
-.rce-option--create strong { font-weight: 700; }
+.rce-option--create svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.rce-option--create strong {
+  font-weight: 700;
+}
 .rce-option--create:hover {
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
 }

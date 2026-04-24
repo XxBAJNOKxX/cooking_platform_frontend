@@ -1,3 +1,5 @@
+<!-- Üzenet beíró mező — enter=küld, shift+enter=újsor. -->
+
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
@@ -73,9 +75,15 @@ function submit() {
       aria-label="Küldés"
       @click="submit"
     >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-        <line x1="22" y1="2" x2="11" y2="13"/>
-        <polygon points="22,2 15,22 11,13 2,9"/>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        aria-hidden="true"
+      >
+        <line x1="22" y1="2" x2="11" y2="13" />
+        <polygon points="22,2 15,22 11,13 2,9" />
       </svg>
     </button>
   </div>
@@ -105,28 +113,51 @@ function submit() {
   resize: none;
   overflow: hidden;
   line-height: 1.5;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
-.msg-textarea::placeholder { color: var(--color-muted); }
+.msg-textarea::placeholder {
+  color: var(--color-muted);
+}
 .msg-textarea:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 14%, transparent);
 }
-.msg-textarea:disabled { opacity: 0.5; cursor: not-allowed; }
+.msg-textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .send-btn {
-  width: 2.5rem; height: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
   flex-shrink: 0;
   border-radius: 999px;
   border: none;
   background: var(--color-accent);
   color: var(--color-bg);
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: background 150ms ease, transform 150ms var(--ease-ui-out), opacity 150ms ease;
+  transition:
+    background 150ms ease,
+    transform 150ms var(--ease-ui-out),
+    opacity 150ms ease;
 }
-.send-btn svg { width: 1rem; height: 1rem; }
-.send-btn:hover:not(:disabled) { background: var(--color-accent-hover); }
-.send-btn:active:not(:disabled) { transform: scale(0.90); }
-.send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.send-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+.send-btn:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+.send-btn:active:not(:disabled) {
+  transform: scale(0.9);
+}
+.send-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
 </style>

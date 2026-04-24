@@ -1,3 +1,5 @@
+<!-- Eszköz-piac: lista + térkép + szűrés (város/ár/elérhetőség). -->
+
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -13,7 +15,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const tools = ref([])
-const meta  = ref(null)
+const meta = ref(null)
 const loading = ref(false)
 const error = ref('')
 
@@ -26,8 +28,8 @@ const filters = ref({
 
 function buildParams(page = 1) {
   const p = { page, per_page: 18 }
-  if (filters.value.search)    p.search = filters.value.search
-  if (filters.value.city)      p.city = filters.value.city
+  if (filters.value.search) p.search = filters.value.search
+  if (filters.value.city) p.city = filters.value.city
   if (filters.value.max_price) p.max_price = filters.value.max_price
   if (filters.value.available_only) p.available_only = 1
   return p
@@ -39,7 +41,7 @@ async function fetchTools(page = 1) {
   try {
     const res = await api.get('/kitchen-tools', { params: buildParams(page) })
     tools.value = res.data.data ?? []
-    meta.value  = res.data.meta
+    meta.value = res.data.meta
   } catch (e) {
     if (import.meta.env.DEV) console.error('[fetchTools]', e)
     error.value = 'Nem sikerült betölteni az eszközöket.'
@@ -52,7 +54,7 @@ function syncFromRoute() {
   const q = route.query
   filters.value = {
     search: q.search ?? '',
-    city:   q.city ?? '',
+    city: q.city ?? '',
     max_price: q.max_price ?? '',
     available_only: q.available_only !== '0',
   }
@@ -60,8 +62,8 @@ function syncFromRoute() {
 
 function onSubmit() {
   const query = {}
-  if (filters.value.search)    query.search = filters.value.search
-  if (filters.value.city)      query.city = filters.value.city
+  if (filters.value.search) query.search = filters.value.search
+  if (filters.value.city) query.city = filters.value.city
   if (filters.value.max_price) query.max_price = String(filters.value.max_price)
   if (!filters.value.available_only) query.available_only = '0'
   router.push({ name: 'tools', query }).catch(() => {})
@@ -73,7 +75,14 @@ function resetFilters() {
   router.push({ name: 'tools' }).catch(() => {})
 }
 
-watch(() => route.query, () => { syncFromRoute(); fetchTools(1) }, { deep: true })
+watch(
+  () => route.query,
+  () => {
+    syncFromRoute()
+    fetchTools(1)
+  },
+  { deep: true },
+)
 
 // ─── Collapsible filter (mobile/tablet) ────────────────────────────
 const isNarrow = ref(false)
@@ -142,15 +151,29 @@ const activeFilterCount = computed(() => {
       :aria-expanded="filtersOpen"
       @click="filtersOpen = !filtersOpen"
     >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <line x1="4" y1="6" x2="20" y2="6" stroke-linecap="round"/>
-        <line x1="7" y1="12" x2="17" y2="12" stroke-linecap="round"/>
-        <line x1="10" y1="18" x2="14" y2="18" stroke-linecap="round"/>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <line x1="4" y1="6" x2="20" y2="6" stroke-linecap="round" />
+        <line x1="7" y1="12" x2="17" y2="12" stroke-linecap="round" />
+        <line x1="10" y1="18" x2="14" y2="18" stroke-linecap="round" />
       </svg>
       <span>Szűrők</span>
       <span v-if="activeFilterCount" class="tm-toggle-badge">{{ activeFilterCount }}</span>
-      <svg class="tm-toggle-chev" :class="{ 'tm-toggle-chev--open': filtersOpen }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-        <polyline points="6,9 12,15 18,9" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg
+        class="tm-toggle-chev"
+        :class="{ 'tm-toggle-chev--open': filtersOpen }"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        aria-hidden="true"
+      >
+        <polyline points="6,9 12,15 18,9" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
     </button>
 
@@ -169,12 +192,7 @@ const activeFilterCount = computed(() => {
 
         <label class="tm-field">
           <span>Város</span>
-          <input
-            v-model="filters.city"
-            type="text"
-            placeholder="pl. Budapest"
-            class="tm-input"
-          />
+          <input v-model="filters.city" type="text" placeholder="pl. Budapest" class="tm-input" />
         </label>
 
         <label class="tm-field tm-field-sm">
@@ -217,12 +235,7 @@ const activeFilterCount = computed(() => {
       </div>
 
       <div v-else class="tm-grid">
-        <ToolCard
-          v-for="(t, i) in tools"
-          :key="t.id"
-          :tool="t"
-          :index="i"
-        />
+        <ToolCard v-for="(t, i) in tools" :key="t.id" :tool="t" :index="i" />
       </div>
 
       <Pagination
@@ -237,11 +250,16 @@ const activeFilterCount = computed(() => {
 </template>
 
 <style scoped>
-.tm-root { padding-bottom: 4rem; }
+.tm-root {
+  padding-bottom: 4rem;
+}
 
 .tm-header {
-  display: flex; align-items: flex-end; justify-content: space-between;
-  gap: 1rem; flex-wrap: wrap;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
   padding-bottom: 1.25rem;
   border-bottom: 1.5px solid var(--color-stroke);
   margin-bottom: 1.25rem;
@@ -254,40 +272,75 @@ const activeFilterCount = computed(() => {
   letter-spacing: -0.025em;
   color: var(--color-text);
 }
-.tm-count { margin: 0.25rem 0 0; font-size: 0.9rem; font-weight: 600; color: var(--color-muted); }
-.tm-count-loading { animation: tmBlink 1.4s ease-in-out infinite; }
-@keyframes tmBlink { 0%,100%{opacity:1} 50%{opacity:0.45} }
+.tm-count {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+.tm-count-loading {
+  animation: tmBlink 1.4s ease-in-out infinite;
+}
+@keyframes tmBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
 
 /* ── Filter toggle (mobile/tablet only) ── */
 .tm-toggle {
-  display: flex; align-items: center; gap: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   width: 100%;
   padding: 0.65rem 0.9rem;
   border-radius: 0.75rem;
   border: 1.5px solid var(--color-stroke);
   background: var(--color-bg);
   color: var(--color-text);
-  font-size: 0.9rem; font-weight: 700;
+  font-size: 0.9rem;
+  font-weight: 700;
   cursor: pointer;
   margin-bottom: 0.75rem;
-  transition: background 150ms ease, border-color 150ms ease;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
 }
-.tm-toggle:hover { background: var(--color-surface); border-color: var(--color-accent); }
-.tm-toggle:active { transform: scale(0.99); }
-.tm-toggle svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+.tm-toggle:hover {
+  background: var(--color-surface);
+  border-color: var(--color-accent);
+}
+.tm-toggle:active {
+  transform: scale(0.99);
+}
+.tm-toggle svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
 .tm-toggle-chev {
   margin-left: auto;
   transition: transform 200ms var(--ease-ui-out);
 }
-.tm-toggle-chev--open { transform: rotate(180deg); }
+.tm-toggle-chev--open {
+  transform: rotate(180deg);
+}
 .tm-toggle-badge {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 1.25rem; height: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
   padding: 0 0.4rem;
   border-radius: 999px;
   background: var(--color-accent);
   color: var(--color-bg);
-  font-size: 0.7rem; font-weight: 800;
+  font-size: 0.7rem;
+  font-weight: 800;
 }
 
 /* filters */
@@ -303,16 +356,24 @@ const activeFilterCount = computed(() => {
   margin-bottom: 1.25rem;
 }
 @media (max-width: 900px) {
-  .tm-filters { grid-template-columns: 1fr 1fr; }
-  .tm-actions { grid-column: 1 / -1; }
+  .tm-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .tm-actions {
+    grid-column: 1 / -1;
+  }
 }
 @media (max-width: 520px) {
-  .tm-filters { grid-template-columns: 1fr; }
+  .tm-filters {
+    grid-template-columns: 1fr;
+  }
 }
 
 .tm-filters-fade-enter-active,
 .tm-filters-fade-leave-active {
-  transition: opacity 200ms var(--ease-ui-out), transform 200ms var(--ease-ui-out);
+  transition:
+    opacity 200ms var(--ease-ui-out),
+    transform 200ms var(--ease-ui-out);
 }
 .tm-filters-fade-enter-from,
 .tm-filters-fade-leave-to {
@@ -321,8 +382,12 @@ const activeFilterCount = computed(() => {
 }
 
 .tm-field {
-  display: flex; flex-direction: column; gap: 0.25rem;
-  font-size: 0.78rem; font-weight: 600; color: var(--color-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-muted);
 }
 
 .tm-input {
@@ -334,7 +399,9 @@ const activeFilterCount = computed(() => {
   color: var(--color-text);
   font-size: 0.9rem;
   outline: none;
-  transition: border-color 150ms var(--ease-ui-out), box-shadow 150ms var(--ease-ui-out);
+  transition:
+    border-color 150ms var(--ease-ui-out),
+    box-shadow 150ms var(--ease-ui-out);
 }
 .tm-input:focus {
   border-color: var(--color-accent);
@@ -342,13 +409,25 @@ const activeFilterCount = computed(() => {
 }
 
 .tm-check {
-  display: inline-flex; align-items: center; gap: 0.45rem;
-  font-size: 0.86rem; font-weight: 600; color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--color-text);
   padding-bottom: 0.55rem;
 }
-.tm-check input { accent-color: var(--color-accent); width: 1rem; height: 1rem; }
+.tm-check input {
+  accent-color: var(--color-accent);
+  width: 1rem;
+  height: 1rem;
+}
 
-.tm-actions { display: flex; gap: 0.5rem; padding-bottom: 0; }
+.tm-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding-bottom: 0;
+}
 
 .tm-btn {
   padding: 0.55rem 1.1rem;
@@ -356,32 +435,54 @@ const activeFilterCount = computed(() => {
   border: 1.5px solid var(--color-stroke);
   background: var(--color-bg);
   color: var(--color-text);
-  font-size: 0.86rem; font-weight: 700;
+  font-size: 0.86rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: transform 150ms var(--ease-ui-out), background 150ms var(--ease-ui-out);
+  transition:
+    transform 150ms var(--ease-ui-out),
+    background 150ms var(--ease-ui-out);
 }
-.tm-btn:hover { background: var(--color-surface); }
-.tm-btn:active { transform: scale(0.97); }
+.tm-btn:hover {
+  background: var(--color-surface);
+}
+.tm-btn:active {
+  transform: scale(0.97);
+}
 .tm-btn-primary {
   border-color: var(--color-accent);
   background: var(--color-accent);
   color: var(--color-bg);
 }
-.tm-btn-primary:hover { background: var(--color-accent-hover); }
+.tm-btn-primary:hover {
+  background: var(--color-accent-hover);
+}
 
-.tm-grid-col { min-width: 0; }
+.tm-grid-col {
+  min-width: 0;
+}
 
 .tm-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
 }
-@media (max-width: 1199px) { .tm-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 479px)  { .tm-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1199px) {
+  .tm-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 479px) {
+  .tm-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 .tm-empty {
-  display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
   min-height: 16rem;
   color: var(--color-muted);
   font-size: 0.9rem;

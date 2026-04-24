@@ -1,5 +1,5 @@
-import { defineStore } from 'pinia';
-import api from '@/services/api';
+import { defineStore } from 'pinia'
+import api from '@/services/api'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -15,47 +15,47 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     async register(userData) {
-      const response = await api.post('/register', userData);
-      this.setToken(response.data.access_token);
-      this.user = response.data.user;
+      const response = await api.post('/register', userData)
+      this.setToken(response.data.access_token)
+      this.user = response.data.user
     },
 
     async login(credentials) {
-      const response = await api.post('/login', credentials);
-      this.setToken(response.data.access_token);
-      this.user = response.data.user;
+      const response = await api.post('/login', credentials)
+      this.setToken(response.data.access_token)
+      this.user = response.data.user
     },
 
     async logout() {
       try {
-        await api.post('/logout');
+        await api.post('/logout')
       } catch (error) {
-        console.error('Hiba kijelentkezéskor:', error);
+        console.error('Hiba kijelentkezéskor:', error)
       } finally {
-        this.clearAuth();
+        this.clearAuth()
       }
     },
 
     async fetchUser() {
-      if (!this.token) return;
+      if (!this.token) return
 
       try {
-        const response = await api.get('/user');
-        this.user = response.data.data;
-      } catch (error) {
-        this.clearAuth();
+        const response = await api.get('/user')
+        this.user = response.data.data
+      } catch {
+        this.clearAuth()
       }
     },
 
     setToken(token) {
-      this.token = token;
-      localStorage.setItem('auth_token', token);
+      this.token = token
+      localStorage.setItem('auth_token', token)
     },
 
     clearAuth() {
-      this.user = null;
-      this.token = null;
-      localStorage.removeItem('auth_token');
-    }
-  }
-});
+      this.user = null
+      this.token = null
+      localStorage.removeItem('auth_token')
+    },
+  },
+})

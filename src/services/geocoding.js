@@ -11,8 +11,7 @@ function normalizeHit(hit) {
   const a = hit.address ?? {}
 
   // Nominatim returns many keys for cities (city, town, village, hamlet).
-  const city =
-    a.city ?? a.town ?? a.village ?? a.hamlet ?? a.municipality ?? ''
+  const city = a.city ?? a.town ?? a.village ?? a.hamlet ?? a.municipality ?? ''
 
   // Prefer county (megye) but fall back to state if county isn't present.
   const county = a.county ?? a.state ?? ''
@@ -61,7 +60,7 @@ export async function searchAddress(query, opts = {}) {
 
   const res = await fetch(`${NOMINATIM_URL}?${params.toString()}`, {
     signal: opts.signal,
-    headers: { 'Accept': 'application/json' },
+    headers: { Accept: 'application/json' },
   })
   if (!res.ok) throw new Error(`Nominatim error ${res.status}`)
 
@@ -88,7 +87,7 @@ export function debounceCancellable(fn, ms = 300) {
       const signal = controller.signal
 
       timer = setTimeout(() => {
-        fn(signal, ...args).then(resolve, err => {
+        fn(signal, ...args).then(resolve, (err) => {
           if (err?.name === 'AbortError') resolve(null)
           else reject(err)
         })

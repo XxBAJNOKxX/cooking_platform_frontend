@@ -1,27 +1,29 @@
+<!-- Heti naptár táblázat (napok × étkezés-típusok). -->
+
 <script setup>
 import { ref } from 'vue'
 
 const props = defineProps({
-  weekDays:    { type: Array,  required: true },
+  weekDays: { type: Array, required: true },
   mealsByDate: { type: Object, required: true },
-  today:       { type: Date,   required: true },
+  today: { type: Date, required: true },
 })
 
 const emit = defineEmits(['add', 'delete', 'move'])
 
-const MEAL_TYPES  = ['Reggeli', 'Tízórai', 'Ebéd', 'Uzsonna', 'Vacsora']
+const MEAL_TYPES = ['Reggeli', 'Tízórai', 'Ebéd', 'Uzsonna', 'Vacsora']
 const MEAL_COLORS = {
   Reggeli: '#f59e0b',
   Tízórai: '#22c55e',
-  Ebéd:    '#e9692c',
+  Ebéd: '#e9692c',
   Uzsonna: '#0ea5e9',
   Vacsora: '#8b5cf6',
 }
 const DAY_ABBR = ['V', 'H', 'K', 'Sze', 'Cs', 'P', 'Szo']
 
 function toDateStr(d) {
-  const y  = d.getFullYear()
-  const m  = String(d.getMonth() + 1).padStart(2, '0')
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
   const dy = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${dy}`
 }
@@ -33,7 +35,7 @@ function isToday(d) {
 }
 
 function getMeals(day, type) {
-  return (props.mealsByDate[toDateStr(day)] ?? []).filter(m => m.meal_type === type)
+  return (props.mealsByDate[toDateStr(day)] ?? []).filter((m) => m.meal_type === type)
 }
 
 // ── Drag & drop ─────────────────────────────────────────────────────────────
@@ -68,10 +70,7 @@ function onCellDragLeave(e, day, type) {
   // Leave fires when moving over children too; only clear if pointer is
   // really outside this cell's bounding box.
   const r = e.currentTarget.getBoundingClientRect()
-  if (
-    e.clientX < r.left || e.clientX > r.right ||
-    e.clientY < r.top  || e.clientY > r.bottom
-  ) {
+  if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
     const k = `${toDateStr(day)}|${type}`
     if (dropKey.value === k) dropKey.value = null
   }
@@ -93,7 +92,6 @@ function cellKey(day, type) {
 <template>
   <div class="table-scroll">
     <div class="week-table">
-
       <!-- ── Header row ── -->
       <div class="corner"></div>
       <div
@@ -108,7 +106,6 @@ function cellKey(day, type) {
 
       <!-- ── Day rows ── -->
       <template v-for="(day, i) in weekDays" :key="toDateStr(day)">
-
         <div
           class="day-label"
           :class="{
@@ -128,11 +125,11 @@ function cellKey(day, type) {
           :key="toDateStr(day) + '-' + type"
           class="slot"
           :class="{
-            'is-today':  isToday(day),
-            'row-last':  i === weekDays.length - 1,
-            'col-last':  type === MEAL_TYPES[MEAL_TYPES.length - 1],
-            'is-empty':  getMeals(day, type).length === 0,
-            'is-drop':   dropKey === cellKey(day, type),
+            'is-today': isToday(day),
+            'row-last': i === weekDays.length - 1,
+            'col-last': type === MEAL_TYPES[MEAL_TYPES.length - 1],
+            'is-empty': getMeals(day, type).length === 0,
+            'is-drop': dropKey === cellKey(day, type),
           }"
           :style="{ '--i': i }"
           @dragover="onCellDragOver"
@@ -146,8 +143,14 @@ function cellKey(day, type) {
               @click="emit('add', toDateStr(day), type)"
               aria-label="Étkezés hozzáadása"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
           </template>
@@ -164,16 +167,22 @@ function cellKey(day, type) {
                 @dragend="onDragEnd"
               >
                 <span class="slot-title">{{ meal.recipe?.title ?? '–' }}</span>
-                <span v-if="meal.servings" class="slot-servings" :aria-label="`${meal.servings} adag`">
+                <span
+                  v-if="meal.servings"
+                  class="slot-servings"
+                  :aria-label="`${meal.servings} adag`"
+                >
                   {{ meal.servings }}<span class="slot-servings-unit">fő</span>
                 </span>
-                <button
-                  class="del-btn"
-                  @click.stop="emit('delete', meal.id)"
-                  aria-label="Törlés"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                    <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+                <button class="del-btn" @click.stop="emit('delete', meal.id)" aria-label="Törlés">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    aria-hidden="true"
+                  >
+                    <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                 </button>
               </div>
@@ -184,16 +193,52 @@ function cellKey(day, type) {
               @click="emit('add', toDateStr(day), type)"
               aria-label="Étkezés hozzáadása"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
           </template>
         </div>
-
       </template>
     </div>
   </div>
+
+  <!-- Print-only table: <thead> repeats on each page, <tr> break-inside: avoid
+       keeps each day on a single page. -->
+  <table class="week-print-table print-only">
+    <thead>
+      <tr>
+        <th class="wp-corner"></th>
+        <th v-for="type in MEAL_TYPES" :key="'p-hdr-' + type" class="wp-type-hdr">
+          {{ type }}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="day in weekDays" :key="'p-row-' + toDateStr(day)">
+        <th class="wp-day-label">
+          <span class="wp-day-abbr">{{ DAY_ABBR[day.getDay()] }}</span>
+          <span class="wp-day-num">{{ day.getDate() }}</span>
+        </th>
+        <td
+          v-for="type in MEAL_TYPES"
+          :key="'p-cell-' + toDateStr(day) + '-' + type"
+          class="wp-slot"
+        >
+          <div v-for="meal in getMeals(day, type)" :key="'p-meal-' + meal.id" class="wp-meal">
+            <span class="wp-meal-title">{{ meal.recipe?.title ?? '–' }}</span>
+            <span v-if="meal.servings" class="wp-meal-servings"> · {{ meal.servings }} fő</span>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </template>
 
 <style scoped>
@@ -206,8 +251,12 @@ function cellKey(day, type) {
   scrollbar-width: thin;
   scrollbar-color: var(--color-stroke) transparent;
 }
-.table-scroll::-webkit-scrollbar { height: 6px; }
-.table-scroll::-webkit-scrollbar-track { background: transparent; }
+.table-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
 .table-scroll::-webkit-scrollbar-thumb {
   background: var(--color-stroke);
   border-radius: 999px;
@@ -235,10 +284,21 @@ function cellKey(day, type) {
     grid-template-columns: 2.5rem repeat(5, minmax(96px, 1fr));
     min-width: 535px;
   }
-  .type-hdr { padding: 0.5rem 0.5rem; gap: 0.3rem; }
-  .type-name { font-size: 0.6rem; letter-spacing: 0.05em; }
-  .slot { padding: 0.3rem 0.3rem; min-height: 3.25rem; }
-  .slot-title { font-size: 0.7rem; }
+  .type-hdr {
+    padding: 0.5rem 0.5rem;
+    gap: 0.3rem;
+  }
+  .type-name {
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
+  }
+  .slot {
+    padding: 0.3rem 0.3rem;
+    min-height: 3.25rem;
+  }
+  .slot-title {
+    font-size: 0.7rem;
+  }
 }
 
 /* ── Corner ── */
@@ -258,10 +318,13 @@ function cellKey(day, type) {
   border-bottom: 1.5px solid var(--color-stroke);
   border-right: 1px solid var(--color-stroke);
 }
-.type-hdr.col-last { border-right: none; }
+.type-hdr.col-last {
+  border-right: none;
+}
 
 .type-dot {
-  width: 7px; height: 7px;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
   flex-shrink: 0;
 }
@@ -288,8 +351,12 @@ function cellKey(day, type) {
   animation: rowIn 280ms cubic-bezier(0.23, 1, 0.32, 1) both;
   animation-delay: calc(var(--i) * 40ms);
 }
-.day-label.row-last { border-bottom: none; }
-.day-label.is-today { background: color-mix(in srgb, var(--color-accent) 5%, var(--color-surface)); }
+.day-label.row-last {
+  border-bottom: none;
+}
+.day-label.is-today {
+  background: color-mix(in srgb, var(--color-accent) 5%, var(--color-surface));
+}
 
 .day-abbr {
   font-size: 0.575rem;
@@ -298,17 +365,24 @@ function cellKey(day, type) {
   text-transform: uppercase;
   color: var(--color-muted);
 }
-.day-label.is-today .day-abbr { color: var(--color-accent); }
+.day-label.is-today .day-abbr {
+  color: var(--color-accent);
+}
 
 .day-num {
   font-size: 0.9375rem;
   font-weight: 700;
   color: var(--color-text);
-  width: 1.625rem; height: 1.625rem;
-  display: flex; align-items: center; justify-content: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
   line-height: 1;
-  transition: background 180ms ease, color 180ms ease;
+  transition:
+    background 180ms ease,
+    color 180ms ease;
 }
 .day-num--today {
   background: var(--color-accent);
@@ -329,18 +403,30 @@ function cellKey(day, type) {
   animation-delay: calc(var(--i) * 40ms);
   transition: background 180ms ease;
 }
-.slot.col-last { border-right: none; }
-.slot.row-last { border-bottom: none; }
-.slot.is-today { background: color-mix(in srgb, var(--color-accent) 4%, var(--color-bg)); }
+.slot.col-last {
+  border-right: none;
+}
+.slot.row-last {
+  border-bottom: none;
+}
+.slot.is-today {
+  background: color-mix(in srgb, var(--color-accent) 4%, var(--color-bg));
+}
 .slot.is-drop {
   background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg));
   outline: 2px dashed var(--color-accent);
   outline-offset: -3px;
 }
 
-.slot-card { cursor: grab; }
-.slot-card:active { cursor: grabbing; }
-.slot-card.is-dragging { opacity: 0.35; }
+.slot-card {
+  cursor: grab;
+}
+.slot-card:active {
+  cursor: grabbing;
+}
+.slot-card.is-dragging {
+  opacity: 0.35;
+}
 
 /* ── Slot meals ── */
 .slot-meals {
@@ -382,8 +468,11 @@ function cellKey(day, type) {
 }
 
 .del-btn {
-  display: flex; align-items: center; justify-content: center;
-  width: 0.875rem; height: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.875rem;
+  height: 0.875rem;
   flex-shrink: 0;
   margin-top: 0.1rem;
   border: none;
@@ -392,14 +481,23 @@ function cellKey(day, type) {
   border-radius: 0.2rem;
   cursor: pointer;
   padding: 0;
-  transition: color 130ms ease, transform 130ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition:
+    color 130ms ease,
+    transform 130ms cubic-bezier(0.23, 1, 0.32, 1);
 }
-.del-btn svg { width: 0.5rem; height: 0.5rem; }
+.del-btn svg {
+  width: 0.5rem;
+  height: 0.5rem;
+}
 
 @media (hover: hover) and (pointer: fine) {
-  .del-btn:hover { color: var(--color-danger); }
+  .del-btn:hover {
+    color: var(--color-danger);
+  }
 }
-.del-btn:active { transform: scale(0.85); }
+.del-btn:active {
+  transform: scale(0.85);
+}
 
 /* ── Slot add button ── */
 .slot-add {
@@ -419,7 +517,10 @@ function cellKey(day, type) {
     background 160ms ease,
     transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
 }
-.slot-add svg { width: 0.625rem; height: 0.625rem; }
+.slot-add svg {
+  width: 0.625rem;
+  height: 0.625rem;
+}
 
 /* Full-cell variant: fills empty slot completely */
 .slot-add--full {
@@ -429,7 +530,10 @@ function cellKey(day, type) {
   padding: 0.5rem;
   border-radius: 0.5rem;
 }
-.slot-add--full svg { width: 1rem; height: 1rem; }
+.slot-add--full svg {
+  width: 1rem;
+  height: 1rem;
+}
 
 @media (hover: hover) and (pointer: fine) {
   .slot:hover .slot-add {
@@ -454,8 +558,12 @@ function cellKey(day, type) {
   }
 }
 
-.slot-add:active { transform: scale(0.93); }
-.slot-add--full:active { transform: scale(0.97); }
+.slot-add:active {
+  transform: scale(0.93);
+}
+.slot-add--full:active {
+  transform: scale(0.97);
+}
 
 /* ── Servings badge on slot cards ── */
 .slot-servings {
@@ -479,20 +587,138 @@ function cellKey(day, type) {
 
 /* ── Entrance animation ── */
 @keyframes rowIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Meal card transitions ── */
 .meal-enter-active {
-  transition: opacity 180ms cubic-bezier(0.23, 1, 0.32, 1), transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition:
+    opacity 180ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .meal-leave-active {
   transition: opacity 120ms ease-out;
   position: absolute;
   width: 100%;
 }
-.meal-enter-from { opacity: 0; transform: translateY(-3px) scale(0.97); }
-.meal-leave-to   { opacity: 0; }
-.meal-move       { transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1); }
+.meal-enter-from {
+  opacity: 0;
+  transform: translateY(-3px) scale(0.97);
+}
+.meal-leave-to {
+  opacity: 0;
+}
+.meal-move {
+  transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* ── Print-only table ──────────────────────────────────────────────
+   The on-screen grid (.table-scroll) is hidden when printing; this table
+   renders instead. <thead> repeats on every page, <tr>{break-inside:avoid}
+   keeps each day on a single page — moves the whole day if it doesn't fit. */
+.week-print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+}
+
+@media print {
+  .table-scroll {
+    display: none !important;
+  }
+
+  .week-print-table {
+    display: table !important;
+  }
+  .week-print-table thead {
+    display: table-header-group;
+  }
+  .week-print-table tbody {
+    display: table-row-group;
+  }
+  .week-print-table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .week-print-table th,
+  .week-print-table td {
+    border: 0.5pt solid #999;
+    padding: 4pt 6pt;
+    vertical-align: top;
+    text-align: left;
+  }
+
+  .week-print-table .wp-corner {
+    width: 14mm;
+    background: #f3f3f3;
+    border-bottom: 1pt solid #000;
+  }
+
+  .week-print-table .wp-type-hdr {
+    background: #f3f3f3;
+    border-bottom: 1pt solid #000;
+    font-size: 9pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #000;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .week-print-table .wp-day-label {
+    background: #f3f3f3;
+    width: 14mm;
+    font-weight: 700;
+    color: #000;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .wp-day-abbr {
+    display: block;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #555;
+  }
+  .wp-day-num {
+    display: block;
+    font-size: 14pt;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .week-print-table .wp-slot {
+    min-height: 14mm;
+    background: #fff;
+  }
+
+  .wp-meal {
+    font-size: 9.5pt;
+    line-height: 1.3;
+    padding: 1pt 0;
+    break-inside: avoid;
+  }
+  .wp-meal + .wp-meal {
+    border-top: 0.3pt dotted #ccc;
+    margin-top: 2pt;
+    padding-top: 2pt;
+  }
+  .wp-meal-title {
+    font-weight: 600;
+    color: #000;
+  }
+  .wp-meal-servings {
+    color: #555;
+    font-weight: 500;
+  }
+}
 </style>

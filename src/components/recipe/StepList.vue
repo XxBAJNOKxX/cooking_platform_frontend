@@ -1,11 +1,25 @@
+<!-- Elkészítési lépések kipipálható listája. -->
+
 <template>
   <ol class="step-list" role="list">
-    <li v-for="(step, i) in parsedSteps" :key="i" class="step-item"
-      :class="{ 'is-done': done.has(i), 'is-active': !done.has(i) && i === activeIdx }" :style="`--i: ${i}`"
-      @click="toggle(i)">
+    <li
+      v-for="(step, i) in parsedSteps"
+      :key="i"
+      class="step-item"
+      :class="{ 'is-done': done.has(i), 'is-active': !done.has(i) && i === activeIdx }"
+      :style="{ '--i': i }"
+      @click="toggle(i)"
+    >
       <span class="step-num" :aria-label="`${i + 1}. lépés`">
         <span v-if="!done.has(i)">{{ i + 1 }}</span>
-        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="check-icon">
+        <svg
+          v-else
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          class="check-icon"
+        >
           <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </span>
@@ -18,11 +32,14 @@
 import { ref, computed } from 'vue'
 
 const props = defineProps({
-  steps: { type: String, default: '' }
+  steps: { type: String, default: '' },
 })
 
 const parsedSteps = computed(() =>
-  props.steps.split('\n').map(s => s.trim()).filter(Boolean)
+  props.steps
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean),
 )
 
 const done = ref(new Set())
@@ -117,7 +134,9 @@ function toggle(i) {
   font-weight: 800;
   font-size: 0.825rem;
   flex-shrink: 0;
-  transition: background 200ms var(--ease-ui-out), transform 200ms var(--ease-ui-out);
+  transition:
+    background 200ms var(--ease-ui-out),
+    transform 200ms var(--ease-ui-out);
 }
 
 .step-item.is-done .step-num {

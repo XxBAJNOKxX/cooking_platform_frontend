@@ -26,5 +26,13 @@ export default defineConfig([
 
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
+  {
+    // Convention-established single-word component names.
+    files: ['src/components/Navbar.vue', 'src/components/Pagination.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+
   skipFormatting,
 ])

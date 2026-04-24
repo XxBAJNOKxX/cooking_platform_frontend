@@ -1,5 +1,7 @@
+<!-- Általános legördülő select custom megjelenéssel. -->
+
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   modelValue: { type: [String, Number, null], default: '' },
@@ -20,13 +22,13 @@ const panelRef = ref(null)
 const panelPos = ref({ top: 0, left: 0, width: 0 })
 
 const normalized = computed(() =>
-  props.options.map(o =>
+  props.options.map((o) =>
     typeof o === 'object' && o !== null ? o : { value: o, label: String(o) },
   ),
 )
 
 const selectedLabel = computed(() => {
-  const found = normalized.value.find(o => o.value === props.modelValue)
+  const found = normalized.value.find((o) => o.value === props.modelValue)
   return found ? found.label : ''
 })
 
@@ -74,7 +76,14 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
     <span class="bsel-label" :class="{ 'bsel-placeholder': !selectedLabel }">
       {{ selectedLabel || placeholder }}
     </span>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="bsel-chev" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.5"
+      class="bsel-chev"
+      aria-hidden="true"
+    >
       <polyline points="6,9 12,15 18,9" />
     </svg>
   </button>
@@ -124,7 +133,10 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
   cursor: pointer;
   outline: none;
   box-sizing: border-box;
-  transition: border-color 150ms var(--ease-ui-out), box-shadow 150ms var(--ease-ui-out), background 150ms var(--ease-ui-out);
+  transition:
+    border-color 150ms var(--ease-ui-out),
+    box-shadow 150ms var(--ease-ui-out),
+    background 150ms var(--ease-ui-out);
 }
 
 .bsel-trigger--sm {

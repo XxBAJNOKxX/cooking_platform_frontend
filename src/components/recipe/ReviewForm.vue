@@ -1,3 +1,5 @@
+<!-- Új értékelés form (csillag + komment + opcionális fotó). -->
+
 <template>
   <div class="review-form">
     <h3 class="form-title">Értékelés írása</h3>
@@ -10,9 +12,17 @@
       </div>
 
       <div class="field">
-        <label for="rv-comment" class="field-label">Megjegyzés <span class="optional">(nem kötelező)</span></label>
-        <textarea id="rv-comment" v-model="form.comment" rows="4" placeholder="Írd le véleményedet a receptről..."
-          maxlength="2000" class="textarea" />
+        <label for="rv-comment" class="field-label"
+          >Megjegyzés <span class="optional">(nem kötelező)</span></label
+        >
+        <textarea
+          id="rv-comment"
+          v-model="form.comment"
+          rows="4"
+          placeholder="Írd le véleményedet a receptről..."
+          maxlength="2000"
+          class="textarea"
+        />
       </div>
 
       <p v-if="serverError" class="server-error">{{ serverError }}</p>
@@ -23,8 +33,16 @@
           <span v-if="!submitting">Beküldés</span>
           <span v-else class="spinner-wrap">
             <svg class="spinner" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.5" stroke-dasharray="56"
-                stroke-dashoffset="14" stroke-linecap="round" />
+              <circle
+                cx="12"
+                cy="12"
+                r="9"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-dasharray="56"
+                stroke-dashoffset="14"
+                stroke-linecap="round"
+              />
             </svg>
             Küldés...
           </span>
@@ -40,7 +58,7 @@ import StarRating from './StarRating.vue'
 import api from '@/services/api'
 
 const props = defineProps({
-  recipeId: { type: Number, required: true }
+  recipeId: { type: Number, required: true },
 })
 
 const emit = defineEmits(['submitted', 'cancel'])
@@ -86,7 +104,9 @@ async function submit() {
   margin-bottom: 16px;
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 250ms var(--ease-ui-out), transform 250ms var(--ease-ui-out);
+  transition:
+    opacity 250ms var(--ease-ui-out),
+    transform 250ms var(--ease-ui-out);
 
   @starting-style {
     opacity: 0;
@@ -138,7 +158,9 @@ async function submit() {
   color: var(--color-text);
   resize: vertical;
   min-height: 90px;
-  transition: border-color 150ms var(--ease-ui-out), box-shadow 150ms var(--ease-ui-out);
+  transition:
+    border-color 150ms var(--ease-ui-out),
+    box-shadow 150ms var(--ease-ui-out);
 }
 
 .textarea::placeholder {
@@ -174,27 +196,6 @@ async function submit() {
   gap: 8px;
 }
 
-.btn-ghost {
-  padding: 8px 18px;
-  background: transparent;
-  border: 1.5px solid var(--color-stroke);
-  border-radius: 10px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-muted);
-  cursor: pointer;
-  transition: background 150ms var(--ease-ui-out), color 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out);
-}
-
-.btn-ghost:hover {
-  background: var(--color-surface-hover);
-  color: var(--color-text);
-}
-
-.btn-ghost:active {
-  transform: scale(0.97);
-}
-
 .btn-primary {
   padding: 8px 22px;
   background: var(--color-accent);
@@ -204,7 +205,9 @@ async function submit() {
   font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out);
+  transition:
+    background 150ms var(--ease-ui-out),
+    transform 150ms var(--ease-ui-out);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -230,11 +233,5 @@ async function submit() {
   width: 14px;
   height: 14px;
   animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 </style>

@@ -1,8 +1,12 @@
+<!-- Hozzávaló szerkesztő a recept editorban — autocomplete, csoportok. -->
+
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, toRef, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import api from '@/services/api'
 import BaseSelect from '@/components/BaseSelect.vue'
 import BaseAutocomplete from '@/components/BaseAutocomplete.vue'
+import { useIngredientSearch } from '@/composables/useIngredientSearch'
+import { useIngredientGroups } from '@/composables/useIngredientGroups'
 
 const props = defineProps({
   modelValue: { type: Array, required: true },
@@ -12,100 +16,82 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'unit-created'])
 
-const ingQuery = ref('')
-const ingResults = ref([])
-const ingSearching = ref(false)
-const ingDropdown = ref(false)
-const ingCreating = ref(false)
 const ingWrapRef = ref(null)
-let ingTimer = null
-
-const newGroupName = ref('')
-const showGroupInput = ref(false)
 const groupInputRef = ref(null)
-
-const groups = computed(() => {
-  const seen = new Map()
-  for (const i of props.modelValue) {
-    const key = (i.group ?? '').toString()
-    if (!seen.has(key)) seen.set(key, [])
-    seen.get(key).push(i)
-  }
-  // default bucket first, then insertion order
-  const out = []
-  if (seen.has('')) out.push({ name: '', items: seen.get('') })
-  for (const [name, items] of seen) if (name !== '') out.push({ name, items })
-  return out
-})
-
-const hasGroups = computed(() => props.modelValue.some(i => i.group && i.group.trim() !== ''))
 
 function update(items) {
   emit('update:modelValue', items)
 }
 
-function onIngInput(e) {
-  ingQuery.value = e.target.value
-  clearTimeout(ingTimer)
-  if (!ingQuery.value.trim()) {
-    ingResults.value = []
-    ingDropdown.value = false
-    return
-  }
-  ingTimer = setTimeout(async () => {
-    ingSearching.value = true
-    try {
-      const { data } = await api.get('/ingredients', { params: { search: ingQuery.value } })
-      const used = new Set(props.modelValue.map(i => i.id))
-      ingResults.value = data.data.filter(i => !used.has(i.id))
-      ingDropdown.value = true
-    } finally {
-      ingSearching.value = false
-    }
-  }, 250)
+const itemsRef = toRef(props, 'modelValue')
+
+const {
+  query: ingQuery,
+  results: ingResults,
+  searching: ingSearching,
+  dropdown: ingDropdown,
+  creating: ingCreating,
+  queryExists,
+  onInput: onIngSearch,
+  reset: resetSearch,
+  createFromQuery,
+} = useIngredientSearch(itemsRef)
+
+const {
+  activeGroup,
+  newGroupName,
+  showGroupInput,
+  hasGroups,
+  displayedGroups,
+  groupNames,
+  openGroupInput: _openGroupInput,
+  commitNewGroup,
+  cancelNewGroup,
+  renameGroup: _renameGroup,
+  removeGroup: _removeGroup,
+} = useIngredientGroups(itemsRef, update)
+
+function openGroupInput() {
+  _openGroupInput()
+  nextTick(() => groupInputRef.value?.focus())
 }
 
-const queryExists = computed(() => {
-  const q = ingQuery.value.trim().toLowerCase()
-  if (!q) return false
-  return ingResults.value.some(i => i.name.trim().toLowerCase() === q)
-})
+function renameGroup(oldName, newName) {
+  _renameGroup(oldName, newName)
+}
+
+function removeGroup(name) {
+  _removeGroup(name)
+}
+
+function onIngInput(e) {
+  onIngSearch(e.target.value)
+}
 
 function selectIngredient(ing) {
   update([
     ...props.modelValue,
     { id: ing.id, name: ing.name, quantity: '', unit: '', group: activeGroup.value || '' },
   ])
-  ingQuery.value = ''
-  ingResults.value = []
-  ingDropdown.value = false
+  resetSearch()
 }
 
 async function createAndAddIngredient() {
-  const name = ingQuery.value.trim()
-  if (!name || ingCreating.value) return
-  ingCreating.value = true
-  try {
-    const { data } = await api.post('/ingredients', { name })
-    const created = data.data
-    if (!props.modelValue.some(i => i.id === created.id)) {
-      selectIngredient(created)
-    } else {
-      ingQuery.value = ''
-      ingResults.value = []
-      ingDropdown.value = false
-    }
-  } finally {
-    ingCreating.value = false
+  const created = await createFromQuery()
+  if (!created) return
+  if (!props.modelValue.some((i) => i.id === created.id)) {
+    selectIngredient(created)
+  } else {
+    resetSearch()
   }
 }
 
 function removeIngredient(ing) {
-  update(props.modelValue.filter(i => i !== ing))
+  update(props.modelValue.filter((i) => i !== ing))
 }
 
 function updateField(ing, field, value) {
-  const next = props.modelValue.map(i => (i === ing ? { ...i, [field]: value } : i))
+  const next = props.modelValue.map((i) => (i === ing ? { ...i, [field]: value } : i))
   update(next)
 }
 
@@ -119,102 +105,32 @@ function stepFor(val) {
   return Math.pow(10, -Math.min(decimals, 4))
 }
 
-// --- Groups ---
-const activeGroup = ref('')
-
-function openGroupInput() {
-  showGroupInput.value = true
-  newGroupName.value = ''
-  setTimeout(() => groupInputRef.value?.focus(), 0)
-}
-
-function commitNewGroup() {
-  const name = newGroupName.value.trim()
-  if (!name) {
-    showGroupInput.value = false
-    return
-  }
-  // set as active so the next search adds to it; no items yet until one is added
-  activeGroup.value = name
-  // seed an empty group marker so it appears in the list — we use a zero-width
-  // ingredient? Better: just set activeGroup and display it via a computed list
-  // of "known groups" combining used + activeGroup.
-  showGroupInput.value = false
-  newGroupName.value = ''
-}
-
-function cancelNewGroup() {
-  showGroupInput.value = false
-  newGroupName.value = ''
-}
-
-function renameGroup(oldName, newName) {
-  const trimmed = (newName ?? '').trim()
-  if (trimmed === oldName) return
-  const next = props.modelValue.map(i =>
-    (i.group ?? '') === oldName ? { ...i, group: trimmed } : i,
-  )
-  if (activeGroup.value === oldName) activeGroup.value = trimmed
-  update(next)
-}
-
-function removeGroup(name) {
-  // Move items from this group back to the default bucket.
-  const next = props.modelValue.map(i =>
-    (i.group ?? '') === name ? { ...i, group: '' } : i,
-  )
-  if (activeGroup.value === name) activeGroup.value = ''
-  update(next)
-}
-
 function moveToGroup(ing, groupName) {
   updateField(ing, 'group', groupName ?? '')
 }
 
-// displayedGroups = groups derived from items + activeGroup if empty
-const displayedGroups = computed(() => {
-  const g = [...groups.value]
-  if (activeGroup.value && !g.some(x => x.name === activeGroup.value)) {
-    g.push({ name: activeGroup.value, items: [] })
-  }
-  return g
-})
-
-// All group names for the "move to" dropdown — excluding default
-const groupNames = computed(() =>
-  displayedGroups.value.map(g => g.name).filter(n => n !== ''),
-)
-
-// Close the ingredient search dropdown on mousedown outside — we use mousedown
-// (not click) so the close fires before any focus change or blur race.
 function onDocMouseDown(e) {
   if (ingWrapRef.value && !ingWrapRef.value.contains(e.target)) {
     ingDropdown.value = false
   }
 }
 
-// Called when BaseAutocomplete emits `custom` — a unit name not yet in the
-// catalog has been committed; persist it server-side so it appears for all.
 async function onUnitCustom(ing, name) {
   updateField(ing, 'unit', name)
   try {
     await api.post('/units', { name })
     emit('unit-created', name)
   } catch {
-    // server-side creation is best-effort — the unit string is already on the ingredient
+    // server-side creation is best-effort
   }
 }
 
 onMounted(() => document.addEventListener('mousedown', onDocMouseDown))
-onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', onDocMouseDown)
-  clearTimeout(ingTimer)
-})
+onBeforeUnmount(() => document.removeEventListener('mousedown', onDocMouseDown))
 </script>
 
 <template>
   <div class="rie-root">
-
     <!-- Groups toolbar -->
     <div class="rie-toolbar">
       <p class="rie-hint">
@@ -223,7 +139,10 @@ onBeforeUnmount(() => {
           <BaseSelect
             v-model="activeGroup"
             size="sm"
-            :options="[{ value: '', label: '— Alap —' }, ...groupNames.map(n => ({ value: n, label: n }))]"
+            :options="[
+              { value: '', label: '— Alap —' },
+              ...groupNames.map((n) => ({ value: n, label: n })),
+            ]"
             class="rie-active-select"
           />
         </template>
@@ -234,15 +153,28 @@ onBeforeUnmount(() => {
 
       <div v-if="!showGroupInput" class="rie-toolbar-actions">
         <button type="button" class="rie-group-btn" @click="openGroupInput">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            aria-hidden="true"
+          >
             <path d="M12 5v14M5 12h14" stroke-linecap="round" />
           </svg>
           Új csoport
         </button>
       </div>
       <div v-else class="rie-group-input-row">
-        <input ref="groupInputRef" v-model="newGroupName" class="rie-group-input" placeholder="pl. A csirkéhez"
-          maxlength="80" @keydown.enter.prevent="commitNewGroup" @keydown.esc="cancelNewGroup" />
+        <input
+          ref="groupInputRef"
+          v-model="newGroupName"
+          class="rie-group-input"
+          placeholder="pl. A csirkéhez"
+          maxlength="80"
+          @keydown.enter.prevent="commitNewGroup"
+          @keydown.esc="cancelNewGroup"
+        />
         <button type="button" class="rie-group-ok" @click="commitNewGroup">OK</button>
         <button type="button" class="rie-group-cancel" @click="cancelNewGroup">Mégse</button>
       </div>
@@ -250,25 +182,54 @@ onBeforeUnmount(() => {
 
     <!-- Grouped ingredient list -->
     <div v-if="modelValue.length || activeGroup" class="rie-groups">
-      <div v-for="group in displayedGroups" :key="group.name || '_default'" class="rie-group"
-        :class="{ 'rie-group--active': activeGroup === group.name }">
+      <div
+        v-for="group in displayedGroups"
+        :key="group.name || '_default'"
+        class="rie-group"
+        :class="{ 'rie-group--active': activeGroup === group.name }"
+      >
         <header v-if="group.name" class="rie-group-hdr">
-          <input class="rie-group-name" :value="group.name" maxlength="80"
-            @change="renameGroup(group.name, $event.target.value)" />
-          <button type="button" class="rie-group-use" :class="{ on: activeGroup === group.name }"
+          <input
+            class="rie-group-name"
+            :value="group.name"
+            maxlength="80"
+            @change="renameGroup(group.name, $event.target.value)"
+          />
+          <button
+            type="button"
+            class="rie-group-use"
+            :class="{ on: activeGroup === group.name }"
             @click="activeGroup = activeGroup === group.name ? '' : group.name"
-            :title="activeGroup === group.name ? 'Kilép a csoportból' : 'Új elemet ehhez a csoporthoz adj'">
+            :title="
+              activeGroup === group.name ? 'Kilép a csoportból' : 'Új elemet ehhez a csoporthoz adj'
+            "
+          >
             {{ activeGroup === group.name ? 'Kiválasztva' : 'Kiválaszt' }}
           </button>
-          <button type="button" class="rie-group-rm" @click="removeGroup(group.name)" aria-label="Csoport törlése"
-            title="Csoport feloldása — hozzávalók átkerülnek az alaphoz">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <button
+            type="button"
+            class="rie-group-rm"
+            @click="removeGroup(group.name)"
+            aria-label="Csoport törlése"
+            title="Csoport feloldása — hozzávalók átkerülnek az alaphoz"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              aria-hidden="true"
+            >
               <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" />
             </svg>
           </button>
         </header>
 
-        <div v-if="group.items.length" class="ing-list" :class="{ 'ing-list--no-groups': groupNames.length === 0 }">
+        <div
+          v-if="group.items.length"
+          class="ing-list"
+          :class="{ 'ing-list--no-groups': groupNames.length === 0 }"
+        >
           <div class="ing-list-hdr">
             <span>Hozzávaló</span>
             <span v-if="groupNames.length > 0">Lista</span>
@@ -286,14 +247,25 @@ onBeforeUnmount(() => {
               @update:model-value="moveToGroup(ing, $event)"
               size="sm"
               title="Áthelyezés másik csoportba"
-              :options="[{ value: '', label: '— Alap —' }, ...groupNames.map(n => ({ value: n, label: n }))]"
+              :options="[
+                { value: '', label: '— Alap —' },
+                ...groupNames.map((n) => ({ value: n, label: n })),
+              ]"
               class="ing-move"
             />
 
-            <input :value="ing.quantity" @input="updateField(ing, 'quantity', $event.target.value)" type="number"
-              min="0" :step="stepFor(ing.quantity)" class="ing-input ing-qty"
-              :class="{ 'ing-input--err': errors[`ingredients.${modelValue.indexOf(ing)}.quantity`] }"
-              placeholder="—" />
+            <input
+              :value="ing.quantity"
+              @input="updateField(ing, 'quantity', $event.target.value)"
+              type="number"
+              min="0"
+              :step="stepFor(ing.quantity)"
+              class="ing-input ing-qty"
+              :class="{
+                'ing-input--err': errors[`ingredients.${modelValue.indexOf(ing)}.quantity`],
+              }"
+              placeholder="—"
+            />
 
             <BaseAutocomplete
               :model-value="ing.unit || ''"
@@ -306,8 +278,19 @@ onBeforeUnmount(() => {
               class="ing-unit-ac"
             />
 
-            <button type="button" class="ing-rm" @click="removeIngredient(ing)" aria-label="Eltávolítás">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <button
+              type="button"
+              class="ing-rm"
+              @click="removeIngredient(ing)"
+              aria-label="Eltávolítás"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                aria-hidden="true"
+              >
                 <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" />
               </svg>
             </button>
@@ -322,29 +305,69 @@ onBeforeUnmount(() => {
     <!-- Ingredient search -->
     <div class="ing-search" ref="ingWrapRef">
       <div class="ing-search-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="ing-search-ico"
-          aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          class="ing-search-ico"
+          aria-hidden="true"
+        >
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.35-4.35" stroke-linecap="round" />
         </svg>
-        <input :value="ingQuery" @input="onIngInput" type="text" class="ing-search-input" :placeholder="activeGroup
-          ? `Hozzávaló keresése (${activeGroup})…`
-          : 'Hozzávaló keresése…'" autocomplete="off" />
-        <svg v-if="ingSearching" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-          class="ing-spinner" aria-hidden="true">
+        <input
+          :value="ingQuery"
+          @input="onIngInput"
+          type="text"
+          class="ing-search-input"
+          :placeholder="
+            activeGroup ? `Hozzávaló keresése (${activeGroup})…` : 'Hozzávaló keresése…'
+          "
+          autocomplete="off"
+        />
+        <svg
+          v-if="ingSearching"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          class="ing-spinner"
+          aria-hidden="true"
+        >
           <path
             d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
-            stroke-linecap="round" />
+            stroke-linecap="round"
+          />
         </svg>
       </div>
 
       <div v-if="ingDropdown" class="ing-dropdown" role="listbox">
-        <button v-for="ing in ingResults" :key="ing.id" type="button" class="ing-option" role="option"
-          @click="selectIngredient(ing)">{{ ing.name }}</button>
+        <button
+          v-for="ing in ingResults"
+          :key="ing.id"
+          type="button"
+          class="ing-option"
+          role="option"
+          @click="selectIngredient(ing)"
+        >
+          {{ ing.name }}
+        </button>
 
-        <button v-if="ingQuery.trim() && !queryExists" type="button" class="ing-option ing-option--create"
-          :disabled="ingCreating || ingSearching" @click="createAndAddIngredient">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <button
+          v-if="ingQuery.trim() && !queryExists"
+          type="button"
+          class="ing-option ing-option--create"
+          :disabled="ingCreating || ingSearching"
+          @click="createAndAddIngredient"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            aria-hidden="true"
+          >
             <path d="M12 5v14M5 12h14" stroke-linecap="round" />
           </svg>
           <span>
@@ -357,7 +380,6 @@ onBeforeUnmount(() => {
       </div>
     </div>
   </div>
-
 </template>
 
 <style scoped>
@@ -421,7 +443,9 @@ onBeforeUnmount(() => {
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out);
+  transition:
+    background 150ms var(--ease-ui-out),
+    transform 150ms var(--ease-ui-out);
 }
 
 .rie-group-btn svg {
@@ -518,7 +542,9 @@ onBeforeUnmount(() => {
   font-weight: 700;
   font-family: inherit;
   outline: none;
-  transition: border-color 150ms var(--ease-ui-out), background 150ms var(--ease-ui-out);
+  transition:
+    border-color 150ms var(--ease-ui-out),
+    background 150ms var(--ease-ui-out);
 }
 
 .rie-group-name:hover {
@@ -566,7 +592,10 @@ onBeforeUnmount(() => {
   color: var(--color-muted);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 150ms, color 150ms, border-color 150ms;
+  transition:
+    background 150ms,
+    color 150ms,
+    border-color 150ms;
 }
 
 .rie-group-rm svg {
@@ -672,7 +701,9 @@ onBeforeUnmount(() => {
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
-  transition: border-color 150ms var(--ease-ui-out), box-shadow 150ms var(--ease-ui-out);
+  transition:
+    border-color 150ms var(--ease-ui-out),
+    box-shadow 150ms var(--ease-ui-out);
 }
 
 .ing-input:focus {
@@ -704,7 +735,11 @@ onBeforeUnmount(() => {
   color: var(--color-muted);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 150ms, color 150ms, border-color 150ms, transform 150ms;
+  transition:
+    background 150ms,
+    color 150ms,
+    border-color 150ms,
+    transform 150ms;
 }
 
 .ing-rm svg {
@@ -735,7 +770,9 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   border: 1.5px solid var(--color-stroke);
   background: var(--color-bg);
-  transition: border-color 150ms var(--ease-ui-out), box-shadow 150ms var(--ease-ui-out);
+  transition:
+    border-color 150ms var(--ease-ui-out),
+    box-shadow 150ms var(--ease-ui-out);
 }
 
 .ing-search-box:focus-within {
@@ -856,7 +893,6 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 540px) {
-
   .ing-list-hdr,
   .ing-row {
     grid-template-columns: 1fr 80px 96px 32px;

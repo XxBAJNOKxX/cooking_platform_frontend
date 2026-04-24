@@ -1,9 +1,11 @@
+<!-- Naptár egy napjának egy étkezés-cellája (drag-drop target). -->
+
 <script setup>
-const props = defineProps({
-  date:    { type: Date,    required: true },
-  meals:   { type: Array,   default: () => [] },
+defineProps({
+  date: { type: Date, required: true },
+  meals: { type: Array, default: () => [] },
   isToday: { type: Boolean, default: false },
-  index:   { type: Number,  default: 0 },
+  index: { type: Number, default: 0 },
 })
 
 const emit = defineEmits(['add', 'delete'])
@@ -11,7 +13,7 @@ const emit = defineEmits(['add', 'delete'])
 const MEAL_COLORS = {
   Reggeli: '#f59e0b',
   Tízórai: '#22c55e',
-  Ebéd:    '#e9692c',
+  Ebéd: '#e9692c',
   Uzsonna: '#0ea5e9',
   Vacsora: '#8b5cf6',
 }
@@ -27,11 +29,7 @@ const mealColor = (type) => MEAL_COLORS[type] ?? '#9ca3af'
 </script>
 
 <template>
-  <div
-    class="day-cell"
-    :class="{ 'is-today': isToday }"
-    :style="{ '--i': index }"
-  >
+  <div class="day-cell" :class="{ 'is-today': isToday }" :style="{ '--i': index }">
     <!-- Meal list -->
     <div class="meals-wrap">
       <TransitionGroup name="meal" tag="div" class="meal-list">
@@ -41,13 +39,15 @@ const mealColor = (type) => MEAL_COLORS[type] ?? '#9ca3af'
             <span class="meal-title">{{ meal.recipe?.title ?? '–' }}</span>
             <span class="meal-type">{{ meal.meal_type }}</span>
           </div>
-          <button
-            class="del-btn"
-            @click.stop="emit('delete', meal.id)"
-            aria-label="Törlés"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-              <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+          <button class="del-btn" @click.stop="emit('delete', meal.id)" aria-label="Törlés">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              aria-hidden="true"
+            >
+              <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
         </div>
@@ -58,8 +58,14 @@ const mealColor = (type) => MEAL_COLORS[type] ?? '#9ca3af'
 
     <!-- Add button -->
     <button class="add-btn" @click="emit('add', toDateStr(date))">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-        <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        aria-hidden="true"
+      >
+        <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
     </button>
   </div>
@@ -80,8 +86,14 @@ const mealColor = (type) => MEAL_COLORS[type] ?? '#9ca3af'
 }
 
 @keyframes cellIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .day-cell.is-today {
@@ -114,16 +126,19 @@ const mealColor = (type) => MEAL_COLORS[type] ?? '#9ca3af'
   background: var(--color-bg);
   border: 1px solid var(--color-stroke);
   min-width: 0;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .meal-card:hover {
   border-color: color-mix(in srgb, var(--color-stroke) 70%, var(--color-muted));
-  box-shadow: 0 1px 4px -1px rgba(47,30,23,0.08);
+  box-shadow: 0 1px 4px -1px rgba(47, 30, 23, 0.08);
 }
 
 .meal-dot {
-  width: 8px; height: 8px;
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
   flex-shrink: 0;
 }
@@ -156,8 +171,11 @@ const mealColor = (type) => MEAL_COLORS[type] ?? '#9ca3af'
 }
 
 .del-btn {
-  display: flex; align-items: center; justify-content: center;
-  width: 1.25rem; height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
   flex-shrink: 0;
   border: none;
   background: transparent;
@@ -165,10 +183,16 @@ const mealColor = (type) => MEAL_COLORS[type] ?? '#9ca3af'
   border-radius: 0.25rem;
   cursor: pointer;
   padding: 0;
-  transition: color 130ms ease, background 130ms ease, transform 130ms var(--ease-ui-out);
+  transition:
+    color 130ms ease,
+    background 130ms ease,
+    transform 130ms var(--ease-ui-out);
 }
 
-.del-btn svg { width: 0.625rem; height: 0.625rem; }
+.del-btn svg {
+  width: 0.625rem;
+  height: 0.625rem;
+}
 
 @media (hover: hover) and (pointer: fine) {
   .del-btn:hover {
@@ -177,7 +201,9 @@ const mealColor = (type) => MEAL_COLORS[type] ?? '#9ca3af'
   }
 }
 
-.del-btn:active { transform: scale(0.85); }
+.del-btn:active {
+  transform: scale(0.85);
+}
 
 .empty-hint {
   font-size: 0.72rem;
@@ -200,10 +226,16 @@ const mealColor = (type) => MEAL_COLORS[type] ?? '#9ca3af'
   color: var(--color-muted);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 160ms ease, color 160ms ease, transform 150ms var(--ease-ui-out);
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 150ms var(--ease-ui-out);
 }
 
-.add-btn svg { width: 0.875rem; height: 0.875rem; }
+.add-btn svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
 
 @media (hover: hover) and (pointer: fine) {
   .add-btn:hover {
@@ -212,12 +244,29 @@ const mealColor = (type) => MEAL_COLORS[type] ?? '#9ca3af'
   }
 }
 
-.add-btn:active { transform: scale(0.97); }
+.add-btn:active {
+  transform: scale(0.97);
+}
 
 /* ── Meal transitions ── */
-.meal-enter-active { transition: opacity 200ms var(--ease-ui-out), transform 200ms var(--ease-ui-out); }
-.meal-leave-active { transition: opacity 140ms ease-out; position: absolute; width: 100%; }
-.meal-enter-from   { opacity: 0; transform: translateY(-4px) scale(0.97); }
-.meal-leave-to     { opacity: 0; }
-.meal-move         { transition: transform 200ms var(--ease-ui-out); }
+.meal-enter-active {
+  transition:
+    opacity 200ms var(--ease-ui-out),
+    transform 200ms var(--ease-ui-out);
+}
+.meal-leave-active {
+  transition: opacity 140ms ease-out;
+  position: absolute;
+  width: 100%;
+}
+.meal-enter-from {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.97);
+}
+.meal-leave-to {
+  opacity: 0;
+}
+.meal-move {
+  transition: transform 200ms var(--ease-ui-out);
+}
 </style>

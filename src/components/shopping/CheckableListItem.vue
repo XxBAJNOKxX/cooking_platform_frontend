@@ -1,3 +1,5 @@
+<!-- Bevásárlólista egy sor (checkbox + név + mennyiség). -->
+
 <script setup>
 defineProps({
   item: { type: Object, required: true },
@@ -19,14 +21,16 @@ defineEmits(['toggle'])
   >
     <span class="checkbox" aria-hidden="true">
       <svg class="check-svg" viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M1 5l3.5 3.5L11 1" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M1 5l3.5 3.5L11 1" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
     </span>
 
     <span class="item-name">{{ item.name }}</span>
 
     <span class="item-qty">
-      <span class="qty-num">{{ item.quantity % 1 === 0 ? item.quantity : item.quantity.toFixed(1) }}</span>
+      <span class="qty-num">{{
+        item.quantity % 1 === 0 ? item.quantity : item.quantity.toFixed(1)
+      }}</span>
       <span v-if="item.unit" class="qty-unit">{{ item.unit }}</span>
     </span>
   </button>
@@ -45,18 +49,11 @@ defineEmits(['toggle'])
   cursor: pointer;
   text-align: left;
 
-  animation: itemIn 280ms var(--ease-ui-out) both;
-  animation-delay: calc(var(--i) * 30ms);
-
   transition:
     background 160ms ease,
     border-color 160ms ease,
+    opacity 200ms ease,
     transform 150ms var(--ease-ui-out);
-}
-
-@keyframes itemIn {
-  from { opacity: 0; transform: translateX(-6px); }
-  to   { opacity: 1; transform: translateX(0);    }
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -66,7 +63,9 @@ defineEmits(['toggle'])
   }
 }
 
-.item:active { transform: scale(0.99); }
+.item:active {
+  transform: scale(0.99);
+}
 
 .item.checked {
   opacity: 0.48;
@@ -132,7 +131,9 @@ defineEmits(['toggle'])
   transition: transform 220ms var(--ease-ui-out);
 }
 
-.item.checked .item-name { color: var(--color-muted); }
+.item.checked .item-name {
+  color: var(--color-muted);
+}
 
 .item.checked .item-name::after {
   transform: scaleX(1);
@@ -160,5 +161,7 @@ defineEmits(['toggle'])
   color: var(--color-muted);
 }
 
-.item.checked .item-qty { opacity: 0.5; }
+.item.checked .item-qty {
+  opacity: 0.5;
+}
 </style>

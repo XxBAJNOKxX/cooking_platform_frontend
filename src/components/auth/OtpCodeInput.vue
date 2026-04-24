@@ -1,3 +1,5 @@
+<!-- 6-jegyű OTP kód input (cellánként 1 karakter, auto-focus). -->
+
 <script setup>
 import { ref, watch, nextTick, onMounted } from 'vue'
 
@@ -53,7 +55,7 @@ function onInput(i, e) {
     return
   }
   const chars = clean.split('')
-  for (let k = 0; k < chars.length && (i + k) < props.length; k++) {
+  for (let k = 0; k < chars.length && i + k < props.length; k++) {
     digits.value[i + k] = chars[k]
   }
   // Focus the cell immediately after the last one we just filled, clamped to
@@ -93,7 +95,7 @@ function onPaste(i, e) {
   const clean = text.replace(/\D/g, '')
   if (!clean) return
   e.preventDefault()
-  for (let k = 0; k < clean.length && (i + k) < props.length; k++) {
+  for (let k = 0; k < clean.length && i + k < props.length; k++) {
     digits.value[i + k] = clean[k]
   }
   const last = Math.min(i + clean.length, props.length) - 1
@@ -155,7 +157,10 @@ defineExpose({
   border-radius: 0.625rem;
   outline: none;
   font-variant-numeric: tabular-nums;
-  transition: border-color 150ms ease, box-shadow 150ms ease, transform 120ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 120ms ease;
 }
 
 .otp-cell:focus {
@@ -183,6 +188,8 @@ defineExpose({
     height: 3rem;
     font-size: 1.25rem;
   }
-  .otp-row { gap: 0.35rem; }
+  .otp-row {
+    gap: 0.35rem;
+  }
 }
 </style>

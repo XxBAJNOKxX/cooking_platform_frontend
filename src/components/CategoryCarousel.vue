@@ -1,3 +1,5 @@
+<!-- Népszerű kategóriák carousel a nyitóoldalon. -->
+
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -9,44 +11,44 @@ const router = useRouter()
 // plural suffix stripped). Keep canonical keys singular; the matcher handles
 // "Desszertek" → "desszert", "Húsételek" → "húsétel", etc.
 const CATEGORY_VISUALS = {
-  'főétel': { icon: '🍲', description: 'Laktató, teljes értékű fogások' },
-  'desszert': { icon: '🍰', description: 'Édes finomságok' },
-  'leves': { icon: '🥣', description: 'Meleg és hideg levesek' },
-  'reggeli': { icon: '🥐', description: 'Energiadús reggelik' },
-  'vacsora': { icon: '🍽️', description: 'Könnyű, laktató vacsorák' },
-  'ebéd': { icon: '🍛', description: 'Családi ebédek' },
-  'előétel': { icon: '🥗', description: 'Étvágygerjesztő kezdések' },
-  'saláta': { icon: '🥗', description: 'Friss saláta receptek' },
-  'köret': { icon: '🥔', description: 'Klasszikus köretek' },
-  'sütemény': { icon: '🧁', description: 'Házi sütemények' },
-  'torta': { icon: '🎂', description: 'Ünnepi torták' },
-  'tészta': { icon: '🍝', description: 'Tészta ételek' },
-  'pizza': { icon: '🍕', description: 'Pizza változatok' },
-  'hús': { icon: '🍖', description: 'Húsos fogások' },
-  'húsétel': { icon: '🍖', description: 'Klasszikus húsos fogások' },
-  'csirke': { icon: '🍗', description: 'Csirkés receptek' },
-  'hal': { icon: '🐟', description: 'Hal és tengeri herkentyűk' },
-  'vegetáriánus': { icon: '🥬', description: 'Húsmentes fogások' },
-  'vegán': { icon: '🌱', description: 'Növényi alapú receptek' },
-  'ital': { icon: '🥤', description: 'Italok és koktélok' },
-  'kenyér': { icon: '🍞', description: 'Kenyerek és péksütemények' },
-  'szendvics': { icon: '🥪', description: 'Szendvicsek' },
-  'snack': { icon: '🥨', description: 'Nasik és snackek' },
-  'mártás': { icon: '🥫', description: 'Szószok és mártások' },
-  'befőtt': { icon: '🫙', description: 'Eltett finomságok' },
+  főétel: { icon: '🍲', description: 'Laktató, teljes értékű fogások' },
+  desszert: { icon: '🍰', description: 'Édes finomságok' },
+  leves: { icon: '🥣', description: 'Meleg és hideg levesek' },
+  reggeli: { icon: '🥐', description: 'Energiadús reggelik' },
+  vacsora: { icon: '🍽️', description: 'Könnyű, laktató vacsorák' },
+  ebéd: { icon: '🍛', description: 'Családi ebédek' },
+  előétel: { icon: '🥗', description: 'Étvágygerjesztő kezdések' },
+  saláta: { icon: '🥗', description: 'Friss saláta receptek' },
+  köret: { icon: '🥔', description: 'Klasszikus köretek' },
+  sütemény: { icon: '🧁', description: 'Házi sütemények' },
+  torta: { icon: '🎂', description: 'Ünnepi torták' },
+  tészta: { icon: '🍝', description: 'Tészta ételek' },
+  pizza: { icon: '🍕', description: 'Pizza változatok' },
+  hús: { icon: '🍖', description: 'Húsos fogások' },
+  húsétel: { icon: '🍖', description: 'Klasszikus húsos fogások' },
+  csirke: { icon: '🍗', description: 'Csirkés receptek' },
+  hal: { icon: '🐟', description: 'Hal és tengeri herkentyűk' },
+  vegetáriánus: { icon: '🥬', description: 'Húsmentes fogások' },
+  vegán: { icon: '🌱', description: 'Növényi alapú receptek' },
+  ital: { icon: '🥤', description: 'Italok és koktélok' },
+  kenyér: { icon: '🍞', description: 'Kenyerek és péksütemények' },
+  szendvics: { icon: '🥪', description: 'Szendvicsek' },
+  snack: { icon: '🥨', description: 'Nasik és snackek' },
+  mártás: { icon: '🥫', description: 'Szószok és mártások' },
+  befőtt: { icon: '🫙', description: 'Eltett finomságok' },
   'gyors étel': { icon: '⚡', description: 'Gyors, egyszerű receptek' },
-  'gyors': { icon: '⚡', description: 'Gyorsan elkészíthető fogások' },
-  'egytálétel': { icon: '🥘', description: 'Egy edényben készülő fogások' },
-  'grill': { icon: '🔥', description: 'Grillezett finomságok' },
-  'sült': { icon: '🍳', description: 'Sült ételek' },
-  'főzelék': { icon: '🥦', description: 'Hagyományos főzelékek' },
-  'palacsinta': { icon: '🥞', description: 'Palacsinták, gofrik' },
-  'édesség': { icon: '🍬', description: 'Édességek' },
-  'fagylalt': { icon: '🍦', description: 'Fagylaltok, jeges finomságok' },
-  'gyerek': { icon: '🧒', description: 'Gyerekkedvencek' },
-  'ünnepi': { icon: '🎄', description: 'Ünnepi receptek' },
-  'karácsony': { icon: '🎄', description: 'Karácsonyi fogások' },
-  'húsvét': { icon: '🐰', description: 'Húsvéti receptek' },
+  gyors: { icon: '⚡', description: 'Gyorsan elkészíthető fogások' },
+  egytálétel: { icon: '🥘', description: 'Egy edényben készülő fogások' },
+  grill: { icon: '🔥', description: 'Grillezett finomságok' },
+  sült: { icon: '🍳', description: 'Sült ételek' },
+  főzelék: { icon: '🥦', description: 'Hagyományos főzelékek' },
+  palacsinta: { icon: '🥞', description: 'Palacsinták, gofrik' },
+  édesség: { icon: '🍬', description: 'Édességek' },
+  fagylalt: { icon: '🍦', description: 'Fagylaltok, jeges finomságok' },
+  gyerek: { icon: '🧒', description: 'Gyerekkedvencek' },
+  ünnepi: { icon: '🎄', description: 'Ünnepi receptek' },
+  karácsony: { icon: '🎄', description: 'Karácsonyi fogások' },
+  húsvét: { icon: '🐰', description: 'Húsvéti receptek' },
 }
 
 const FALLBACK_VISUAL = { icon: '🍴', description: 'Böngészd ezt a kategóriát' }
@@ -96,7 +98,7 @@ onMounted(async () => {
     const res = await api.get('/categories', { params: { popular: 1, limit: 4 } })
     const list = Array.isArray(res.data?.data) ? res.data.data : []
     categories.value = list.map(decorate)
-  } catch (e) {
+  } catch {
     categories.value = []
   } finally {
     loading.value = false
@@ -106,17 +108,18 @@ onMounted(async () => {
 const goToCategory = (categoryId) => {
   router.push({
     name: 'recipes',
-    query: { category: categoryId }
+    query: { category: categoryId },
   })
 }
 </script>
 
 <template>
-  <section v-if="loading || categories.length > 0" class="category-carousel w-full px-4 py-8 sm:px-6 lg:px-8">
+  <section
+    v-if="loading || categories.length > 0"
+    class="category-carousel w-full px-4 py-8 sm:px-6 lg:px-8"
+  >
     <div class="mx-auto max-w-7xl">
-      <h2 class="mb-6 text-2xl font-bold text-text sm:text-3xl">
-        Böngéssz kategóriák szerint
-      </h2>
+      <h2 class="mb-6 text-2xl font-bold text-text sm:text-3xl">Böngéssz kategóriák szerint</h2>
 
       <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <button
@@ -139,7 +142,9 @@ const goToCategory = (categoryId) => {
             </div>
           </div>
 
-          <div class="absolute inset-0 -z-10 bg-linear-to-br from-accent/0 to-accent/10 opacity-0 transition-opacity group-hover:opacity-100" />
+          <div
+            class="absolute inset-0 -z-10 bg-linear-to-br from-accent/0 to-accent/10 opacity-0 transition-opacity group-hover:opacity-100"
+          />
         </button>
       </div>
     </div>

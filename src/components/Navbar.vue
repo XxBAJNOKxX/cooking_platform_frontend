@@ -1,3 +1,5 @@
+<!-- Fő navigáció — linkek, user menü, olvasatlan üzenet badge. -->
+
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
@@ -65,16 +67,19 @@ async function checkUnread() {
   } catch {
     console.warn('Olvasatlan üzenetek lekérése sikertelen, feltételezzük, hogy nincs új üzenet.')
     hasUnread.value = false
-   }
+  }
 }
 
-watch(() => authStore.isAuthenticated, (isAuth) => {
-  if (isAuth) {
-    checkUnread()
-  } else {
-    hasUnread.value = false
-  }
-})
+watch(
+  () => authStore.isAuthenticated,
+  (isAuth) => {
+    if (isAuth) {
+      checkUnread()
+    } else {
+      hasUnread.value = false
+    }
+  },
+)
 
 const handleLogout = async () => {
   closeProfileMenu()
@@ -92,28 +97,41 @@ const handleLogout = async () => {
 <template>
   <header class="sticky top-0 z-40 w-full border-b border-stroke bg-[#ffeddb]/90 backdrop-blur-md">
     <!-- Unverified account banner -->
-    <div v-if="authStore.isAuthenticated && authStore.user && !authStore.user.is_verified"
-         class="verify-banner" role="status">
-      <span>A fiókod még nincs hitelesítve — tartalmat csak böngészni és kedvencekhez adni tudsz.</span>
+    <div
+      v-if="authStore.isAuthenticated && authStore.user && !authStore.user.is_verified"
+      class="verify-banner"
+      role="status"
+    >
+      <span
+        >A fiókod még nincs hitelesítve — tartalmat csak böngészni és kedvencekhez adni tudsz.</span
+      >
       <RouterLink to="/verify-otp" class="verify-banner-link">Hitelesítés most</RouterLink>
     </div>
 
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="flex h-16 items-center justify-between">
-
         <div class="shrink-0 flex items-center">
-          <RouterLink to="/" class="nav-logo group text-2xl font-black tracking-tight text-text outline-none relative"
-            @click="closeMobileMenu">
+          <RouterLink
+            to="/"
+            class="nav-logo group text-2xl font-black tracking-tight text-text outline-none relative"
+            @click="closeMobileMenu"
+          >
             Cookr<span class="text-accent">.</span>
           </RouterLink>
         </div>
 
         <nav class="hidden md:flex items-center space-x-6 lg:space-x-8">
-          <RouterLink to="/" class="nav-link text-sm font-semibold text-muted hover:text-text"
-            exact-active-class="router-link-active">
+          <RouterLink
+            to="/"
+            class="nav-link text-sm font-semibold text-muted hover:text-text"
+            exact-active-class="router-link-active"
+          >
             Főoldal
           </RouterLink>
-          <RouterLink to="/recipes" class="nav-link text-sm font-semibold text-muted hover:text-text">
+          <RouterLink
+            to="/recipes"
+            class="nav-link text-sm font-semibold text-muted hover:text-text"
+          >
             Receptek
           </RouterLink>
           <RouterLink to="/tools" class="nav-link text-sm font-semibold text-muted hover:text-text">
@@ -121,10 +139,16 @@ const handleLogout = async () => {
           </RouterLink>
 
           <template v-if="authStore.isAuthenticated">
-            <RouterLink to="/calendar" class="nav-link text-sm font-semibold text-muted hover:text-text">
+            <RouterLink
+              to="/calendar"
+              class="nav-link text-sm font-semibold text-muted hover:text-text"
+            >
               Naptár
             </RouterLink>
-            <RouterLink to="/shopping-list" class="nav-link text-sm font-semibold text-muted hover:text-text">
+            <RouterLink
+              to="/shopping-list"
+              class="nav-link text-sm font-semibold text-muted hover:text-text"
+            >
               Bevásárlólista
             </RouterLink>
           </template>
@@ -137,56 +161,89 @@ const handleLogout = async () => {
             </RouterLink>
 
             <div class="relative" ref="profileDropdownRef">
-              <button @click.stop="toggleProfileMenu"
+              <button
+                @click.stop="toggleProfileMenu"
                 class="nav-avatar-btn flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-full"
-                aria-label="Profil menü">
+                aria-label="Profil menü"
+              >
                 <div class="relative">
                   <div
-                    class="h-9 w-9 rounded-full bg-accent text-bg flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-transparent hover:ring-stroke transition-all duration-200">
+                    class="h-9 w-9 rounded-full bg-accent text-bg flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-transparent hover:ring-stroke transition-all duration-200"
+                  >
                     {{ authStore.user?.username?.slice(0, 2).toUpperCase() || 'FE' }}
                   </div>
-                  <span v-if="hasUnread" class="nav-unread-dot" aria-label="Olvasatlan üzenetek"></span>
+                  <span
+                    v-if="hasUnread"
+                    class="nav-unread-dot"
+                    aria-label="Olvasatlan üzenetek"
+                  ></span>
                 </div>
               </button>
 
-              <div v-show="isProfileMenuOpen"
-                class="profile-dropdown absolute right-0 top-12 mt-2 w-56 rounded-xl border border-stroke bg-bg shadow-xl overflow-hidden py-1 z-50">
+              <div
+                v-show="isProfileMenuOpen"
+                class="profile-dropdown absolute right-0 top-12 mt-2 w-56 rounded-xl border border-stroke bg-bg shadow-xl overflow-hidden py-1 z-50"
+              >
                 <div class="px-4 py-3 border-b border-stroke bg-surface/30">
-                  <p class="text-sm font-bold text-text truncate">{{ authStore.user?.username || 'Felhasználó' }}</p>
-                  <p class="text-xs text-muted truncate mt-0.5">{{ authStore.user?.email || 'email@pelda.hu' }}</p>
+                  <p class="text-sm font-bold text-text truncate">
+                    {{ authStore.user?.username || 'Felhasználó' }}
+                  </p>
+                  <p class="text-xs text-muted truncate mt-0.5">
+                    {{ authStore.user?.email || 'email@pelda.hu' }}
+                  </p>
                 </div>
 
                 <div class="py-1">
-                  <RouterLink to="/profile" @click="closeProfileMenu"
-                    class="block px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors">
+                  <RouterLink
+                    to="/profile"
+                    @click="closeProfileMenu"
+                    class="block px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors"
+                  >
                     Profil
                   </RouterLink>
-                  <RouterLink :to="{ path: '/profile', query: { tab: 'recipes' } }" @click="closeProfileMenu"
-                    class="block px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors">
+                  <RouterLink
+                    :to="{ path: '/profile', query: { tab: 'recipes' } }"
+                    @click="closeProfileMenu"
+                    class="block px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors"
+                  >
                     Saját receptjeim
                   </RouterLink>
-                  <RouterLink :to="{ path: '/profile', query: { tab: 'favorites' } }" @click="closeProfileMenu"
-                    class="block px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors">
+                  <RouterLink
+                    :to="{ path: '/profile', query: { tab: 'favorites' } }"
+                    @click="closeProfileMenu"
+                    class="block px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors"
+                  >
                     Kedvencek
                   </RouterLink>
-                  <RouterLink to="/messages" @click="closeProfileMenu"
-                    class="flex items-center justify-between px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors">
+                  <RouterLink
+                    to="/messages"
+                    @click="closeProfileMenu"
+                    class="flex items-center justify-between px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors"
+                  >
                     Üzenetek
-                    <span v-if="hasUnread"
-                      class="bg-danger/10 text-danger px-2 py-0.5 rounded-full text-xs font-bold">
-                       új
+                    <span
+                      v-if="hasUnread"
+                      class="bg-danger/10 text-danger px-2 py-0.5 rounded-full text-xs font-bold"
+                    >
+                      új
                     </span>
                   </RouterLink>
                 </div>
 
-                <RouterLink v-if="authStore.isAdmin" :to="{ name: 'admin' }" @click="closeProfileMenu"
-                  class="block px-4 py-2 text-sm font-semibold text-accent hover:bg-surface transition-colors border-t border-stroke">
+                <RouterLink
+                  v-if="authStore.isAdmin"
+                  :to="{ name: 'admin' }"
+                  @click="closeProfileMenu"
+                  class="block px-4 py-2 text-sm font-semibold text-accent hover:bg-surface transition-colors border-t border-stroke"
+                >
                   Admin
                 </RouterLink>
 
                 <div class="border-t border-stroke py-1">
-                  <button @click="handleLogout"
-                    class="w-full text-left px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10 transition-colors">
+                  <button
+                    @click="handleLogout"
+                    class="w-full text-left px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10 transition-colors"
+                  >
                     Kijelentkezés
                   </button>
                 </div>
@@ -202,13 +259,19 @@ const handleLogout = async () => {
         </div>
 
         <div class="flex md:hidden items-center">
-          <button @click="toggleMobileMenu"
+          <button
+            @click="toggleMobileMenu"
             class="mobile-menu-btn relative text-text bg-surface/40 hover:bg-surface/70 border border-stroke/70 focus:outline-none focus:ring-2 focus:ring-accent rounded-xl p-2"
-            aria-label="Menü megnyitása">
+            aria-label="Menü megnyitása"
+          >
             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
                 :d="isMobileMenuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'"
-                class="transition-all duration-300" />
+                class="transition-all duration-300"
+              />
             </svg>
             <span v-if="hasUnread" class="nav-unread-dot" aria-label="Olvasatlan üzenetek"></span>
           </button>
@@ -216,31 +279,57 @@ const handleLogout = async () => {
       </div>
     </div>
 
-    <div v-show="isMobileMenuOpen" class="mobile-menu-shell md:hidden absolute inset-x-0 top-full px-3 pt-2 pb-4">
+    <div
+      v-show="isMobileMenuOpen"
+      class="mobile-menu-shell md:hidden absolute inset-x-0 top-full px-3 pt-2 pb-4"
+    >
       <div
-        class="mobile-menu rounded-3xl border border-stroke/80 bg-[#ffe0c2]/88 backdrop-blur-xl shadow-[0_24px_50px_-28px_rgba(0,0,0,0.45)] overflow-hidden">
+        class="mobile-menu rounded-3xl border border-stroke/80 bg-[#ffe0c2]/88 backdrop-blur-xl shadow-[0_24px_50px_-28px_rgba(0,0,0,0.45)] overflow-hidden"
+      >
         <div class="p-3 space-y-1.5">
-          <RouterLink @click="closeMobileMenu" to="/" exact-active-class="mobile-link-active" class="mobile-link">
+          <RouterLink
+            @click="closeMobileMenu"
+            to="/"
+            exact-active-class="mobile-link-active"
+            class="mobile-link"
+          >
             <span>Főoldal</span>
           </RouterLink>
 
-          <RouterLink @click="closeMobileMenu" to="/recipes" exact-active-class="mobile-link-active"
-            class="mobile-link">
+          <RouterLink
+            @click="closeMobileMenu"
+            to="/recipes"
+            exact-active-class="mobile-link-active"
+            class="mobile-link"
+          >
             <span>Receptek</span>
           </RouterLink>
 
-          <RouterLink @click="closeMobileMenu" to="/tools" exact-active-class="mobile-link-active" class="mobile-link">
+          <RouterLink
+            @click="closeMobileMenu"
+            to="/tools"
+            exact-active-class="mobile-link-active"
+            class="mobile-link"
+          >
             <span>Eszközök</span>
           </RouterLink>
 
           <template v-if="authStore.isAuthenticated">
-            <RouterLink @click="closeMobileMenu" to="/calendar" exact-active-class="mobile-link-active"
-              class="mobile-link">
+            <RouterLink
+              @click="closeMobileMenu"
+              to="/calendar"
+              exact-active-class="mobile-link-active"
+              class="mobile-link"
+            >
               <span>Naptár</span>
             </RouterLink>
 
-            <RouterLink @click="closeMobileMenu" to="/shopping-list" exact-active-class="mobile-link-active"
-              class="mobile-link">
+            <RouterLink
+              @click="closeMobileMenu"
+              to="/shopping-list"
+              exact-active-class="mobile-link-active"
+              class="mobile-link"
+            >
               <span>Bevásárlólista</span>
             </RouterLink>
 
@@ -255,42 +344,67 @@ const handleLogout = async () => {
             <div class="mobile-account mt-3 p-3 rounded-2xl border border-stroke/70 bg-surface/35">
               <div class="flex items-center gap-3 px-1 pb-3 border-b border-stroke/60">
                 <div
-                  class="h-10 w-10 rounded-full bg-accent text-bg flex items-center justify-center font-black text-sm">
+                  class="h-10 w-10 rounded-full bg-accent text-bg flex items-center justify-center font-black text-sm"
+                >
                   {{ authStore.user?.username?.slice(0, 2).toUpperCase() || 'FE' }}
                 </div>
                 <div class="min-w-0">
-                  <p class="text-sm font-bold text-text truncate">{{ authStore.user?.username || 'Felhasználó' }}</p>
-                  <p class="text-xs text-muted truncate mt-0.5">{{ authStore.user?.email || 'email@pelda.hu' }}</p>
+                  <p class="text-sm font-bold text-text truncate">
+                    {{ authStore.user?.username || 'Felhasználó' }}
+                  </p>
+                  <p class="text-xs text-muted truncate mt-0.5">
+                    {{ authStore.user?.email || 'email@pelda.hu' }}
+                  </p>
                 </div>
               </div>
 
               <div class="pt-2 space-y-1">
-                <RouterLink @click="closeMobileMenu" to="/profile" exact-active-class="mobile-sub-link-active"
-                  class="mobile-sub-link">
+                <RouterLink
+                  @click="closeMobileMenu"
+                  to="/profile"
+                  exact-active-class="mobile-sub-link-active"
+                  class="mobile-sub-link"
+                >
                   Profil
                 </RouterLink>
 
-                <RouterLink @click="closeMobileMenu" :to="{ path: '/profile', query: { tab: 'recipes' } }"
-                  class="mobile-sub-link">
+                <RouterLink
+                  @click="closeMobileMenu"
+                  :to="{ path: '/profile', query: { tab: 'recipes' } }"
+                  class="mobile-sub-link"
+                >
                   Saját receptjeim
                 </RouterLink>
 
-                <RouterLink @click="closeMobileMenu" :to="{ path: '/profile', query: { tab: 'favorites' } }"
-                  class="mobile-sub-link">
+                <RouterLink
+                  @click="closeMobileMenu"
+                  :to="{ path: '/profile', query: { tab: 'favorites' } }"
+                  class="mobile-sub-link"
+                >
                   Kedvencek
                 </RouterLink>
 
-                <RouterLink @click="closeMobileMenu" to="/messages" exact-active-class="mobile-sub-link-active"
-                  class="mobile-sub-link">
+                <RouterLink
+                  @click="closeMobileMenu"
+                  to="/messages"
+                  exact-active-class="mobile-sub-link-active"
+                  class="mobile-sub-link"
+                >
                   Üzenetek
-                  <span v-if="hasUnread"
-                    class="bg-danger/10 text-danger px-2 py-0.5 rounded-full text-xs font-bold ml-2">
+                  <span
+                    v-if="hasUnread"
+                    class="bg-danger/10 text-danger px-2 py-0.5 rounded-full text-xs font-bold ml-2"
+                  >
                     új
                   </span>
                 </RouterLink>
 
-                <RouterLink v-if="authStore.isAdmin" @click="closeMobileMenu" :to="{ name: 'admin' }"
-                  class="mobile-sub-link mobile-sub-link-admin">
+                <RouterLink
+                  v-if="authStore.isAdmin"
+                  @click="closeMobileMenu"
+                  :to="{ name: 'admin' }"
+                  class="mobile-sub-link mobile-sub-link-admin"
+                >
                   Admin
                 </RouterLink>
 
@@ -316,7 +430,9 @@ const handleLogout = async () => {
 
 <style scoped>
 .nav-logo {
-  transition: transform 160ms var(--ease-ui-out), opacity 160ms var(--ease-ui-out);
+  transition:
+    transform 160ms var(--ease-ui-out),
+    opacity 160ms var(--ease-ui-out);
   transform-origin: left center;
 }
 
@@ -380,12 +496,13 @@ const handleLogout = async () => {
     width: 1rem;
     height: 1rem;
   }
-
 }
 
 .profile-dropdown {
   transform-origin: top right;
-  transition: opacity 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out);
+  transition:
+    opacity 150ms var(--ease-ui-out),
+    transform 150ms var(--ease-ui-out);
 }
 
 @starting-style {
@@ -396,7 +513,10 @@ const handleLogout = async () => {
 }
 
 .mobile-menu-btn {
-  transition: transform 160ms var(--ease-ui-out), background-color 160ms var(--ease-ui-out), border-color 160ms var(--ease-ui-out);
+  transition:
+    transform 160ms var(--ease-ui-out),
+    background-color 160ms var(--ease-ui-out),
+    border-color 160ms var(--ease-ui-out);
 }
 
 .mobile-menu-btn:active {
@@ -405,7 +525,10 @@ const handleLogout = async () => {
 
 .mobile-menu {
   transform-origin: top center;
-  transition: opacity 280ms var(--ease-ui-out), transform 320ms var(--ease-drawer), filter 280ms var(--ease-ui-out);
+  transition:
+    opacity 280ms var(--ease-ui-out),
+    transform 320ms var(--ease-drawer),
+    filter 280ms var(--ease-ui-out);
 }
 
 @starting-style {
@@ -425,7 +548,10 @@ const handleLogout = async () => {
   font-size: 1rem;
   font-weight: 700;
   color: var(--color-text);
-  transition: background-color 180ms var(--ease-ui-out), color 180ms var(--ease-ui-out), transform 160ms var(--ease-ui-out);
+  transition:
+    background-color 180ms var(--ease-ui-out),
+    color 180ms var(--ease-ui-out),
+    transform 160ms var(--ease-ui-out);
 }
 
 .mobile-link:hover {
@@ -450,7 +576,10 @@ const handleLogout = async () => {
   font-size: 0.92rem;
   font-weight: 650;
   color: var(--color-text);
-  transition: background-color 180ms var(--ease-ui-out), color 180ms var(--ease-ui-out), transform 160ms var(--ease-ui-out);
+  transition:
+    background-color 180ms var(--ease-ui-out),
+    color 180ms var(--ease-ui-out),
+    transform 160ms var(--ease-ui-out);
 }
 
 .mobile-sub-link:hover {
@@ -508,5 +637,7 @@ const handleLogout = async () => {
   text-decoration: none;
   transition: background 150ms ease;
 }
-.verify-banner-link:hover { background: var(--color-accent-hover); }
+.verify-banner-link:hover {
+  background: var(--color-accent-hover);
+}
 </style>

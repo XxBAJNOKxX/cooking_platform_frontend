@@ -1,3 +1,5 @@
+<!-- Eszköz kártya skeleton loading placeholder. -->
+
 <script setup>
 defineProps({
   index: { type: Number, default: 0 },
@@ -5,7 +7,7 @@ defineProps({
 </script>
 
 <template>
-  <div class="tskel-card" :style="`--skel-delay: ${index * 45}ms`">
+  <div class="tskel-card" :style="{ '--skel-delay': `${index * 45}ms` }">
     <div class="tskel-img" />
     <div class="tskel-body">
       <div class="tskel-line tskel-title" />
@@ -30,8 +32,12 @@ defineProps({
 }
 
 @keyframes tskelIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .tskel-line,
@@ -40,9 +46,9 @@ defineProps({
 .tskel-owner {
   background: linear-gradient(
     90deg,
-    var(--color-surface)       0%,
+    var(--color-surface) 0%,
     var(--color-surface-hover) 40%,
-    var(--color-surface)       80%
+    var(--color-surface) 80%
   );
   background-size: 400% 100%;
   animation: tskelShimmer 1.6s ease-in-out infinite;
@@ -63,9 +69,18 @@ defineProps({
   flex: 1;
 }
 
-.tskel-line { height: 13px; }
-.tskel-title { width: 78%; animation-delay: calc(var(--skel-delay, 0ms) + 60ms); }
-.tskel-loc   { width: 55%; height: 11px; animation-delay: calc(var(--skel-delay, 0ms) + 100ms); }
+.tskel-line {
+  height: 13px;
+}
+.tskel-title {
+  width: 78%;
+  animation-delay: calc(var(--skel-delay, 0ms) + 60ms);
+}
+.tskel-loc {
+  width: 55%;
+  height: 11px;
+  animation-delay: calc(var(--skel-delay, 0ms) + 100ms);
+}
 
 .tskel-foot {
   display: flex;
@@ -76,11 +91,24 @@ defineProps({
   padding-top: 0.25rem;
 }
 
-.tskel-price { height: 1.75rem; width: 5.5rem; border-radius: 0.45rem; animation-delay: calc(var(--skel-delay, 0ms) + 140ms); }
-.tskel-owner { height: 12px; width: 4rem; animation-delay: calc(var(--skel-delay, 0ms) + 180ms); }
+.tskel-price {
+  height: 1.75rem;
+  width: 5.5rem;
+  border-radius: 0.45rem;
+  animation-delay: calc(var(--skel-delay, 0ms) + 140ms);
+}
+.tskel-owner {
+  height: 12px;
+  width: 4rem;
+  animation-delay: calc(var(--skel-delay, 0ms) + 180ms);
+}
 
 @keyframes tskelShimmer {
-  0%   { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 </style>

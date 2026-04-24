@@ -1,10 +1,12 @@
+<!-- Egy chat üzenet buborék (saját vs partner stílus). -->
+
 <script setup>
 import { computed } from 'vue'
 
 const props = defineProps({
-  message:       { type: Object, required: true },
-  isMine:        { type: Boolean, default: false },
-  showAvatar:    { type: Boolean, default: false },
+  message: { type: Object, required: true },
+  isMine: { type: Boolean, default: false },
+  showAvatar: { type: Boolean, default: false },
   showTimestamp: { type: Boolean, default: true },
 })
 
@@ -25,8 +27,15 @@ function initials(user) {
   <!-- System message (e.g. tool rented/released) -->
   <div v-if="isSystem" class="sys-row">
     <div class="sys-bubble">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sys-ico" aria-hidden="true">
-        <path d="M20 7L9 18l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        class="sys-ico"
+        aria-hidden="true"
+      >
+        <path d="M20 7L9 18l-5-5" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
       <span>{{ message.content }}</span>
       <span class="sys-time">{{ timeLabel(message.sent_at) }}</span>
@@ -36,7 +45,12 @@ function initials(user) {
   <!-- Normal chat bubble -->
   <div v-else class="bubble-row" :class="{ mine: isMine }">
     <div v-if="!isMine && showAvatar" class="avatar" aria-hidden="true">
-      <img v-if="message.sender?.avatar_url" :src="message.sender.avatar_url" :alt="message.sender.username" class="avatar-img" />
+      <img
+        v-if="message.sender?.avatar_url"
+        :src="message.sender.avatar_url"
+        :alt="message.sender.username"
+        class="avatar-img"
+      />
       <span v-else>{{ initials(message.sender) }}</span>
     </div>
     <div v-else-if="!isMine" class="avatar-placeholder" aria-hidden="true" />
@@ -49,18 +63,32 @@ function initials(user) {
           class="tool-pill"
           :class="{ 'tool-pill-mine': isMine }"
         >
-          <img v-if="message.tool.image_url" :src="message.tool.image_url" :alt="message.tool.name" class="tool-pill-img" />
+          <img
+            v-if="message.tool.image_url"
+            :src="message.tool.image_url"
+            :alt="message.tool.name"
+            class="tool-pill-img"
+          />
           <span class="tool-pill-body">
             <span class="tool-pill-label">Eszköz</span>
             <span class="tool-pill-name">{{ message.tool.name ?? 'Eszköz' }}</span>
           </span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="tool-pill-arrow" aria-hidden="true">
-            <path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            class="tool-pill-arrow"
+            aria-hidden="true"
+          >
+            <path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </RouterLink>
         <div class="bubble-text">{{ message.content }}</div>
       </div>
-      <span v-if="showTimestamp" class="time" :class="{ 'time-mine': isMine }">{{ timeLabel(message.sent_at) }}</span>
+      <span v-if="showTimestamp" class="time" :class="{ 'time-mine': isMine }">{{
+        timeLabel(message.sent_at)
+      }}</span>
     </div>
   </div>
 </template>
@@ -75,8 +103,14 @@ function initials(user) {
 }
 
 @keyframes bubbleIn {
-  from { opacity: 0; transform: translateY(6px) scale(0.97); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .bubble-row.mine {
@@ -96,17 +130,31 @@ function initials(user) {
   border-radius: 999px;
   background: var(--color-accent);
   color: var(--color-bg);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.625rem; font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.625rem;
+  font-weight: 800;
   overflow: hidden;
 }
 
-.avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
 /* ── Bubble ── */
-.bubble-wrap { display: flex; flex-direction: column; gap: 0.2rem; max-width: 100%; }
+.bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  max-width: 100%;
+}
 
-.bubble-row.mine .bubble-wrap { align-items: flex-end; }
+.bubble-row.mine .bubble-wrap {
+  align-items: flex-end;
+}
 
 .bubble {
   padding: 0.6rem 0.875rem;
@@ -137,7 +185,9 @@ function initials(user) {
 
 /* ── Tool pill ── */
 .tool-pill {
-  display: flex; align-items: center; gap: 0.55rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   margin-bottom: 0.45rem;
   padding: 0.4rem 0.6rem 0.4rem 0.4rem;
   border-radius: 0.75rem;
@@ -145,27 +195,38 @@ function initials(user) {
   color: var(--color-text);
   text-decoration: none;
   border: 1px solid color-mix(in srgb, var(--color-accent) 18%, transparent);
-  transition: background 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out);
+  transition:
+    background 150ms var(--ease-ui-out),
+    transform 150ms var(--ease-ui-out);
 }
-.tool-pill:hover  { background: rgba(255, 244, 234, 1); }
-.tool-pill:active { transform: scale(0.985); }
+.tool-pill:hover {
+  background: rgba(255, 244, 234, 1);
+}
+.tool-pill:active {
+  transform: scale(0.985);
+}
 
 .tool-pill-mine {
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
   border-color: rgba(255, 255, 255, 0.25);
 }
-.tool-pill-mine:hover { background: rgba(255, 255, 255, 0.22); }
+.tool-pill-mine:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
 
 .tool-pill-img {
-  width: 2.2rem; height: 2.2rem;
+  width: 2.2rem;
+  height: 2.2rem;
   border-radius: 0.5rem;
   object-fit: cover;
   flex-shrink: 0;
 }
 
 .tool-pill-body {
-  display: flex; flex-direction: column; gap: 0.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
   min-width: 0;
   flex: 1;
 }
@@ -181,10 +242,17 @@ function initials(user) {
 .tool-pill-name {
   font-size: 0.82rem;
   font-weight: 700;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.tool-pill-arrow { width: 0.8rem; height: 0.8rem; opacity: 0.6; flex-shrink: 0; }
+.tool-pill-arrow {
+  width: 0.8rem;
+  height: 0.8rem;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
 
 /* ── Timestamp ── */
 .time {
@@ -192,7 +260,9 @@ function initials(user) {
   color: var(--color-muted);
   padding: 0 0.25rem;
 }
-.time-mine { text-align: right; }
+.time-mine {
+  text-align: right;
+}
 
 /* ── System ── */
 .sys-row {
@@ -204,14 +274,25 @@ function initials(user) {
 }
 
 .sys-bubble {
-  display: inline-flex; align-items: center; gap: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.4rem 0.8rem;
   border-radius: 999px;
   background: color-mix(in srgb, var(--color-chip) 15%, transparent);
   color: color-mix(in srgb, var(--color-chip) 90%, var(--color-text));
   border: 1px solid color-mix(in srgb, var(--color-chip) 35%, transparent);
-  font-size: 0.78rem; font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 600;
 }
-.sys-ico { width: 0.85rem; height: 0.85rem; color: var(--color-chip); }
-.sys-time { font-size: 0.68rem; color: var(--color-muted); margin-left: 0.35rem; }
+.sys-ico {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: var(--color-chip);
+}
+.sys-time {
+  font-size: 0.68rem;
+  color: var(--color-muted);
+  margin-left: 0.35rem;
+}
 </style>

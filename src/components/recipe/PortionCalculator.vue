@@ -1,14 +1,28 @@
+<!-- Adag-skálázó (plusz/mínusz gombokkal). -->
+
 <template>
   <div class="portion-calc">
     <span class="label">Adagok</span>
     <div class="controls">
-      <button class="ctrl-btn" type="button" :disabled="portions <= 1" @click="decrease" aria-label="Csökkentés">
+      <button
+        class="ctrl-btn"
+        type="button"
+        :disabled="portions <= 1"
+        @click="decrease"
+        aria-label="Csökkentés"
+      >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M5 12h14" stroke-linecap="round" />
         </svg>
       </button>
       <span class="value" :key="portions">{{ portions }}</span>
-      <button class="ctrl-btn" type="button" :disabled="portions >= 50" @click="increase" aria-label="Növelés">
+      <button
+        class="ctrl-btn"
+        type="button"
+        :disabled="portions >= 50"
+        @click="increase"
+        aria-label="Növelés"
+      >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M12 5v14M5 12h14" stroke-linecap="round" />
         </svg>
@@ -21,17 +35,23 @@
 import { ref } from 'vue'
 
 const props = defineProps({
-  default: { type: Number, default: 4 }
+  default: { type: Number, default: 4 },
 })
 
 const emit = defineEmits(['change'])
 const portions = ref(props.default)
 
 function decrease() {
-  if (portions.value > 1) { portions.value--; emit('change', portions.value) }
+  if (portions.value > 1) {
+    portions.value--
+    emit('change', portions.value)
+  }
 }
 function increase() {
-  if (portions.value < 50) { portions.value++; emit('change', portions.value) }
+  if (portions.value < 50) {
+    portions.value++
+    emit('change', portions.value)
+  }
 }
 </script>
 
@@ -73,7 +93,10 @@ function increase() {
   align-items: center;
   justify-content: center;
   padding: 0;
-  transition: background 150ms var(--ease-ui-out), border-color 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out);
+  transition:
+    background 150ms var(--ease-ui-out),
+    border-color 150ms var(--ease-ui-out),
+    transform 150ms var(--ease-ui-out);
 }
 
 .ctrl-btn svg {
@@ -116,6 +139,4 @@ function increase() {
     transform: scale(1);
   }
 }
-
-
 </style>

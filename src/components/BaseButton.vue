@@ -1,3 +1,5 @@
+<!-- Általános gomb (primary/outline/danger/ghost variants, loading state). -->
+
 <script setup>
 import { computed } from 'vue'
 import LoadingSpinner from './LoadingSpinner.vue'
@@ -81,17 +83,24 @@ const variantClasses = computed(() => {
 </script>
 
 <template>
-  <button :type="type" :disabled="disabled || loading" :class="[
-    'base-button relative inline-flex items-center justify-center font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent-soft focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
-    sizeClasses,
-    roundedClasses,
-    block ? 'w-full' : '',
-    variantClasses,
-    (disabled && !loading) ? 'opacity-60 cursor-not-allowed' : '',
-    loading ? 'cursor-wait' : '',
-    (!disabled && !loading) ? 'cursor-pointer' : '',
-  ]">
-    <div class="button-content flex items-center justify-center gap-2 w-full" :class="{ transitioning: loading }">
+  <button
+    :type="type"
+    :disabled="disabled || loading"
+    :class="[
+      'base-button relative inline-flex items-center justify-center font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent-soft focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+      sizeClasses,
+      roundedClasses,
+      block ? 'w-full' : '',
+      variantClasses,
+      disabled && !loading ? 'opacity-60 cursor-not-allowed' : '',
+      loading ? 'cursor-wait' : '',
+      !disabled && !loading ? 'cursor-pointer' : '',
+    ]"
+  >
+    <div
+      class="button-content flex items-center justify-center gap-2 w-full"
+      :class="{ transitioning: loading }"
+    >
       <slot v-if="!loading" name="icon-left" />
       <slot></slot>
       <slot v-if="!loading" name="icon-right" />

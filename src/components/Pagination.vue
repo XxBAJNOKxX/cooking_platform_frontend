@@ -1,3 +1,5 @@
+<!-- Lapozó kontroll (previous/next + oldalszám). -->
+
 <script setup>
 import { computed } from 'vue'
 
@@ -15,7 +17,7 @@ const props = defineProps({
 const emit = defineEmits(['page-change'])
 
 const pages = computed(() => {
-  const cur  = props.meta.current_page
+  const cur = props.meta.current_page
   const last = props.meta.last_page
 
   if (last <= 7) return Array.from({ length: last }, (_, i) => i + 1)
@@ -25,7 +27,7 @@ const pages = computed(() => {
   if (cur > 3) result.push('...')
 
   const start = Math.max(2, cur - 1)
-  const end   = Math.min(last - 1, cur + 1)
+  const end = Math.min(last - 1, cur + 1)
   for (let i = start; i <= end; i++) result.push(i)
 
   if (cur < last - 2) result.push('...')
@@ -44,11 +46,7 @@ function go(page) {
 </script>
 
 <template>
-  <nav
-    v-if="meta.last_page > 1"
-    class="pg-nav"
-    aria-label="Lapozás"
-  >
+  <nav v-if="meta.last_page > 1" class="pg-nav" aria-label="Lapozás">
     <p class="pg-info">
       {{ meta.from }}–{{ meta.to }}
       <span class="pg-info-total">/ {{ meta.total }} {{ itemLabel }}</span>
@@ -63,8 +61,15 @@ function go(page) {
         @click="go(meta.current_page - 1)"
         aria-label="Előző oldal"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="pg-ico" aria-hidden="true">
-          <polyline points="15,18 9,12 15,6"/>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          class="pg-ico"
+          aria-hidden="true"
+        >
+          <polyline points="15,18 9,12 15,6" />
         </svg>
       </button>
 
@@ -91,8 +96,15 @@ function go(page) {
         @click="go(meta.current_page + 1)"
         aria-label="Következő oldal"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="pg-ico" aria-hidden="true">
-          <polyline points="9,18 15,12 9,6"/>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          class="pg-ico"
+          aria-hidden="true"
+        >
+          <polyline points="9,18 15,12 9,6" />
         </svg>
       </button>
     </div>
@@ -115,7 +127,9 @@ function go(page) {
   margin: 0;
 }
 
-.pg-info-total { opacity: 0.75; }
+.pg-info-total {
+  opacity: 0.75;
+}
 
 .pg-buttons {
   display: flex;
@@ -126,19 +140,24 @@ function go(page) {
 }
 
 .pg-btn {
-  min-width: 38px; height: 38px; padding: 0 6px;
-  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 10px;
   border: 1.5px solid var(--color-stroke);
   background: var(--color-bg);
   color: var(--color-muted);
-  font-size: 0.875rem; font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 600;
   cursor: pointer;
   transition:
-    background    150ms var(--ease-ui-out),
-    color         150ms var(--ease-ui-out),
-    border-color  150ms var(--ease-ui-out),
-    transform     150ms var(--ease-ui-out);
+    background 150ms var(--ease-ui-out),
+    color 150ms var(--ease-ui-out),
+    border-color 150ms var(--ease-ui-out),
+    transform 150ms var(--ease-ui-out);
 }
 
 .pg-btn:hover:not(.disabled):not(.current) {
@@ -147,7 +166,9 @@ function go(page) {
   border-color: var(--color-accent-soft);
 }
 
-.pg-btn:active:not(.disabled) { transform: scale(0.92); }
+.pg-btn:active:not(.disabled) {
+  transform: scale(0.92);
+}
 
 .pg-btn.current {
   background: var(--color-accent);
@@ -161,11 +182,17 @@ function go(page) {
   cursor: not-allowed;
 }
 
-.pg-ico { width: 14px; height: 14px; }
+.pg-ico {
+  width: 14px;
+  height: 14px;
+}
 
 .pg-ellipsis {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 28px; height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 38px;
   font-size: 0.875rem;
   color: var(--color-muted);
   user-select: none;

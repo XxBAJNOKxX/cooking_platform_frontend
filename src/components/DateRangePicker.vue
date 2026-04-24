@@ -1,3 +1,5 @@
+<!-- Dátum intervallum választó (pl. bevásárlólista időszak). -->
+
 <script setup>
 import { computed } from 'vue'
 
@@ -34,13 +36,16 @@ function weekRange(mondayOffset = 0) {
 }
 
 const PRESETS = [
-  { label: 'Ez a hét',       range: () => weekRange(0) },
-  { label: 'Következő hét',  range: () => weekRange(1) },
-  { label: '2 hét',          range: () => {
-    const r0 = weekRange(0)
-    const r1 = weekRange(1)
-    return { start: r0.start, end: r1.end }
-  }},
+  { label: 'Ez a hét', range: () => weekRange(0) },
+  { label: 'Következő hét', range: () => weekRange(1) },
+  {
+    label: '2 hét',
+    range: () => {
+      const r0 = weekRange(0)
+      const r1 = weekRange(1)
+      return { start: r0.start, end: r1.end }
+    },
+  },
 ]
 
 const activePreset = computed(() => {
@@ -92,7 +97,7 @@ function onEndChange(e) {
 
       <div class="date-sep" aria-hidden="true">
         <svg viewBox="0 0 24 6" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M0 3h24" stroke-dasharray="3 2"/>
+          <path d="M0 3h24" stroke-dasharray="3 2" />
         </svg>
       </div>
 
@@ -155,7 +160,9 @@ function onEndChange(e) {
   }
 }
 
-.preset-btn:active { transform: scale(0.94); }
+.preset-btn:active {
+  transform: scale(0.94);
+}
 
 /* ── Date inputs ── */
 .date-inputs {
@@ -190,7 +197,9 @@ function onEndChange(e) {
   color: var(--color-text);
   outline: none;
   cursor: pointer;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .date-input:focus {
@@ -205,10 +214,16 @@ function onEndChange(e) {
   color: var(--color-stroke);
 }
 
-.date-sep svg { width: 100%; }
+.date-sep svg {
+  width: 100%;
+}
 
 @media (max-width: 480px) {
-  .date-inputs { flex-direction: column; }
-  .date-sep { display: none; }
+  .date-inputs {
+    flex-direction: column;
+  }
+  .date-sep {
+    display: none;
+  }
 }
 </style>

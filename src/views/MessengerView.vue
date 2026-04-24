@@ -1,3 +1,5 @@
+<!-- Privát üzenetek (beszélgetéslista + chat panel + küldő input). -->
+
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
@@ -46,7 +48,7 @@ const conversations = computed(() => {
   }
 
   return [...map.values()]
-    .map(c => ({
+    .map((c) => ({
       ...c,
       unread: c.messages.reduce(
         (n, m) => n + (m.sender?.id !== myId.value && m.is_read === false ? 1 : 0),
@@ -70,12 +72,12 @@ const toolActing = ref(false)
 const toolNotice = ref('')
 const showPanel = ref(false)
 
-const activeConversation = computed(() =>
-  conversations.value.find(c => c.partner.id === selectedPartnerId.value) ?? null
+const activeConversation = computed(
+  () => conversations.value.find((c) => c.partner.id === selectedPartnerId.value) ?? null,
 )
 
-const activePartner = computed(() =>
-  activeConversation.value?.partner ?? externalPartner.value ?? null
+const activePartner = computed(
+  () => activeConversation.value?.partner ?? externalPartner.value ?? null,
 )
 
 // Most recent tool referenced by either side in the active conversation.
@@ -111,11 +113,12 @@ function markConversationRead(conv) {
     }
   }
 
-  api.post(`/messages/conversations/${conv.partner.id}/mark-read`)
+  api
+    .post(`/messages/conversations/${conv.partner.id}/mark-read`)
     .then(() => {
       window.dispatchEvent(new CustomEvent('unread:refresh'))
     })
-    .catch(() => { })
+    .catch(() => {})
 }
 
 // Watch URL params on mount
@@ -135,7 +138,7 @@ onMounted(async () => {
   const urlUserId = urlUserIdRaw && urlUserIdRaw !== myId.value ? urlUserIdRaw : null
 
   if (urlUserId) {
-    const found = conversations.value.find(c => c.partner.id === urlUserId)
+    const found = conversations.value.find((c) => c.partner.id === urlUserId)
     if (found) {
       selectConversation(found)
     } else {
@@ -148,13 +151,16 @@ onMounted(async () => {
         id: urlUserId,
         username: route.query.username ?? 'Betöltés...',
       }
-      api.get(`/users/${urlUserId}`).then(res => {
-        externalPartner.value = res.data.data.user
-      }).catch(() => {
-        if (!route.query.username) {
-          externalPartner.value = { id: urlUserId, username: `Felhasználó #${urlUserId}` }
-        }
-      })
+      api
+        .get(`/users/${urlUserId}`)
+        .then((res) => {
+          externalPartner.value = res.data.data.user
+        })
+        .catch(() => {
+          if (!route.query.username) {
+            externalPartner.value = { id: urlUserId, username: `Felhasználó #${urlUserId}` }
+          }
+        })
     }
   }
 
@@ -169,7 +175,9 @@ onMounted(async () => {
         is_available: t.is_available,
         is_owner: t.is_owner,
       }
-    } catch { /* ignore missing tool */ }
+    } catch {
+      /* ignore missing tool */
+    }
   }
 })
 
@@ -182,7 +190,7 @@ async function scrollToBottom() {
 
 watch(
   () => activeConversation.value?.messages.length,
-  () => scrollToBottom()
+  () => scrollToBottom(),
 )
 
 // ─── Send ─────────────────────────────────────────────────────────────────────
@@ -292,7 +300,9 @@ function timeAgo(str) {
 function dayLabel(str) {
   if (!str) return ''
   return parseUtc(str).toLocaleDateString('hu-HU', {
-    year: 'numeric', month: 'long', day: 'numeric',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   })
 }
 
@@ -324,7 +334,6 @@ function groupByDay(messages) {
 
 <template>
   <div class="messenger">
-
     <!-- ── Left: conversation list ─────────────────────────────── -->
     <div class="conv-sidebar" :class="{ 'hidden-mobile': showPanel }">
       <div class="sidebar-header">
@@ -340,14 +349,24 @@ function groupByDay(messages) {
       </div>
 
       <div v-else class="conv-list">
-        <button v-for="conv in conversations" :key="conv.partner.id" class="conv-item"
+        <button
+          v-for="conv in conversations"
+          :key="conv.partner.id"
+          class="conv-item"
           :class="{ active: conv.partner.id === selectedPartnerId }"
-          @click="selectConversation(conv); showPanel = true">
+          @click="selectConversation(conv)"
+        >
           <div class="conv-avatar">
-            <img v-if="conv.partner.avatar_url" :src="conv.partner.avatar_url" :alt="conv.partner.username"
-              class="conv-avatar-img" />
+            <img
+              v-if="conv.partner.avatar_url"
+              :src="conv.partner.avatar_url"
+              :alt="conv.partner.username"
+              class="conv-avatar-img"
+            />
             <span v-else>{{ initials(conv.partner) }}</span>
-            <span v-if="conv.unread > 0" class="unread-dot" aria-label="Olvasatlan üzenetek">{{ conv.unread }}</span>
+            <span v-if="conv.unread > 0" class="unread-dot" aria-label="Olvasatlan üzenetek">{{
+              conv.unread
+            }}</span>
           </div>
 
           <div class="conv-info">
@@ -356,7 +375,9 @@ function groupByDay(messages) {
               <span class="conv-time">{{ timeAgo(conv.messages.at(-1)?.sent_at) }}</span>
             </div>
             <p class="conv-preview">
-              <span v-if="conv.messages.at(-1)?.sender?.id === myId" class="preview-mine">Te: </span>
+              <span v-if="conv.messages.at(-1)?.sender?.id === myId" class="preview-mine"
+                >Te:
+              </span>
               {{ conv.messages.at(-1)?.content }}
             </p>
           </div>
@@ -366,11 +387,16 @@ function groupByDay(messages) {
 
     <!-- ── Right: active conversation ────────────────────────────  -->
     <div class="chat-panel" :class="{ 'hidden-mobile': !showPanel }">
-
       <!-- Empty state: no conversation selected -->
       <div v-if="!selectedPartnerId" class="chat-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="chat-empty-icon"
-          aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          class="chat-empty-icon"
+          aria-hidden="true"
+        >
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
         </svg>
         <p>Válassz egy beszélgetést a bal oldalról</p>
@@ -380,30 +406,58 @@ function groupByDay(messages) {
         <!-- Chat header -->
         <div class="chat-header">
           <button class="back-btn" @click="showPanel = false" aria-label="Vissza">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              aria-hidden="true"
+            >
               <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
 
-          <RouterLink v-if="activePartner?.id" :to="{ name: 'user-profile', params: { id: activePartner.id } }"
-            class="chat-partner-avatar chat-partner-link">
-            <img v-if="activePartner.avatar_url" :src="activePartner.avatar_url" :alt="activePartner.username"
-              class="conv-avatar-img" />
+          <RouterLink
+            v-if="activePartner?.id"
+            :to="{ name: 'user-profile', params: { id: activePartner.id } }"
+            class="chat-partner-avatar chat-partner-link"
+          >
+            <img
+              v-if="activePartner.avatar_url"
+              :src="activePartner.avatar_url"
+              :alt="activePartner.username"
+              class="conv-avatar-img"
+            />
             <span v-else>{{ initials(activePartner) }}</span>
           </RouterLink>
           <div v-else class="chat-partner-avatar">
             <span>{{ initials(activePartner) }}</span>
           </div>
-          <RouterLink v-if="activePartner?.id" :to="{ name: 'user-profile', params: { id: activePartner.id } }"
-            class="chat-partner-name chat-partner-link">{{ activePartner.username }}</RouterLink>
+          <RouterLink
+            v-if="activePartner?.id"
+            :to="{ name: 'user-profile', params: { id: activePartner.id } }"
+            class="chat-partner-name chat-partner-link"
+            >{{ activePartner.username }}</RouterLink
+          >
           <span v-else class="chat-partner-name">{{ activePartner?.username }}</span>
         </div>
 
         <!-- Tool context banner -->
-        <div v-if="activeTool" class="tool-banner" :class="{ 'tool-banner-rented': !activeTool.is_available }">
-          <RouterLink :to="{ name: 'tool-detail', params: { id: activeTool.id } }" class="tool-banner-link">
-            <img v-if="activeTool.image_url" :src="activeTool.image_url" :alt="activeTool.name"
-              class="tool-banner-img" />
+        <div
+          v-if="activeTool"
+          class="tool-banner"
+          :class="{ 'tool-banner-rented': !activeTool.is_available }"
+        >
+          <RouterLink
+            :to="{ name: 'tool-detail', params: { id: activeTool.id } }"
+            class="tool-banner-link"
+          >
+            <img
+              v-if="activeTool.image_url"
+              :src="activeTool.image_url"
+              :alt="activeTool.name"
+              class="tool-banner-img"
+            />
             <div v-else class="tool-banner-img tool-banner-img-fallback" aria-hidden="true">🧰</div>
             <div class="tool-banner-body">
               <span class="tool-banner-label">
@@ -414,9 +468,19 @@ function groupByDay(messages) {
           </RouterLink>
 
           <div v-if="activeTool.is_owner" class="tool-banner-actions">
-            <button v-if="activeTool.is_available" class="tool-action tool-action-primary" :disabled="toolActing"
-              @click="markToolRented">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <button
+              v-if="activeTool.is_available"
+              class="tool-action tool-action-primary"
+              :disabled="toolActing"
+              @click="markToolRented"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
                 <path d="M20 7L9 18l-5-5" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
               Kiadva jelölés
@@ -432,14 +496,20 @@ function groupByDay(messages) {
         <!-- Messages -->
         <div class="messages-area">
           <template v-if="activeConversation">
-            <template v-for="item in groupByDay(activeConversation.messages)"
-              :key="item.type === 'day' ? item.day : item.msg.id">
+            <template
+              v-for="item in groupByDay(activeConversation.messages)"
+              :key="item.type === 'day' ? item.day : item.msg.id"
+            >
               <div v-if="item.type === 'day'" class="day-sep" aria-label="Dátum elválasztó">
                 <span>{{ dayLabel(item.day + 'T12:00:00') }}</span>
               </div>
-              <ChatBubble v-else :message="item.msg" :is-mine="item.msg.sender?.id === myId"
+              <ChatBubble
+                v-else
+                :message="item.msg"
+                :is-mine="item.msg.sender?.id === myId"
                 :show-avatar="item.msg.sender?.id !== myId"
-                :show-timestamp="item.showTimestamp" />
+                :show-timestamp="item.showTimestamp"
+              />
             </template>
           </template>
 
@@ -454,7 +524,6 @@ function groupByDay(messages) {
         <MessageInput :disabled="sendLoading" @send="sendMessage" />
       </template>
     </div>
-
   </div>
 </template>
 
@@ -669,7 +738,9 @@ function groupByDay(messages) {
   background: transparent;
   color: var(--color-muted);
   cursor: pointer;
-  transition: background 150ms ease, transform 150ms var(--ease-ui-out);
+  transition:
+    background 150ms ease,
+    transform 150ms var(--ease-ui-out);
 }
 
 .back-btn svg {
@@ -705,7 +776,9 @@ function groupByDay(messages) {
 .chat-partner-link {
   text-decoration: none;
   color: inherit;
-  transition: color 150ms var(--ease-ui-out), opacity 150ms var(--ease-ui-out);
+  transition:
+    color 150ms var(--ease-ui-out),
+    opacity 150ms var(--ease-ui-out);
 }
 
 .chat-partner-name.chat-partner-link:hover {
@@ -714,7 +787,7 @@ function groupByDay(messages) {
 
 .chat-partner-avatar.chat-partner-link {
   cursor: pointer;
-  color: #ffffff
+  color: #ffffff;
 }
 
 .chat-partner-avatar.chat-partner-link:hover {
@@ -836,7 +909,10 @@ function groupByDay(messages) {
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 150ms var(--ease-ui-out), transform 150ms var(--ease-ui-out), border-color 150ms var(--ease-ui-out);
+  transition:
+    background 150ms var(--ease-ui-out),
+    transform 150ms var(--ease-ui-out),
+    border-color 150ms var(--ease-ui-out);
 }
 
 .tool-action:hover {

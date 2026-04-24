@@ -1,11 +1,13 @@
+<!-- Recept kártya a listákban (kép, cím, meta, kedvenc gomb). -->
+
 <script setup>
 import { computed, ref, watch } from 'vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
-  recipe:       { type: Object,  required: true },
-  index:        { type: Number,  default: 0 },
+  recipe: { type: Object, required: true },
+  index: { type: Number, default: 0 },
   showFavorite: { type: Boolean, default: true },
 })
 
@@ -15,7 +17,12 @@ const authStore = useAuthStore()
 const favorited = ref(Boolean(props.recipe.is_favorited))
 const favLoading = ref(false)
 
-watch(() => props.recipe.is_favorited, v => { favorited.value = Boolean(v) })
+watch(
+  () => props.recipe.is_favorited,
+  (v) => {
+    favorited.value = Boolean(v)
+  },
+)
 
 async function toggleFavorite(e) {
   e.preventDefault()
@@ -35,14 +42,18 @@ async function toggleFavorite(e) {
   }
 }
 
-const FALLBACK = import.meta.env.VITE_FALLBACK_IMAGE_URL
-  ?? 'https://images.unsplash.com/photo-1495195134817-aeb325a55b65?auto=format&fit=crop&w=800&q=60'
+const FALLBACK =
+  import.meta.env.VITE_FALLBACK_IMAGE_URL ??
+  'https://images.unsplash.com/photo-1495195134817-aeb325a55b65?auto=format&fit=crop&w=800&q=60'
 
-const diffInfo = computed(() => ({
-  'Könnyű': { cls: 'diff-easy',   label: 'Könnyű' },
-  'Közepes': { cls: 'diff-medium', label: 'Közepes' },
-  'Nehéz':   { cls: 'diff-hard',   label: 'Nehéz'  },
-}[props.recipe.difficulty] ?? { cls: '', label: props.recipe.difficulty ?? '' }))
+const diffInfo = computed(
+  () =>
+    ({
+      Könnyű: { cls: 'diff-easy', label: 'Könnyű' },
+      Közepes: { cls: 'diff-medium', label: 'Közepes' },
+      Nehéz: { cls: 'diff-hard', label: 'Nehéz' },
+    })[props.recipe.difficulty] ?? { cls: '', label: props.recipe.difficulty ?? '' },
+)
 
 const visibleCats = computed(() => (props.recipe.categories ?? []).slice(0, 3))
 </script>
@@ -76,8 +87,18 @@ const visibleCats = computed(() => (props.recipe.categories ?? []).slice(0, 3))
         :aria-pressed="favorited"
         @click="toggleFavorite"
       >
-        <svg viewBox="0 0 24 24" :fill="favorited ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke-linecap="round" stroke-linejoin="round"/>
+        <svg
+          viewBox="0 0 24 24"
+          :fill="favorited ? 'currentColor' : 'none'"
+          stroke="currentColor"
+          stroke-width="2.2"
+          aria-hidden="true"
+        >
+          <path
+            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
       </button>
     </div>
@@ -88,18 +109,29 @@ const visibleCats = computed(() => (props.recipe.categories ?? []).slice(0, 3))
 
       <div class="rcard-meta">
         <span class="rcard-chip">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="chip-ico" aria-hidden="true">
-            <circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            class="chip-ico"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12,6 12,12 16,14" />
           </svg>
           {{ recipe.prep_time }}&nbsp;perc
         </span>
-        <span v-if="recipe.difficulty" class="rcard-diff" :class="diffInfo.cls">{{ diffInfo.label }}</span>
+        <span v-if="recipe.difficulty" class="rcard-diff" :class="diffInfo.cls">{{
+          diffInfo.label
+        }}</span>
         <RouterLink
           v-if="recipe.author"
           :to="{ name: 'user-profile', params: { id: recipe.author.id } }"
           class="rcard-author"
           @click.stop
-        >{{ recipe.author.username }}</RouterLink>
+          >{{ recipe.author.username }}</RouterLink
+        >
       </div>
     </div>
   </RouterLink>
@@ -123,20 +155,30 @@ const visibleCats = computed(() => (props.recipe.categories ?? []).slice(0, 3))
 }
 
 @keyframes rcardIn {
-  from { opacity: 0; transform: translateY(10px) scale(0.97); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
   .rcard:hover {
     transform: translateY(-3px);
-    box-shadow: 0 18px 40px -14px rgba(47, 30, 23, 0.20);
+    box-shadow: 0 18px 40px -14px rgba(47, 30, 23, 0.2);
     border-color: var(--color-accent-soft);
   }
-  .rcard:hover .rcard-img { transform: scale(1.05); }
+  .rcard:hover .rcard-img {
+    transform: scale(1.05);
+  }
 }
 
-.rcard:active { transform: scale(0.985); }
+.rcard:active {
+  transform: scale(0.985);
+}
 
 /* --- Image --- */
 .rcard-img-wrap {
@@ -148,20 +190,26 @@ const visibleCats = computed(() => (props.recipe.categories ?? []).slice(0, 3))
 }
 
 .rcard-img {
-  width: 100%; height: 100%;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   transition: transform 480ms var(--ease-ui-out);
 }
 
 .rcard-overlay {
-  position: absolute; inset: 0;
+  position: absolute;
+  inset: 0;
   background: linear-gradient(to top, rgba(47, 30, 23, 0.58) 0%, transparent 55%);
   pointer-events: none;
 }
 
 .rcard-cats {
-  position: absolute; bottom: 10px; left: 10px;
-  display: flex; gap: 5px; flex-wrap: wrap;
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
 }
 
 .rcard-cat {
@@ -178,7 +226,9 @@ const visibleCats = computed(() => (props.recipe.categories ?? []).slice(0, 3))
 
 /* --- Body --- */
 .rcard-body {
-  display: flex; flex-direction: column; gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   padding: 14px 15px 15px;
   flex: 1;
 }
@@ -208,47 +258,77 @@ const visibleCats = computed(() => (props.recipe.categories ?? []).slice(0, 3))
 }
 
 .rcard-meta {
-  display: flex; flex-wrap: wrap; gap: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
   align-items: center;
-  margin-top: auto; padding-top: 8px;
+  margin-top: auto;
+  padding-top: 8px;
 }
 
 .rcard-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 9px; border-radius: 7px;
-  font-size: 0.74rem; font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 7px;
+  font-size: 0.74rem;
+  font-weight: 600;
   background: var(--color-surface);
   color: var(--color-muted);
 }
 
-.chip-ico { width: 11px; height: 11px; flex-shrink: 0; }
-
-.rcard-diff {
-  display: inline-flex; align-items: center;
-  padding: 3px 9px; border-radius: 7px;
-  font-size: 0.74rem; font-weight: 700;
+.chip-ico {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
 }
 
-.diff-easy   { background: color-mix(in srgb, #5b7f43 14%, transparent); color: #3b5c28; }
-.diff-medium { background: color-mix(in srgb, #d97706 14%, transparent); color: #7c4f08; }
-.diff-hard   { background: color-mix(in srgb, #d94b4b 14%, transparent); color: #8b1f1f; }
+.rcard-diff {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 7px;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.diff-easy {
+  background: color-mix(in srgb, #5b7f43 14%, transparent);
+  color: #3b5c28;
+}
+.diff-medium {
+  background: color-mix(in srgb, #d97706 14%, transparent);
+  color: #7c4f08;
+}
+.diff-hard {
+  background: color-mix(in srgb, #d94b4b 14%, transparent);
+  color: #8b1f1f;
+}
 
 .rcard-author {
   margin-left: auto;
-  font-size: 0.72rem; font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 600;
   color: var(--color-muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 110px;
   text-decoration: none;
   transition: color 150ms var(--ease-ui-out);
 }
-.rcard-author:hover { color: var(--color-accent); }
+.rcard-author:hover {
+  color: var(--color-accent);
+}
 
 /* --- Favorite button --- */
 .rcard-fav {
   position: absolute;
-  top: 10px; right: 10px;
-  width: 34px; height: 34px;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -264,10 +344,21 @@ const visibleCats = computed(() => (props.recipe.categories ?? []).slice(0, 3))
     border-color 160ms var(--ease-ui-out),
     transform 160ms var(--ease-ui-out);
 }
-.rcard-fav svg { width: 16px; height: 16px; }
-.rcard-fav:hover:not(:disabled) { background: rgba(0, 0, 0, 0.45); transform: scale(1.08); }
-.rcard-fav:active:not(:disabled) { transform: scale(0.9); }
-.rcard-fav:disabled { opacity: 0.7; cursor: wait; }
+.rcard-fav svg {
+  width: 16px;
+  height: 16px;
+}
+.rcard-fav:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.45);
+  transform: scale(1.08);
+}
+.rcard-fav:active:not(:disabled) {
+  transform: scale(0.9);
+}
+.rcard-fav:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
 
 .rcard-fav--on {
   background: var(--color-danger, #d94b4b);
@@ -277,8 +368,14 @@ const visibleCats = computed(() => (props.recipe.categories ?? []).slice(0, 3))
 }
 
 @keyframes favPop {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(1.22); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.22);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 </style>

@@ -1,3 +1,5 @@
+<!-- Általános autocomplete input egyedi érték beírás támogatással. -->
+
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 
@@ -142,7 +144,6 @@ defineExpose({
     >
       <polyline points="6,9 12,15 18,9" />
     </svg>
-
   </div>
 
   <Teleport to="body">
@@ -174,10 +175,18 @@ defineExpose({
         class="bac-option bac-option--custom"
         @click="pickCustom"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          aria-hidden="true"
+        >
           <path d="M12 5v14M5 12h14" stroke-linecap="round" />
         </svg>
-        <span>{{ customLabel }} <strong>{{ query.trim() }}</strong></span>
+        <span
+          >{{ customLabel }} <strong>{{ query.trim() }}</strong></span
+        >
       </button>
 
       <p v-if="!filtered.length && !isCustomMatch && emptyText" class="bac-empty">
@@ -204,7 +213,9 @@ defineExpose({
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
-  transition: border-color 150ms var(--ease-ui-out), box-shadow 150ms var(--ease-ui-out);
+  transition:
+    border-color 150ms var(--ease-ui-out),
+    box-shadow 150ms var(--ease-ui-out);
 }
 
 .bac-input:focus {

@@ -1,3 +1,5 @@
+<!-- OTP email-kód beírása — email-verifikáció befejezése. -->
+
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
@@ -5,7 +7,7 @@ import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import AuthLayout from '@/components/AuthLayout.vue'
 import BaseButton from '@/components/BaseButton.vue'
-import OtpCodeInput from '@/components/OtpCodeInput.vue'
+import OtpCodeInput from '@/components/auth/OtpCodeInput.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -95,15 +97,19 @@ onBeforeUnmount(() => clearInterval(cooldownTimer))
     </template>
 
     <form @submit.prevent="submit" class="flex flex-col gap-5">
-      <div v-if="generalError"
+      <div
+        v-if="generalError"
         class="bg-danger/10 border border-danger/20 text-danger text-sm px-4 py-3 rounded-lg font-medium"
-        role="alert">
+        role="alert"
+      >
         {{ generalError }}
       </div>
 
-      <div v-if="successMsg"
+      <div
+        v-if="successMsg"
         class="bg-chip/10 border border-chip/30 text-chip text-sm px-4 py-3 rounded-lg font-medium"
-        role="status">
+        role="status"
+      >
         {{ successMsg }}
       </div>
 
@@ -126,13 +132,16 @@ onBeforeUnmount(() => clearInterval(cooldownTimer))
       </div>
 
       <div class="flex items-center justify-between text-sm">
-        <button type="button" class="otp-link" :disabled="resendLoading || resendCooldown > 0" @click="resend">
+        <button
+          type="button"
+          class="otp-link"
+          :disabled="resendLoading || resendCooldown > 0"
+          @click="resend"
+        >
           <span v-if="resendCooldown > 0">Új kód ({{ resendCooldown }}s)</span>
           <span v-else>Új kód küldése</span>
         </button>
-        <button type="button" class="otp-link otp-link--muted" @click="skip">
-          Most kihagyom
-        </button>
+        <button type="button" class="otp-link otp-link--muted" @click="skip">Most kihagyom</button>
       </div>
     </form>
   </AuthLayout>
@@ -148,13 +157,22 @@ onBeforeUnmount(() => clearInterval(cooldownTimer))
   cursor: pointer;
   padding: 0.25rem 0.5rem;
   border-radius: 0.4rem;
-  transition: background 150ms ease, color 150ms ease, opacity 150ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    opacity 150ms ease;
 }
 .otp-link:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
-.otp-link:disabled { opacity: 0.5; cursor: not-allowed; }
-.otp-link--muted { color: var(--color-muted); font-weight: 600; }
+.otp-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.otp-link--muted {
+  color: var(--color-muted);
+  font-weight: 600;
+}
 .otp-link--muted:hover:not(:disabled) {
   color: var(--color-text);
   background: var(--color-surface);

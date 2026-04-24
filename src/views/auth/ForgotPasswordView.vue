@@ -1,3 +1,5 @@
+<!-- Elfelejtett jelszó — email megadása reset-linkhez. -->
+
 <script setup>
 import { ref } from 'vue'
 import api from '@/services/api'
@@ -20,8 +22,9 @@ async function handleSubmit() {
 
   try {
     const res = await api.post('/forgot-password', { email: email.value })
-    successMsg.value = res.data?.message
-      || 'Ha létezik fiók ezzel az e-mail címmel, elküldtük rá a jelszó-visszaállítási linket.'
+    successMsg.value =
+      res.data?.message ||
+      'Ha létezik fiók ezzel az e-mail címmel, elküldtük rá a jelszó-visszaállítási linket.'
     email.value = ''
   } catch (error) {
     const status = error.response?.status
@@ -55,20 +58,32 @@ async function handleSubmit() {
     </template>
 
     <form @submit.prevent="handleSubmit" class="flex flex-col gap-5">
-      <div v-if="generalError"
+      <div
+        v-if="generalError"
         class="bg-danger/10 border border-danger/20 text-danger text-sm px-4 py-3 rounded-lg font-medium"
-        role="alert">
+        role="alert"
+      >
         {{ generalError }}
       </div>
 
-      <div v-if="successMsg"
+      <div
+        v-if="successMsg"
         class="bg-chip/10 border border-chip/30 text-chip text-sm px-4 py-3 rounded-lg font-medium"
-        role="status">
+        role="status"
+      >
         {{ successMsg }}
       </div>
 
-      <BaseInput v-model="email" type="email" label="E-mail cím" placeholder="pelda@email.hu" id="fp-email"
-        :error="errors.email?.[0]" required :disabled="loading" />
+      <BaseInput
+        v-model="email"
+        type="email"
+        label="E-mail cím"
+        placeholder="pelda@email.hu"
+        id="fp-email"
+        :error="errors.email?.[0]"
+        required
+        :disabled="loading"
+      />
 
       <div class="pt-2">
         <BaseButton type="submit" variant="primary" block :loading="loading">
@@ -79,8 +94,10 @@ async function handleSubmit() {
 
     <div class="mt-8 text-center text-sm font-medium text-muted">
       Visszatérsz a bejelentkezéshez?
-      <RouterLink to="/login"
-        class="text-accent hover:text-accent-hover transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm underline decoration-accent/30 hover:decoration-accent underline-offset-4">
+      <RouterLink
+        to="/login"
+        class="text-accent hover:text-accent-hover transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm underline decoration-accent/30 hover:decoration-accent underline-offset-4"
+      >
         Bejelentkezés
       </RouterLink>
     </div>

@@ -1,20 +1,21 @@
+<!-- Általános modal dialógus (backdrop, close, slot-ok fejléc/body/footer). -->
+
 <script setup>
 import { onMounted, onUnmounted, watch, ref, nextTick } from 'vue'
-import BaseButton from './BaseButton.vue'
 
 const props = defineProps({
   modelValue: {
     type: Boolean,
-    default: false
+    default: false,
   },
   title: {
     type: String,
-    default: ''
+    default: '',
   },
   maxWidth: {
     type: String,
-    default: 'max-w-lg'
-  }
+    default: 'max-w-lg',
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'close'])
@@ -32,17 +33,20 @@ const handleKeydown = (e) => {
   }
 }
 
-watch(() => props.modelValue, async (isOpen) => {
-  if (isOpen) {
-    document.body.style.overflow = 'hidden'
-    await nextTick()
-    if (modalRef.value) {
-      modalRef.value.focus()
+watch(
+  () => props.modelValue,
+  async (isOpen) => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+      await nextTick()
+      if (modalRef.value) {
+        modalRef.value.focus()
+      }
+    } else {
+      document.body.style.overflow = ''
     }
-  } else {
-    document.body.style.overflow = ''
-  }
-})
+  },
+)
 
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
@@ -56,25 +60,47 @@ onUnmounted(() => {
 
 <template>
   <Teleport to="body">
-    <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-         @click.self="close">
-      <div class="backdrop absolute inset-0 bg-text/40 backdrop-blur-sm pointer-events-none" aria-hidden="true"></div>
+    <div
+      v-if="modelValue"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      @click.self="close"
+    >
+      <div
+        class="backdrop absolute inset-0 bg-text/40 backdrop-blur-sm pointer-events-none"
+        aria-hidden="true"
+      ></div>
 
       <div
         ref="modalRef"
         tabindex="-1"
         class="modal-panel relative w-full bg-bg rounded-2xl shadow-xl border border-stroke flex flex-col max-h-[90vh] overflow-hidden outline-none"
-        :class="maxWidth" role="dialog" aria-modal="true" :aria-labelledby="title ? 'modal-title' : undefined">
+        :class="maxWidth"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="title ? 'modal-title' : undefined"
+      >
         <div class="px-6 py-4 border-b border-stroke flex items-center justify-between">
           <h3 v-if="title" id="modal-title" class="text-lg font-bold text-text">
             {{ title }}
           </h3>
-          <button @click="close"
+          <button
+            @click="close"
             class="close-button text-muted hover:text-text hover:bg-surface rounded-full p-1 -mr-2 outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            aria-label="Close">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-              stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            aria-label="Close"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -101,7 +127,9 @@ onUnmounted(() => {
   opacity: 1;
   transform: scale(1) translateY(0);
   transform-origin: center;
-  transition: opacity 300ms var(--ease-ui-out), transform 300ms var(--ease-ui-out);
+  transition:
+    opacity 300ms var(--ease-ui-out),
+    transform 300ms var(--ease-ui-out);
 }
 
 @starting-style {
@@ -116,7 +144,10 @@ onUnmounted(() => {
 }
 
 .close-button {
-  transition: transform 160ms var(--ease-ui-out), background-color 160ms ease, color 160ms ease;
+  transition:
+    transform 160ms var(--ease-ui-out),
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
 .close-button:active {

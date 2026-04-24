@@ -1,20 +1,20 @@
+<!-- Hozzávalók csoportosított megjelenítése (adag-skálázással). -->
+
 <template>
   <div class="ingredient-groups">
-    <section
-      v-for="group in scaledGroups"
-      :key="group.name || '_default'"
-      class="ing-group"
-    >
+    <section v-for="group in scaledGroups" :key="group.name || '_default'" class="ing-group">
       <h3 v-if="group.name" class="ing-group-title">{{ group.name }}</h3>
       <ul class="ingredient-list" role="list">
         <li
           v-for="(ing, index) in group.items"
           :key="ing.id"
           class="ingredient-item"
-          :style="`--i: ${index}`"
+          :style="{ '--i': index }"
         >
           <span class="amount" :class="{ 'amount--taste': !ing.scaledQty && ing.displayUnit }">
-            <span v-if="ing.scaledQty != null && ing.scaledQty !== 0" class="qty">{{ formatQty(ing.scaledQty) }}</span>
+            <span v-if="ing.scaledQty != null && ing.scaledQty !== 0" class="qty">{{
+              formatQty(ing.scaledQty)
+            }}</span>
             <span v-if="ing.displayUnit" class="unit">{{ ing.displayUnit }}</span>
           </span>
           <span class="name">{{ ing.name }}</span>
@@ -75,7 +75,6 @@ function formatQty(v) {
   if (Number.isInteger(v)) return String(v)
   return parseFloat(v.toFixed(2)).toString()
 }
-
 </script>
 
 <style scoped>
@@ -85,7 +84,11 @@ function formatQty(v) {
   gap: 14px;
 }
 
-.ing-group { display: flex; flex-direction: column; gap: 4px; }
+.ing-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
 .ing-group-title {
   margin: 2px 0 2px;
@@ -154,7 +157,6 @@ function formatQty(v) {
   font-weight: 500;
   color: var(--color-muted);
 }
-
 
 .amount--taste {
   min-width: unset;
