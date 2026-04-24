@@ -284,7 +284,7 @@ const handleLogout = async () => {
       class="mobile-menu-shell md:hidden absolute inset-x-0 top-full px-3 pt-2 pb-4"
     >
       <div
-        class="mobile-menu rounded-3xl border border-stroke/80 bg-[#ffe0c2]/88 backdrop-blur-xl shadow-[0_24px_50px_-28px_rgba(0,0,0,0.45)] overflow-hidden"
+        class="mobile-menu rounded-3xl border border-stroke/80 bg-[#ffe0c2]/97 backdrop-blur-xl shadow-[0_24px_50px_-28px_rgba(0,0,0,0.45)] overflow-hidden"
       >
         <div class="p-3 space-y-1.5">
           <RouterLink
