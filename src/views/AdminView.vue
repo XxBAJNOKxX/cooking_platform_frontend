@@ -429,7 +429,7 @@ async function doDelete() {
         v-if="meta && meta.last_page > 1"
         :meta="meta"
         :item-label="activeItemLabel"
-        class="mt-6"
+        class="mt-6 mb-1"
         @page-change="loadTab"
       />
     </div>
