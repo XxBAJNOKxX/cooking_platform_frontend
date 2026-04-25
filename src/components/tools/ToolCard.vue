@@ -9,6 +9,7 @@ const props = defineProps({
 })
 
 const FALLBACK =
+  import.meta.env.VITE_TOOL_FALLBACK_IMAGE_URL ??
   'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=60'
 
 const locationLabel = computed(() => {
@@ -37,6 +38,7 @@ const priceLabel = computed(() => {
         class="tcard-img"
         loading="lazy"
         decoding="async"
+        @error="(e) => { if (e.target.src !== FALLBACK) e.target.src = FALLBACK }"
       />
       <span v-if="!tool.is_available" class="tcard-badge tcard-badge-rented"
         >Jelenleg bérbe adva</span

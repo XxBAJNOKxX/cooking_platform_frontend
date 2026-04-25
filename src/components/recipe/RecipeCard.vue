@@ -43,7 +43,7 @@ async function toggleFavorite(e) {
 }
 
 const FALLBACK =
-  import.meta.env.VITE_FALLBACK_IMAGE_URL ??
+  import.meta.env.VITE_RECIPES_FALLBACK_IMAGE_URL ??
   'https://images.unsplash.com/photo-1495195134817-aeb325a55b65?auto=format&fit=crop&w=800&q=60'
 
 const diffInfo = computed(

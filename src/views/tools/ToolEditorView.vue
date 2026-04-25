@@ -2,8 +2,9 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import api from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
 import BaseInput from '@/components/BaseInput.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import AddressAutocomplete from '@/components/tools/AddressAutocomplete.vue'
@@ -12,6 +13,7 @@ import LoadingSpinner from '@/components/LoadingSpinner.vue'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const isEdit = computed(() => !!route.params.id)
 const toolId = computed(() => route.params.id)
@@ -19,6 +21,7 @@ const toolId = computed(() => route.params.id)
 const loading = ref(false)
 const saving = ref(false)
 const serverError = ref('')
+const notAuthorized = ref(false)
 const fieldErrors = reactive({})
 
 const form = reactive({
@@ -95,6 +98,16 @@ async function loadExisting() {
   try {
     const res = await api.get(`/kitchen-tools/${toolId.value}`)
     const t = res.data.data
+
+    if (!authStore.user) await authStore.fetchUser()
+
+    const ownerId = t.owner?.id ?? t.user_id ?? null
+    const isOwner = t.is_owner ?? (ownerId !== null && ownerId === authStore.user?.id)
+    if (!isOwner && !authStore.isAdmin) {
+      notAuthorized.value = true
+      return
+    }
+
     Object.assign(form, {
       name: t.name ?? '',
       description: t.description ?? '',
@@ -225,6 +238,24 @@ async function submit() {
 
     <div v-if="loading" class="te-loading">
       <LoadingSpinner size="h-6 w-6" />
+    </div>
+
+    <div v-else-if="notAuthorized" class="te-unauth">
+      <div class="te-unauth-ico">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          aria-hidden="true"
+        >
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke-linecap="round" />
+        </svg>
+      </div>
+      <h2 class="te-unauth-title">Hozzáférés megtagadva</h2>
+      <p class="te-unauth-desc">Ez az eszköz nem a tiéd, nem szerkesztheted.</p>
+      <RouterLink :to="{ name: 'tools' }" class="te-unauth-link">← Eszközök böngészése</RouterLink>
     </div>
 
     <form v-else @submit.prevent="submit" class="te-form">
@@ -438,6 +469,51 @@ async function submit() {
   display: flex;
   justify-content: center;
   padding: 3rem 0;
+}
+
+.te-unauth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 320px;
+  text-align: center;
+}
+.te-unauth-ico {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+}
+.te-unauth-ico svg {
+  width: 28px;
+  height: 28px;
+}
+.te-unauth-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin: 0;
+}
+.te-unauth-desc {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  margin: 0;
+}
+.te-unauth-link {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color 150ms;
+}
+.te-unauth-link:hover {
+  color: var(--color-accent-hover);
 }
 
 .te-form {

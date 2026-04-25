@@ -44,6 +44,7 @@ async function fetchTool() {
 onMounted(fetchTool)
 
 const FALLBACK =
+  import.meta.env.VITE_TOOL_FALLBACK_IMAGE_URL ??
   'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=1200&q=70'
 
 const priceLabel = computed(() => {
@@ -159,7 +160,12 @@ async function confirmDelete() {
       <div class="td-layout">
         <div class="td-main">
           <div class="td-hero">
-            <img :src="tool.image_url || FALLBACK" :alt="tool.name" class="td-hero-img" />
+            <img
+              :src="tool.image_url || FALLBACK"
+              :alt="tool.name"
+              class="td-hero-img"
+              @error="(e) => { if (e.target.src !== FALLBACK) e.target.src = FALLBACK }"
+            />
             <span class="td-badge" :class="tool.is_available ? 'td-badge-free' : 'td-badge-rented'">
               {{ tool.is_available ? 'Elérhető' : 'Jelenleg bérbe adva' }}
             </span>
