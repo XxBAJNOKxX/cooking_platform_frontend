@@ -1,7 +1,7 @@
 <!-- Nyitóoldal hero — kereső, CTA, kategóriák. -->
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/services/api'
@@ -25,6 +25,17 @@ const fallbackImage =
 const heroStyle = computed(() => ({
   backgroundImage: `linear-gradient(115deg, rgba(47, 30, 23, 0.88) 0%, rgba(47, 30, 23, 0.65) 45%, rgba(47, 30, 23, 0.3) 100%), url('${heroImage}')`,
 }))
+
+const dailyImgSrc = ref(fallbackImage)
+watch(
+  () => dailyRecipe.value?.image_url,
+  (v) => {
+    dailyImgSrc.value = v || fallbackImage
+  },
+)
+function onDailyImgError() {
+  if (dailyImgSrc.value !== fallbackImage) dailyImgSrc.value = fallbackImage
+}
 
 // Keresés indítása
 const handleSearch = () => {
@@ -208,9 +219,10 @@ onMounted(async () => {
               class="overflow-hidden rounded-[1.35rem] border border-white/10 bg-black/40 relative z-10"
             >
               <img
-                :src="dailyRecipe.image_url || fallbackImage"
+                :src="dailyImgSrc"
                 :alt="dailyRecipe.title"
                 class="h-65 sm:h-75 w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                @error="onDailyImgError"
               />
               <div
                 class="absolute inset-0 bg-linear-to-t from-black/90 via-black/30 to-transparent"

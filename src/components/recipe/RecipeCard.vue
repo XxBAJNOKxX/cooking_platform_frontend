@@ -46,6 +46,17 @@ const FALLBACK =
   import.meta.env.VITE_RECIPES_FALLBACK_IMAGE_URL ??
   'https://images.unsplash.com/photo-1495195134817-aeb325a55b65?auto=format&fit=crop&w=800&q=60'
 
+const imgSrc = ref(props.recipe.image_url || FALLBACK)
+watch(
+  () => props.recipe.image_url,
+  (v) => {
+    imgSrc.value = v || FALLBACK
+  },
+)
+function onImgError() {
+  if (imgSrc.value !== FALLBACK) imgSrc.value = FALLBACK
+}
+
 const diffInfo = computed(
   () =>
     ({
@@ -67,11 +78,12 @@ const visibleCats = computed(() => (props.recipe.categories ?? []).slice(0, 3))
   >
     <div class="rcard-img-wrap">
       <img
-        :src="recipe.image_url || FALLBACK"
+        :src="imgSrc"
         :alt="recipe.title"
         class="rcard-img"
         loading="lazy"
         decoding="async"
+        @error="onImgError"
       />
       <div class="rcard-overlay" aria-hidden="true" />
       <div v-if="visibleCats.length" class="rcard-cats" aria-hidden="true">

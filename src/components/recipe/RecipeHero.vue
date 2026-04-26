@@ -1,7 +1,7 @@
 <!-- Recept-részletező hero (háttérkép, cím, meta chipek, owner akciók). -->
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import StarRating from '@/components/recipe/StarRating.vue'
 
@@ -21,8 +21,31 @@ const emit = defineEmits(['toggle-favorite', 'delete', 'add-to-calendar'])
 const router = useRouter()
 const showAllCats = ref(false)
 
+const FALLBACK_IMAGE =
+  import.meta.env.VITE_RECIPES_FALLBACK_IMAGE_URL ??
+  'https://images.unsplash.com/photo-1495195134817-aeb325a55b65?auto=format&fit=crop&w=1600&q=70'
+
+const effectiveImageUrl = ref(null)
+
+watch(
+  () => props.recipe?.image_url,
+  (url) => {
+    if (!url) {
+      effectiveImageUrl.value = null
+      return
+    }
+    effectiveImageUrl.value = url
+    const probe = new Image()
+    probe.onerror = () => {
+      if (props.recipe?.image_url === url) effectiveImageUrl.value = FALLBACK_IMAGE
+    }
+    probe.src = url
+  },
+  { immediate: true },
+)
+
 const heroImageStyle = computed(() => {
-  const url = props.recipe?.image_url
+  const url = effectiveImageUrl.value
   if (!url) return null
   const safeUrl = String(url).replace(/"/g, '%22')
   return { backgroundImage: `url("${safeUrl}")` }
@@ -46,8 +69,8 @@ const hiddenCatsCount = computed(() => hiddenCats.value.length)
 </script>
 
 <template>
-  <section class="hero" :class="{ 'hero-no-img': !recipe.image_url }">
-    <div v-if="recipe.image_url" class="hero-img" :style="heroImageStyle" aria-hidden="true" />
+  <section class="hero" :class="{ 'hero-no-img': !effectiveImageUrl }">
+    <div v-if="effectiveImageUrl" class="hero-img" :style="heroImageStyle" aria-hidden="true" />
     <div class="hero-overlay">
       <div class="hero-top">
         <button class="btn-back" @click="router.back()">
