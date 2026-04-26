@@ -121,7 +121,7 @@ async function onUnitCustom(ing, name) {
     await api.post('/units', { name })
     emit('unit-created', name)
   } catch {
-    // server-side creation is best-effort
+    // Szerver-oldali létrehozás best-effort
   }
 }
 

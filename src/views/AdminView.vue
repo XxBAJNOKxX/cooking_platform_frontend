@@ -29,13 +29,13 @@ const errorMsg = ref('')
 const search = ref('')
 let searchTimer = null
 
-// Edit modal — generic shape per entity
-const editing = ref(null) // { entity, form }
+// Szerkesztő modal — entitásonként generikus alak
+const editing = ref(null)
 const saving = ref(false)
 const editErrors = ref({})
 
-// Delete modal
-const pendingDelete = ref(null) // { entity, id, label }
+// Törlés megerősítő modal
+const pendingDelete = ref(null)
 const deleting = ref(false)
 const deleteError = ref('')
 
@@ -65,10 +65,8 @@ function endpointFor(tab, page = 1) {
   }
 }
 
+// Pagination meta egységesítése (Resource::collection meta vs raw paginate top-level)
 function normalizeMeta(body) {
-  // Resource::collection wraps meta under `meta`; Laravel's raw paginate()
-  // puts it at the top level. Normalize so the Pagination component gets
-  // the same shape everywhere.
   if (body?.meta) return body.meta
   if (body?.current_page != null) {
     return {

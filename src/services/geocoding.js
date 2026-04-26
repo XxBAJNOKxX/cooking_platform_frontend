@@ -1,19 +1,16 @@
-// OSM Nominatim-based geocoding service.
-// No API key needed. Respects Nominatim usage policy:
-// - Identify the app via a descriptive User-Agent isn't possible from browser,
-//   but we keep request volume low (debounced) and provide `email` param.
-// - Max 1 req/sec per client — debouncing on the caller side.
+// OSM Nominatim alapú cím-geokódolás — nincs szükség kulcsra, debounce-szal és kapcsolattartó email-mel követjük a usage policy-t
 
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search'
 const CONTACT_EMAIL = 'cooking-platform@example.com'
 
+// Nominatim találat normalizálása egységes mezőszerkezetre
 function normalizeHit(hit) {
   const a = hit.address ?? {}
 
-  // Nominatim returns many keys for cities (city, town, village, hamlet).
+  // Nominatim sokféle kulcsot ad a városra
   const city = a.city ?? a.town ?? a.village ?? a.hamlet ?? a.municipality ?? ''
 
-  // Prefer county (megye) but fall back to state if county isn't present.
+  // Megyét részesítjük előnyben, fallback a state
   const county = a.county ?? a.state ?? ''
 
   const country = a.country ?? ''
@@ -35,15 +32,7 @@ function normalizeHit(hit) {
   }
 }
 
-/**
- * Search for address matches.
- * @param {string} query
- * @param {object} [opts]
- * @param {string} [opts.countryCodes='hu']
- * @param {number} [opts.limit=6]
- * @param {AbortSignal} [opts.signal]
- * @returns {Promise<Array<{osmId, displayName, lat, lng, country, county, city, postalCode, street, houseNumber}>>}
- */
+// Cím keresése Nominatim-ban; üres / 3 karakternél rövidebb keresésre üres tömböt ad
 export async function searchAddress(query, opts = {}) {
   const trimmed = (query ?? '').trim()
   if (trimmed.length < 3) return []
@@ -68,12 +57,7 @@ export async function searchAddress(query, opts = {}) {
   return Array.isArray(data) ? data.map(normalizeHit) : []
 }
 
-/**
- * Debounce a function with AbortController-aware cancellation.
- * @template T
- * @param {(signal: AbortSignal, ...args: any[]) => Promise<T>} fn
- * @param {number} ms
- */
+// Debounce + AbortController; a futó kérést megszakítja, ha új hívás érkezik
 export function debounceCancellable(fn, ms = 300) {
   let timer = null
   let controller = null

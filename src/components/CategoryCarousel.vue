@@ -7,9 +7,8 @@ import api from '@/services/api'
 
 const router = useRouter()
 
-// Visuals keyed by a normalized key (lowercase, diacritic-preserving, trailing
-// plural suffix stripped). Keep canonical keys singular; the matcher handles
-// "Desszertek" → "desszert", "Húsételek" → "húsétel", etc.
+// Vizuál mapping normalizált kulccsal (lowercase, ékezet-megőrzéssel, többes szám levágva)
+// A kulcsok egyes számban; a matcher kezeli a "Desszertek" → "desszert" stb. átalakítást
 const CATEGORY_VISUALS = {
   főétel: { icon: '🍲', description: 'Laktató, teljes értékű fogások' },
   desszert: { icon: '🍰', description: 'Édes finomságok' },
@@ -53,11 +52,11 @@ const CATEGORY_VISUALS = {
 
 const FALLBACK_VISUAL = { icon: '🍴', description: 'Böngészd ezt a kategóriát' }
 
-// Strip common Hungarian plural suffixes so "desszertek" → "desszert".
+// Magyar többes szám végződések levágása ("desszertek" → "desszert")
 function normalizeKey(name) {
   const base = (name ?? '').trim().toLowerCase()
   if (!base) return ''
-  // Order matters: longer suffixes first.
+  // Sorrend számít: hosszabb végződéseket előbb
   const suffixes = ['ek', 'ak', 'ok', 'ök', 'k']
   for (const s of suffixes) {
     if (base.length > s.length + 2 && base.endsWith(s)) {
@@ -72,8 +71,7 @@ function lookupVisual(name) {
   if (CATEGORY_VISUALS[raw]) return CATEGORY_VISUALS[raw]
   const stripped = normalizeKey(name)
   if (stripped && CATEGORY_VISUALS[stripped]) return CATEGORY_VISUALS[stripped]
-  // Try partial: the first matching keyword token wins (e.g. "gyors ételek"
-  // → "gyors"). Keeps the fallback for genuinely unknown names.
+  // Részleges egyezés: az első találat nyer (pl. "gyors ételek" → "gyors"); ismeretlen névre fallback
   for (const key of Object.keys(CATEGORY_VISUALS)) {
     if (raw.includes(key)) return CATEGORY_VISUALS[key]
   }

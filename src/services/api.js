@@ -1,6 +1,7 @@
 import axios from 'axios'
 import router from '@/router'
 
+// Központi axios kliens — Bearer token automatikus csatolás + 401/403 kezelés (kijelentkeztet vagy OTP-re visz)
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   timeout: 10000,
@@ -29,7 +30,7 @@ api.interceptors.response.use(
     const status = error.response?.status
     const code = error.response?.data?.code
 
-    // Unverified users hitting a protected endpoint → OTP screen (don't log them out)
+    // Hitelesítetlen user védett végpontot ér el → OTP képernyő (nem jelentkeztetjük ki)
     if (status === 403 && code === 'VERIFICATION_REQUIRED') {
       if (router.currentRoute.value.name !== 'verify-otp') {
         router.push({ name: 'verify-otp' })

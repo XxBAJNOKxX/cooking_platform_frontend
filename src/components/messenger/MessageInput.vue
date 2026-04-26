@@ -9,8 +9,8 @@ const emit = defineEmits(['send'])
 const text = ref('')
 const textareaRef = ref(null)
 
-// Touch devices: Enter = newline (no physical Enter key), send-button only.
-// Desktop: Enter = send, Shift+Enter = newline.
+// Touch eszközön: Enter = új sor (nincs fizikai Enter), küldés csak gombbal
+// Desktopon: Enter = küldés, Shift+Enter = új sor
 const isTouch = ref(false)
 let mql = null
 

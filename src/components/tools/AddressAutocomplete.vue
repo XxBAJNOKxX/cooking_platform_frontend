@@ -83,7 +83,7 @@ function onKeydown(e) {
 }
 
 function onBlur() {
-  // Delay so click events on suggestions fire first.
+  // Késleltetés, hogy a javaslatra kattintás eseménye előbb tüzeljen
   setTimeout(() => {
     open.value = false
   }, 150)

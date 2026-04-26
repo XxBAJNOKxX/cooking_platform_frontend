@@ -84,7 +84,7 @@ watch(
   { deep: true },
 )
 
-// ─── Collapsible filter (mobile/tablet) ────────────────────────────
+// Összecsukható szűrő mobilon/tableten
 const isNarrow = ref(false)
 const filtersOpen = ref(true)
 

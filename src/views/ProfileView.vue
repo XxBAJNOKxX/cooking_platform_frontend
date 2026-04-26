@@ -22,8 +22,7 @@ function tabFromQuery(v) {
   return VALID_TABS.includes(v) ? v : 'recipes'
 }
 
-// ─── Profile ──────────────────────────────────────────────────────────────────
-
+// Profil-adat az auth store-ból; monogram és csatlakozási dátum számítása
 const profile = computed(() => authStore.user)
 const initials = computed(() => {
   const name = profile.value?.username ?? '?'
@@ -41,8 +40,7 @@ const joinedLabel = computed(() => {
 
 const showSettings = ref(false)
 
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
-
+// Tab kezelés URL ?tab=... szinkronizálva
 const activeTab = ref(tabFromQuery(route.query.tab))
 
 watch(
@@ -59,8 +57,7 @@ function setTab(tab) {
   }
 }
 
-// ─── My Recipes ───────────────────────────────────────────────────────────────
-
+// Saját receptek tab
 const recipes = ref([])
 const recipesLoading = ref(true)
 const recipesError = ref(null)
@@ -89,8 +86,7 @@ async function fetchMyRecipes(page = 1) {
   }
 }
 
-// ─── My Tools ─────────────────────────────────────────────────────────────────
-
+// Saját eszközök tab (lazy load — csak ha aktiválják)
 const tools = ref([])
 const toolsLoading = ref(false)
 const toolsError = ref(null)
@@ -119,8 +115,7 @@ async function fetchMyTools(page = 1) {
   }
 }
 
-// ─── Favorites ────────────────────────────────────────────────────────────────
-
+// Kedvencek tab (lazy load)
 const favorites = ref([])
 const favoritesLoading = ref(false)
 const favoritesError = ref(null)
@@ -165,10 +160,9 @@ watch(activeTab, (tab) => {
   }
 })
 
-// ─── Delete (shared modal) ────────────────────────────────────────────────────
-
+// Megosztott törlés-megerősítő modal (recept vagy eszköz)
 const deleteTarget = ref(null)
-const deleteKind = ref(null) // 'recipe' | 'tool'
+const deleteKind = ref(null)
 const deleting = ref(false)
 const deleteError = ref('')
 

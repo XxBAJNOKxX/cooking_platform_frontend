@@ -16,7 +16,7 @@ const emit = defineEmits(['update:modelValue', 'complete'])
 const digits = ref(Array.from({ length: props.length }, () => ''))
 const inputs = ref([])
 
-// Keep internal digits array in sync with external modelValue (e.g. paste via form reset).
+// Belső digits tömb szinkronban tartása a külső modelValue-val (pl. form reset után)
 watch(
   () => props.modelValue,
   (v) => {
@@ -40,14 +40,13 @@ function focusAt(i) {
   const el = inputs.value[i]
   if (!el) return
   el.focus()
-  // Select so typing replaces existing digit.
+  // Kijelölés, hogy a beírás felülírja a meglévő számjegyet
   if (typeof el.select === 'function') el.select()
 }
 
 function onInput(i, e) {
   const raw = e.target.value
-  // Strip everything non-digit; if multiple digits were typed (paste into single
-  // field), spread them across subsequent boxes.
+  // Csak számjegyek; több számjegy esetén (pl. paste) szétosztjuk a következő mezőkbe
   const clean = raw.replace(/\D/g, '')
   if (clean.length === 0) {
     digits.value[i] = ''
@@ -58,8 +57,7 @@ function onInput(i, e) {
   for (let k = 0; k < chars.length && i + k < props.length; k++) {
     digits.value[i + k] = chars[k]
   }
-  // Focus the cell immediately after the last one we just filled, clamped to
-  // the final cell so we never try to focus index === length (undefined).
+  // A frissen kitöltött utáni cellára fókuszálunk; az utolsó cellához kapcsoltan, hogy ne fussunk ki index-en
   const nextIdx = Math.min(i + chars.length, props.length - 1)
   nextTick(() => focusAt(nextIdx))
   emitModel()

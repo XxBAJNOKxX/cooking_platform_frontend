@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 
+/* Globális design token-ek (színek + animáció easing-ek) Tailwind theme rétegben */
 @theme {
   --color-bg: #fff4ea;
   --color-surface: #ffe4cf;
@@ -45,20 +46,9 @@
     display: none;
   }
 
-  /* @media (prefers-reduced-motion: reduce) {
-
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
-  } */
 }
 
-/* ── Shared keyframes ────────────────────────────────────────────── */
-/* Scoped <style> can reference these by name — @keyframes are global. */
+/* Globális keyframes — scoped <style> blokkok név szerint hivatkozhatnak rájuk */
 
 @keyframes spin {
   to {
@@ -117,10 +107,7 @@
   }
 }
 
-/* ── Shared utility: print visibility ────────────────────────────── */
-/* Scoped <style> blocks can't cleanly target print across component
-   boundaries, so these live here once. */
-
+/* Nyomtatás-segédek — scoped style-ok nem érik el tisztán a print media-t, így itt kapnak helyet */
 .print-only {
   display: none;
 }
@@ -133,9 +120,7 @@
     display: block !important;
   }
 
-  /* Disable animations + transitions in print: animation fill-mode: both
-     leaves elements at their "from" state (opacity: 0) when the animation
-     doesn't run during print rendering. */
+  /* Animációk/tranziciók kikapcsolása nyomtatáskor — különben a fill-mode: both miatt opacity:0 állapotban maradnának */
   *,
   *::before,
   *::after {
@@ -143,8 +128,7 @@
     transition: none !important;
   }
 
-  /* `min-height: 100vh` on body forces an extra blank first page in print.
-     Reset the page container so content flows from the top of page 1. */
+  /* min-height: 100vh extra üres első oldalt csinálna nyomtatáskor — ezt resetelni kell */
   html,
   body {
     min-height: 0 !important;
@@ -154,9 +138,7 @@
   }
 }
 
-/* ── Shared print-header block (ShoppingList + Calendar) ─────────── */
-/* Font sizes stay per-view (portrait vs landscape), structure shared. */
-
+/* Megosztott print fejléc (ShoppingList + Calendar) — szerkezet közös, font-size nézetenként */
 @media print {
   .print-header {
     padding: 0 0 8pt 0;
@@ -194,8 +176,7 @@
   }
 }
 
-/* ── Shared components: buttons ──────────────────────────────────── */
-
+/* Megosztott UI komponens-osztályok */
 .btn-ghost {
   padding: 8px 18px;
   border: 1.5px solid var(--color-stroke);

@@ -29,7 +29,7 @@ export function useRecipeDraft(formRef, keyRef, isEmptyFn) {
         }),
       )
     } catch {
-      // storage full / disabled — silent
+      // localStorage tele vagy letiltva — csendben elnyeljük
     }
   }
 

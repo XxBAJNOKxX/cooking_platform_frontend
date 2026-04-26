@@ -38,9 +38,7 @@ function getMeals(day, type) {
   return (props.mealsByDate[toDateStr(day)] ?? []).filter((m) => m.meal_type === type)
 }
 
-// ── Drag & drop ─────────────────────────────────────────────────────────────
-// Native HTML5 DnD. dragId tracks which card is being dragged (for styling),
-// dropKey tracks which cell is currently the drop target.
+// Drag & drop natív HTML5 API-val; dragId = épp húzott kártya, dropKey = aktuális drop célcella
 const dragId = ref(null)
 const dropKey = ref(null)
 
@@ -67,8 +65,7 @@ function onCellDragEnter(day, type) {
 }
 
 function onCellDragLeave(e, day, type) {
-  // Leave fires when moving over children too; only clear if pointer is
-  // really outside this cell's bounding box.
+  // A leave event a gyerekekre lépéskor is tüzel — csak akkor töröljük, ha tényleg kivittük az egeret a cellából
   const r = e.currentTarget.getBoundingClientRect()
   if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
     const k = `${toDateStr(day)}|${type}`

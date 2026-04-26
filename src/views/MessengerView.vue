@@ -13,8 +13,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 const myId = computed(() => authStore.user?.id)
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
-
+// Adatok
 const allMessages = ref([])
 const loading = ref(true)
 const sendLoading = ref(false)
@@ -25,14 +24,13 @@ async function fetchMessages() {
     const msgRes = await api.get('/messages', { params: { per_page: 100 } })
     allMessages.value = msgRes.data.data ?? []
   } catch {
-    // silent on poll errors
+    // poll hibák csendben elnyelve
   } finally {
     loading.value = false
   }
 }
 
-// ─── Conversations ────────────────────────────────────────────────────────────
-
+// Beszélgetések csoportosítása partner szerint, dátum-rendezéssel
 const conversations = computed(() => {
   const map = new Map()
 
@@ -63,8 +61,7 @@ const conversations = computed(() => {
     })
 })
 
-// ─── Selection ────────────────────────────────────────────────────────────────
-
+// Aktív beszélgetés kiválasztás + külső (URL-ből nyitott) partner/eszköz
 const selectedPartnerId = ref(null)
 const externalPartner = ref(null)
 const externalTool = ref(null)
@@ -80,8 +77,7 @@ const activePartner = computed(
   () => activeConversation.value?.partner ?? externalPartner.value ?? null,
 )
 
-// Most recent tool referenced by either side in the active conversation.
-// Used to show the "context tool" header with a rent-out action for the owner.
+// A beszélgetésben legutoljára említett eszköz — kontextus header és tulaj rent-out gomb
 const activeTool = computed(() => {
   const conv = activeConversation.value
   if (!conv) return externalTool.value
@@ -106,7 +102,7 @@ function markConversationRead(conv) {
   if (!conv?.partner?.id) return
   if (conv.unread === 0) return
 
-  // Optimistic local update so the badge disappears immediately.
+  // Optimistic frissítés, hogy az olvasatlan badge azonnal eltűnjön
   for (const msg of allMessages.value) {
     if (msg.sender?.id === conv.partner.id && msg.is_read === false) {
       msg.is_read = true
@@ -121,7 +117,7 @@ function markConversationRead(conv) {
     .catch(() => {})
 }
 
-// Watch URL params on mount
+// Mount-kor URL-paraméter feldolgozása (?userId / ?to / ?toolId) — közvetlen csevegés indítás
 onMounted(async () => {
   document.body.style.overflow = 'hidden'
 
@@ -134,7 +130,7 @@ onMounted(async () => {
       : null
   const urlToolId = route.query.toolId ? parseInt(route.query.toolId) : null
 
-  // Guard: don't open a chat with yourself.
+  // Védelem: önmagunkkal nem nyitunk chatet
   const urlUserId = urlUserIdRaw && urlUserIdRaw !== myId.value ? urlUserIdRaw : null
 
   if (urlUserId) {
@@ -145,8 +141,7 @@ onMounted(async () => {
       selectedPartnerId.value = urlUserId
       showPanel.value = true
 
-      // Seed with whatever the URL gave us so the name shows immediately,
-      // then always fetch so avatar_url (and the rest) fill in.
+      // Először URL-ből töltjük az elérhető adatot (név azonnal látszik), aztán fetch-eljük az avatar_url-t és a többit
       externalPartner.value = {
         id: urlUserId,
         username: route.query.username ?? 'Betöltés...',
@@ -181,8 +176,7 @@ onMounted(async () => {
   }
 })
 
-// ─── Auto-scroll ──────────────────────────────────────────────────────────────
-
+// Auto-scroll az új üzenetekhez
 async function scrollToBottom() {
   await nextTick()
   messagesEnd.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -193,8 +187,7 @@ watch(
   () => scrollToBottom(),
 )
 
-// ─── Send ─────────────────────────────────────────────────────────────────────
-
+// Üzenet küldése (eszköz-kontextus első üzeneten csatolva)
 async function sendMessage(content) {
   if (!selectedPartnerId.value) return
   sendLoading.value = true
@@ -203,8 +196,7 @@ async function sendMessage(content) {
       receiver_id: selectedPartnerId.value,
       content,
     }
-    // If we opened the chat from a tool, pin the first message to it so
-    // either participant can jump back to the listing.
+    // Ha eszközről nyitottuk a chatet, az első üzenetet hozzákötjük az eszközhöz
     if (externalTool.value?.id && !activeConversation.value) {
       payload.tool_id = externalTool.value.id
     }
@@ -214,7 +206,7 @@ async function sendMessage(content) {
     if (externalPartner.value) externalPartner.value = null
     await scrollToBottom()
   } catch {
-    // TODO: toast error
+    // TODO: toast hibajelzés
   } finally {
     sendLoading.value = false
   }
@@ -258,8 +250,7 @@ async function markToolAvailable() {
   }
 }
 
-// ─── Polling (10 s) ──────────────────────────────────────────────────────────
-
+// Polling 10 másodpercenként, ha a tab látható
 let pollTimer = null
 
 onMounted(() => {
@@ -273,8 +264,7 @@ onUnmounted(() => {
   document.body.style.overflow = ''
 })
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
+// Helper függvények: monogram, dátum-formázás, "5-perces csoport" generálás
 function initials(user) {
   return (user?.username ?? '?').slice(0, 2).toUpperCase()
 }
@@ -306,9 +296,7 @@ function dayLabel(str) {
   })
 }
 
-// Group messages by day and flag the last message of each "5-min cluster"
-// (consecutive same-sender messages <=5min apart) so only the tail shows a
-// timestamp. Everything in between is visually continuous.
+// Üzenetek napi csoportosítása + 5 perces "klaszterek" jelölése (csak az utolsó üzeneten lesz időbélyeg)
 const FIVE_MIN = 5 * 60_000
 
 function groupByDay(messages) {

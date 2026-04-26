@@ -5,7 +5,7 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
 
-// https://vite.dev/config/
+// Vite build és dev konfig — Vue + DevTools + Tailwind plugin, '@' alias az src-re
 export default defineConfig({
   plugins: [
     vue(),

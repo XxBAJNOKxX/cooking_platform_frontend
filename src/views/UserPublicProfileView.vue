@@ -36,10 +36,10 @@ const isSelf = computed(
   () => authStore.user?.id && profile.value?.id && authStore.user.id === profile.value.id,
 )
 
-// ── Tabs ──
+// Tabok közötti váltás
 const activeTab = ref('recipes')
 
-// ── Recipes ──
+// Receptek betöltése (lapozott)
 const recipes = ref([])
 const recipesLoading = ref(true)
 const recipesError = ref(null)
@@ -63,7 +63,7 @@ async function fetchRecipes(page = 1) {
   }
 }
 
-// ── Tools ──
+// Eszközök betöltése (lapozott, lazy — csak akkor, ha a Tools tab-ot kiválasztják)
 const tools = ref([])
 const toolsLoading = ref(false)
 const toolsError = ref(null)

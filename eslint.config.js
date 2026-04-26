@@ -27,7 +27,7 @@ export default defineConfig([
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
   {
-    // Convention-established single-word component names.
+    // Egyszavas komponensnevek engedélyezése néhány konvencionális kivételnél
     files: ['src/components/Navbar.vue', 'src/components/Pagination.vue'],
     rules: {
       'vue/multi-word-component-names': 'off',

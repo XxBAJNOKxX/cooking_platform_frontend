@@ -72,7 +72,7 @@ async function startChat() {
   }
   if (!tool.value?.owner?.id) return
 
-  // Send an initial message from the renter tying the conversation to this tool.
+  // Bérlő által küldött kezdő üzenet — eszközhöz kötve, hogy később vissza lehessen ugrani a hirdetésre
   try {
     acting.value = true
     await api.post('/messages', {

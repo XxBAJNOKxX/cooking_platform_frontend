@@ -42,7 +42,7 @@ const form = reactive({
 
 const addressQuery = ref('')
 
-// ─── Image upload ────────────────────────────────────────────────
+// Kép feltöltés (drag-drop, fájlválasztó, hibás kép kezelés)
 const imgDragOver = ref(false)
 const imgBroken = ref(false)
 const imageUploading = ref(false)

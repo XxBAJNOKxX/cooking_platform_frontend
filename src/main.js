@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import App from './App.vue'
 import router from './router'
 
+// App boot — Pinia és router beregisztrálása, valamint a már bejelentkezett user adatainak betöltése a router init előtt
 const app = createApp(App)
 const pinia = createPinia()
 

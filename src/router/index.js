@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
+// Vue Router — útvonalak és meta-flag alapú authentikáció (auth/guest/verified/admin)
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -127,6 +128,7 @@ const router = createRouter({
   ],
 })
 
+// Globális navigation guard — meta flag-ek szerint redirectel, ha nincs jogosultság
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
 

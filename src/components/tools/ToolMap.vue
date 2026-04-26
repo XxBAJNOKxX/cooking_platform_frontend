@@ -6,14 +6,14 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 const props = defineProps({
-  // Circle centre
+  // Kör középpontja (GPS koordináta)
   lat: { type: Number, required: true },
   lng: { type: Number, required: true },
-  // Radius in metres; 0 or falsy means use an exact marker instead
+  // Sugár méterben; 0 esetén pontos marker, nem kör
   radiusM: { type: Number, default: 700 },
-  // Optional tooltip text when hovering the circle/marker
+  // Tooltip szöveg a kör/marker hover-re
   label: { type: String, default: '' },
-  // Additional tools to drop onto the map as circles; each { id, lat, lng, radius_m, name }
+  // További eszközök körökként megjelenítve a térképen ({ id, lat, lng, radius_m, name })
   markers: { type: Array, default: () => [] },
   zoom: { type: Number, default: 13 },
   interactive: { type: Boolean, default: true },
@@ -100,7 +100,7 @@ onMounted(() => {
   renderPrimary()
   renderSecondary()
 
-  // Fit bounds if we have extra markers
+  // Térkép bounds-jának igazítása az extra markerekhez
   if (props.markers.length) {
     const all = [[props.lat, props.lng], ...props.markers.map((m) => [m.lat, m.lng])]
     map.fitBounds(all, { padding: [30, 30], maxZoom: 14 })
@@ -165,7 +165,7 @@ onBeforeUnmount(() => {
 </style>
 
 <style>
-/* Un-scoped: Leaflet renders the marker outside the component root. */
+/* Nem scoped: Leaflet a komponens gyökerén kívülre rendereli a marker DOM-ot */
 .tmap-pin {
   pointer-events: auto;
 }

@@ -12,7 +12,7 @@ import Pagination from '@/components/Pagination.vue'
 const route = useRoute()
 const router = useRouter()
 
-// ---- State ----
+// State — receptek + meta + szűrők (URL-szinkronizált)
 const recipes = ref([])
 const meta = ref(null)
 const loading = ref(false)
@@ -42,7 +42,7 @@ function syncFromRoute() {
   }
 }
 
-// ---- Build API params ----
+// API params építése a szűrőkből
 function buildParams(page = 1) {
   const p = { page, per_page: 18 }
   if (filters.value.search) p.search = filters.value.search
@@ -52,7 +52,7 @@ function buildParams(page = 1) {
   return p
 }
 
-// ---- Fetch recipes ----
+// Receptek lekérése
 async function fetchRecipes(page = 1) {
   loading.value = true
   error.value = ''
@@ -68,10 +68,7 @@ async function fetchRecipes(page = 1) {
   }
 }
 
-// ---- Fetch categories (for filter sidebar) ----
-//      Retries once with a short backoff if the first attempt fails or
-//      returns an empty list — fixes cold-start flakiness where the
-//      category dropdown occasionally rendered empty.
+// Kategóriák lekérése a szűrő sidebar-hoz; egyszer újrapróbál (cold-start hiba ellen)
 async function fetchCategories({ retry = true } = {}) {
   categoriesLoading.value = true
   try {
@@ -90,13 +87,13 @@ async function fetchCategories({ retry = true } = {}) {
       await new Promise((r) => setTimeout(r, 600))
       return fetchCategories({ retry: false })
     }
-    // silent – dropdown still usable with just "Összes kategória"
+    // hiba elnyelve — a dropdown így is használható "Összes kategória" opcióval
   } finally {
     categoriesLoading.value = false
   }
 }
 
-// ---- Filter change from sidebar → push URL ----
+// Sidebar szűrő-változás → URL frissítés (deep link / vissza-előre navigáció)
 function onFiltersUpdate(newFilters) {
   filters.value = { ...newFilters }
 
@@ -111,7 +108,7 @@ function onFiltersUpdate(newFilters) {
   })
 }
 
-// ---- Watch URL query → refetch ----
+// URL query változásra refetch
 watch(
   () => route.query,
   () => {
@@ -124,19 +121,19 @@ watch(
   { deep: true },
 )
 
-// ---- Pagination ----
+// Lapozó callback
 function onPageChange(page) {
   fetchRecipes(page)
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-// ---- Mount ----
+// Mount: állapot szinkronizálás URL-ből + kezdeti lekérések
 onMounted(() => {
   syncFromRoute()
   Promise.all([fetchCategories(), fetchRecipes(1)])
 })
 
-// ---- Computed helpers ----
+// Computed segédek a chip-ek megjelenítéséhez és a "Találatok" feliratokhoz
 const hasFilters = computed(() =>
   Object.values(filters.value).some((v) => v !== '' && v !== null && v !== undefined),
 )

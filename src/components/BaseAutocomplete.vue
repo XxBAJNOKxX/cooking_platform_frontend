@@ -81,10 +81,8 @@ function pickCustom() {
   inputRef.value?.blur()
 }
 
-// The click-outside listener runs on `mousedown` — before focus moves, before
-// the input would blur. This is what makes the component immune to the
-// blur/click race conditions that plagued the previous implementation.
-// We check both the root (trigger) and the teleported panel.
+// Click-outside listener `mousedown`-on (focus változás előtt) — így nincs blur/click race condition
+// Mind a root (trigger) elemet, mind a teleportált panelt ellenőrizzük
 function onDocMouseDown(e) {
   if (!open.value) return
   const inTrigger = rootRef.value?.contains(e.target)
@@ -95,7 +93,7 @@ function onDocMouseDown(e) {
   }
 }
 
-// When the input scrolls / resizes while open, reposition the teleported panel.
+// Görgetés / resize esetén újrapozícionáljuk a teleportált panelt
 function onReposition() {
   if (open.value) updatePanelPos()
 }

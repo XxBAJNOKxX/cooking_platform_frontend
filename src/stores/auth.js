@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import api from '@/services/api'
 
+// Pinia auth store — Bearer token + user adatok kezelése (login/register/logout/fetchUser)
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
