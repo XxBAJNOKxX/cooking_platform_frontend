@@ -158,4 +158,32 @@ function toggle(i) {
   overflow-wrap: break-word;
   word-break: break-word;
 }
+
+@media print {
+  .step-item.is-active {
+    background: transparent !important;
+    border-color: transparent !important;
+  }
+
+  .step-item {
+    background: transparent !important;
+    border: none !important;
+    padding: 6pt 0 !important;
+    animation: none !important;
+  }
+
+  .step-num {
+    background: #000 !important;
+    color: #fff !important;
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 8pt !important;
+  }
+
+  .step-text {
+    color: #000 !important;
+    font-size: 10pt !important;
+    line-height: 1.45 !important;
+  }
+}
 </style>

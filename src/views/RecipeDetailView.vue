@@ -114,6 +114,16 @@ onMounted(fetchRecipe)
       />
 
       <div class="content-grid">
+        <section class="card print-description-card">
+          <h2 class="card-title">Leírás</h2>
+          <p class="description">{{ recipe.description }}</p>
+        </section>
+
+        <div v-if="recipe.servings" class="print-portions-card print-only">
+          <span class="print-portions-label">Adagok:</span>
+          <span class="print-portions-value">{{ portions }}</span>
+        </div>
+
         <aside class="sidebar">
           <div class="card">
             <h2 class="card-title">Hozzávalók</h2>
@@ -131,7 +141,7 @@ onMounted(fetchRecipe)
         </aside>
 
         <main class="main">
-          <section class="card">
+          <section class="card no-print">
             <h2 class="card-title">Leírás</h2>
             <p class="description">{{ recipe.description }}</p>
           </section>
@@ -250,6 +260,14 @@ onMounted(fetchRecipe)
   word-break: break-word;
 }
 
+.print-description-card {
+  display: none;
+}
+
+.print-portions-card {
+  display: none;
+}
+
 .print-image {
   width: 100%;
   max-width: 100%;
@@ -263,18 +281,49 @@ onMounted(fetchRecipe)
 @media print {
   .page {
     background: #fff !important;
+    min-height: 0 !important;
   }
   .content-grid {
-    display: block !important;
-    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
     padding: 0 !important;
     margin: 0 !important;
     max-width: 100% !important;
+    gap: 0 !important;
   }
-  .sidebar,
+  .print-description-card {
+    display: block !important;
+    order: 1 !important;
+  }
+  .print-portions-card {
+    display: flex !important;
+    align-items: baseline;
+    gap: 6pt;
+    order: 2 !important;
+    margin-bottom: 10pt;
+  }
+  .print-portions-label {
+    font-size: 10pt;
+    font-weight: 600;
+    color: #000;
+  }
+  .print-portions-value {
+    font-size: 12pt;
+    font-weight: 800;
+    color: #000;
+  }
+  .sidebar {
+    display: block !important;
+    position: static !important;
+    order: 3 !important;
+  }
+  .sidebar :deep(.portion-calc) {
+    display: none !important;
+  }
   .main {
     display: block !important;
     position: static !important;
+    order: 4 !important;
   }
   .card {
     background: transparent !important;
@@ -282,7 +331,6 @@ onMounted(fetchRecipe)
     border-radius: 0 !important;
     padding: 0 !important;
     margin-bottom: 10pt !important;
-    page-break-inside: avoid;
     box-shadow: none !important;
     animation: none !important;
   }
@@ -304,7 +352,7 @@ onMounted(fetchRecipe)
   }
   .print-image {
     display: block !important;
-    max-height: 55mm !important;
+    max-height: 50mm !important;
     width: 100% !important;
     height: auto !important;
     page-break-before: avoid !important;

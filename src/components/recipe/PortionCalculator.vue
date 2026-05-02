@@ -139,4 +139,27 @@ function increase() {
     transform: scale(1);
   }
 }
+
+@media print {
+  .ctrl-btn {
+    display: none !important;
+  }
+
+  .portion-calc {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin-bottom: 6pt !important;
+  }
+
+  .value {
+    font-size: 10pt !important;
+    color: #000 !important;
+  }
+
+  .label {
+    font-size: 9pt !important;
+    color: #000 !important;
+  }
+}
 </style>
