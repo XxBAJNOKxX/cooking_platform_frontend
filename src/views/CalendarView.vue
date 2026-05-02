@@ -2,6 +2,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import WeekGrid from '@/components/calendar/WeekGrid.vue'
 import AddMealModal from '@/components/calendar/AddMealModal.vue'
 import DeleteConfirmModal from '@/components/recipe/DeleteConfirmModal.vue'
@@ -10,6 +11,9 @@ import BaseButton from '@/components/BaseButton.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMealPlans, getMondayOf, formatDateStr } from '@/composables/useMealPlans'
 import { usePageRule } from '@/composables/usePageRule'
+
+const route = useRoute()
+const router = useRouter()
 
 usePageRule('@page { size: A4 landscape; margin: 10mm; }')
 
@@ -108,7 +112,13 @@ async function onSubmitAdd(payload) {
   if (ok) showModal.value = false
 }
 
-onMounted(fetchMealPlans)
+onMounted(async () => {
+  await fetchMealPlans()
+  if (route.query.openAdd === '1') {
+    openAddModal(formatDateStr(new Date()))
+    router.replace({ query: { ...route.query, openAdd: undefined } })
+  }
+})
 </script>
 
 <template>
@@ -129,6 +139,13 @@ onMounted(fetchMealPlans)
         <h1 class="cal-title">Étkezési napló</h1>
         <p class="cal-subtitle">Tervezd meg a heti étrendedet</p>
       </div>
+
+      <RouterLink to="/shopping-list" class="shopping-link" aria-label="Bevásárlólista megnyitása">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        <span>Bevásárlólista</span>
+      </RouterLink>
 
       <button class="print-btn" @click="printCalendar" aria-label="Nyomtatás">
         <svg
@@ -418,6 +435,35 @@ onMounted(fetchMealPlans)
   .cal-title {
     font-size: 1.375rem;
   }
+}
+
+.shopping-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.625rem;
+  border: 1.5px solid var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    transform 160ms var(--ease-ui-out);
+}
+.shopping-link svg {
+  width: 1rem;
+  height: 1rem;
+}
+@media (hover: hover) and (pointer: fine) {
+  .shopping-link:hover {
+    background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  }
+}
+.shopping-link:active {
+  transform: scale(0.96);
 }
 
 .print-btn {

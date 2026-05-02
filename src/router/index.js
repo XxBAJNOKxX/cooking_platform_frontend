@@ -4,6 +4,11 @@ import { useAuthStore } from '@/stores/auth'
 // Vue Router — útvonalak és meta-flag alapú authentikáció (auth/guest/verified/admin)
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition
+    if (to.hash) return { el: to.hash, behavior: 'smooth' }
+    return { top: 0, left: 0 }
+  },
   routes: [
     {
       path: '/',
@@ -112,6 +117,30 @@ const router = createRouter({
       path: '/calendar',
       name: 'calendar',
       component: () => import('@/views/CalendarView.vue'),
+      meta: { requiresAuth: true, requiresVerified: true },
+    },
+    {
+      path: '/recipe-books',
+      name: 'recipe-books',
+      component: () => import('@/views/RecipeBookListView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/recipe-books/create',
+      name: 'recipe-book-create',
+      component: () => import('@/views/RecipeBookEditorView.vue'),
+      meta: { requiresAuth: true, requiresVerified: true },
+    },
+    {
+      path: '/recipe-books/:id',
+      name: 'recipe-book-detail',
+      component: () => import('@/views/RecipeBookDetailView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/recipe-books/:id/edit',
+      name: 'recipe-book-edit',
+      component: () => import('@/views/RecipeBookEditorView.vue'),
       meta: { requiresAuth: true, requiresVerified: true },
     },
     {

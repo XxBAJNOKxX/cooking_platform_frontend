@@ -5,6 +5,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useRecipeDetail } from '@/composables/useRecipeDetail'
+import { useRecipePrint } from '@/composables/useRecipePrint'
 
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import PortionCalculator from '@/components/recipe/PortionCalculator.vue'
@@ -14,6 +15,7 @@ import RecipeHero from '@/components/recipe/RecipeHero.vue'
 import RecipeReviewsSection from '@/components/recipe/RecipeReviewsSection.vue'
 import AddToCalendarModal from '@/components/recipe/AddToCalendarModal.vue'
 import DeleteConfirmModal from '@/components/recipe/DeleteConfirmModal.vue'
+import AddToBookModal from '@/components/recipebook/AddToBookModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -48,6 +50,9 @@ watch(defaultPortions, (v) => {
 
 const showCalendarModal = ref(false)
 const showDeleteModal = ref(false)
+const showAddToBookModal = ref(false)
+
+const { triggerPrint } = useRecipePrint()
 
 async function onDeleteConfirm() {
   const ok = await deleteRecipe()
@@ -69,16 +74,43 @@ onMounted(fetchRecipe)
     </div>
 
     <template v-else-if="recipe">
-      <RecipeHero
-        :recipe="recipe"
-        :is-owner="isOwner"
-        :is-authenticated="authStore.isAuthenticated"
-        :favorited="favorited"
-        :fav-loading="favLoading"
-        :average-rating="averageRating"
-        @toggle-favorite="toggleFavorite"
-        @delete="showDeleteModal = true"
-        @add-to-calendar="showCalendarModal = true"
+      <div class="no-print">
+        <RecipeHero
+          :recipe="recipe"
+          :is-owner="isOwner"
+          :is-authenticated="authStore.isAuthenticated"
+          :favorited="favorited"
+          :fav-loading="favLoading"
+          :average-rating="averageRating"
+          @toggle-favorite="toggleFavorite"
+          @delete="showDeleteModal = true"
+          @add-to-calendar="showCalendarModal = true"
+          @add-to-book="showAddToBookModal = true"
+          @print="triggerPrint"
+        />
+      </div>
+
+      <div class="print-header print-only">
+        <div class="print-head-top">
+          <div class="print-logo">Cookr<span class="print-logo-dot">.</span></div>
+          <p v-if="authStore.user?.username" class="print-user">{{ authStore.user.username }}</p>
+        </div>
+        <div class="print-head-bottom">
+          <p class="print-title">{{ recipe.title }}</p>
+          <p class="print-range">
+            <span v-if="recipe.author">{{ recipe.author.username }}</span>
+            <span v-if="recipe.prep_time"> &middot; {{ recipe.prep_time }} perc</span>
+            <span v-if="recipe.servings"> &middot; {{ recipe.servings }} adag</span>
+            <span v-if="recipe.difficulty"> &middot; {{ recipe.difficulty }}</span>
+          </p>
+        </div>
+      </div>
+
+      <img
+        v-if="recipe.image_url"
+        :src="recipe.image_url"
+        :alt="recipe.title"
+        class="print-image print-only"
       />
 
       <div class="content-grid">
@@ -109,21 +141,25 @@ onMounted(fetchRecipe)
             <StepList :steps="recipe.steps" />
           </section>
 
-          <RecipeReviewsSection
-            :recipe="recipe"
-            :is-authenticated="authStore.isAuthenticated"
-            :is-owner="isOwner"
-            :has-reviewed="hasReviewed"
-            :average-rating="averageRating"
-            :update-review="updateReview"
-            :delete-review="deleteReview"
-            @review-submitted="addReview"
-          />
+          <div class="no-print">
+            <RecipeReviewsSection
+              :recipe="recipe"
+              :is-authenticated="authStore.isAuthenticated"
+              :is-owner="isOwner"
+              :has-reviewed="hasReviewed"
+              :average-rating="averageRating"
+              :update-review="updateReview"
+              :delete-review="deleteReview"
+              @review-submitted="addReview"
+            />
+          </div>
         </main>
       </div>
     </template>
 
     <AddToCalendarModal v-model="showCalendarModal" :recipe="recipe" />
+
+    <AddToBookModal v-model="showAddToBookModal" :recipe-id="recipe?.id" />
 
     <DeleteConfirmModal
       v-model="showDeleteModal"
@@ -170,7 +206,7 @@ onMounted(fetchRecipe)
 @media (max-width: 768px) {
   .content-grid {
     grid-template-columns: 1fr;
-    padding: 16px 14px 48px;
+    padding: 16px 0 48px;
   }
 }
 
@@ -212,5 +248,75 @@ onMounted(fetchRecipe)
   font-size: 0.95rem;
   overflow-wrap: break-word;
   word-break: break-word;
+}
+
+.print-image {
+  width: 100%;
+  max-width: 100%;
+  max-height: 55mm;
+  height: auto;
+  object-fit: cover;
+  border-radius: 0;
+  margin: 0 0 8pt;
+}
+
+@media print {
+  .page {
+    background: #fff !important;
+  }
+  .content-grid {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  .sidebar,
+  .main {
+    display: block !important;
+    position: static !important;
+  }
+  .card {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin-bottom: 10pt !important;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+  .card-title {
+    font-size: 11pt !important;
+    color: #000 !important;
+    border-bottom: 1pt solid #000 !important;
+    padding-bottom: 3pt !important;
+    margin-bottom: 5pt !important;
+    letter-spacing: 0 !important;
+  }
+  .description {
+    color: #000 !important;
+    font-size: 10pt !important;
+    line-height: 1.45 !important;
+  }
+  .print-logo {
+    font-size: 14pt;
+  }
+  .print-image {
+    display: block !important;
+    max-height: 55mm !important;
+    width: 100% !important;
+    height: auto !important;
+    page-break-before: avoid !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-before: avoid !important;
+    break-after: avoid !important;
+    break-inside: avoid !important;
+  }
+  .print-header {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
 }
 </style>

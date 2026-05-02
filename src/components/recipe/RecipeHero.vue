@@ -16,7 +16,7 @@ const props = defineProps({
   averageRating: { type: Number, default: 0 },
 })
 
-const emit = defineEmits(['toggle-favorite', 'delete', 'add-to-calendar'])
+const emit = defineEmits(['toggle-favorite', 'delete', 'add-to-calendar', 'add-to-book', 'print'])
 
 const router = useRouter()
 const showAllCats = ref(false)
@@ -81,6 +81,19 @@ const hiddenCatsCount = computed(() => hiddenCats.value.length)
         </button>
 
         <div class="owner-actions">
+          <button
+            class="btn-owner btn-print"
+            type="button"
+            @click="emit('print')"
+            aria-label="Recept nyomtatása"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <polyline points="6,9 6,2 18,2 18,9" />
+              <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
+              <rect x="6" y="14" width="12" height="8" />
+            </svg>
+            Nyomtatás
+          </button>
           <button
             v-if="isAuthenticated && !isOwner"
             class="btn-owner btn-fav"
@@ -232,23 +245,31 @@ const hiddenCatsCount = computed(() => hiddenCats.value.length)
               >
             </template>
           </div>
-          <button v-if="isAuthenticated" class="btn-add-cal" @click="emit('add-to-calendar')">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              aria-hidden="true"
-            >
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-              <line x1="8" y1="14" x2="8" y2="14" stroke-linecap="round" stroke-width="3" />
-              <line x1="12" y1="14" x2="12" y2="14" stroke-linecap="round" stroke-width="3" />
-            </svg>
-            Naptárhoz adás
-          </button>
+          <div v-if="isAuthenticated" class="hero-cta-actions">
+            <button class="btn-add-cal" @click="emit('add-to-calendar')">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+                <line x1="8" y1="14" x2="8" y2="14" stroke-linecap="round" stroke-width="3" />
+                <line x1="12" y1="14" x2="12" y2="14" stroke-linecap="round" stroke-width="3" />
+              </svg>
+              Naptárhoz adás
+            </button>
+            <button class="btn-add-cal btn-add-book" @click="emit('add-to-book')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              Receptkönyvhöz
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -573,10 +594,52 @@ const hiddenCatsCount = computed(() => hiddenCats.value.length)
 }
 
 @media (max-width: 767px) {
-  .hero-cats {
-    max-height: calc(2 * (1.6em + 10px));
-    overflow: hidden;
+  .hero-cta-row {
+    flex-direction: column;
+    align-items: stretch;
   }
+  .hero-cats {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-height: none;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .hero-cats::-webkit-scrollbar {
+    display: none;
+  }
+  .hero-cats > * {
+    flex-shrink: 0;
+  }
+  .hero-cta-actions {
+    width: 100%;
+  }
+  .hero-cta-actions .btn-add-cal {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+.hero-cta-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-add-book {
+  background: rgba(91, 127, 67, 0.32) !important;
+}
+
+.btn-add-book:hover {
+  background: rgba(91, 127, 67, 0.5) !important;
+}
+
+.hero-no-img .btn-add-book {
+  border-color: var(--color-chip) !important;
+  background: color-mix(in srgb, var(--color-chip) 12%, transparent) !important;
+  color: var(--color-chip) !important;
 }
 
 .btn-add-cal {

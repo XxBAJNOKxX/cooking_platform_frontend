@@ -1,0 +1,201 @@
+<!-- Mobil alsó tab-bar — Home / Receptek / FAB+ / Naptár / Profil. Csak `md:` alatt látható. -->
+
+<script setup>
+import { ref, computed } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import MobileFabMenu from '@/components/mobile/MobileFabMenu.vue'
+
+const route = useRoute()
+const authStore = useAuthStore()
+
+const isFabMenuOpen = ref(false)
+
+const tabs = computed(() => [
+  { to: '/', label: 'Főoldal', icon: 'home', match: (path) => path === '/' },
+  { to: '/recipes', label: 'Receptek', icon: 'book', match: (path) => path.startsWith('/recipes') && !path.startsWith('/recipe-books') },
+  { to: '/calendar', label: 'Naptár', icon: 'calendar', match: (path) => path.startsWith('/calendar') },
+  {
+    to: authStore.isAuthenticated ? '/profile' : '/login',
+    label: 'Profil',
+    icon: 'user',
+    match: (path) => path.startsWith('/profile') || path.startsWith('/login') || path.startsWith('/register'),
+  },
+])
+
+const isActive = (tab) => tab.match(route.path)
+
+const openFabMenu = () => {
+  if (!authStore.isAuthenticated) {
+    return
+  }
+  isFabMenuOpen.value = true
+}
+</script>
+
+<template>
+  <nav class="bottom-nav md:hidden no-print" aria-label="Alsó navigáció">
+    <RouterLink
+      v-for="(tab, index) in tabs.slice(0, 2)"
+      :key="`tab-l-${index}`"
+      :to="tab.to"
+      class="bottom-nav-tab"
+      :class="{ 'bottom-nav-tab--active': isActive(tab) }"
+    >
+      <svg class="bottom-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path v-if="tab.icon === 'home'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        <path v-else-if="tab.icon === 'book'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+      </svg>
+      <span class="bottom-nav-label">{{ tab.label }}</span>
+    </RouterLink>
+
+    <button
+      type="button"
+      class="bottom-nav-fab no-print"
+      :class="{ 'bottom-nav-fab--guest': !authStore.isAuthenticated }"
+      :aria-label="authStore.isAuthenticated ? 'Gyors akciók megnyitása' : 'Bejelentkezés szükséges'"
+      @click="openFabMenu"
+    >
+      <RouterLink
+        v-if="!authStore.isAuthenticated"
+        to="/login"
+        class="bottom-nav-fab-inner"
+      >
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+        </svg>
+      </RouterLink>
+      <span v-else class="bottom-nav-fab-inner">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+        </svg>
+      </span>
+    </button>
+
+    <RouterLink
+      v-for="(tab, index) in tabs.slice(2)"
+      :key="`tab-r-${index}`"
+      :to="tab.to"
+      class="bottom-nav-tab"
+      :class="{ 'bottom-nav-tab--active': isActive(tab) }"
+    >
+      <svg class="bottom-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path v-if="tab.icon === 'calendar'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        <path v-else-if="tab.icon === 'user'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+      <span class="bottom-nav-label">{{ tab.label }}</span>
+    </RouterLink>
+  </nav>
+
+  <MobileFabMenu v-model:open="isFabMenuOpen" />
+</template>
+
+<style scoped>
+.bottom-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 45;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr) auto repeat(2, 1fr);
+  align-items: stretch;
+  background: color-mix(in srgb, var(--color-bg) 96%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid color-mix(in srgb, var(--color-stroke) 60%, transparent);
+  box-shadow: 0 -4px 20px -8px rgba(0, 0, 0, 0.15);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  height: calc(64px + env(safe-area-inset-bottom, 0));
+}
+
+@media (min-width: 768px) {
+  .bottom-nav {
+    display: none !important;
+  }
+}
+
+.bottom-nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.18rem;
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-decoration: none;
+  position: relative;
+  transition: color 180ms var(--ease-ui-out);
+}
+
+.bottom-nav-tab:active {
+  transform: scale(0.96);
+}
+
+.bottom-nav-tab--active {
+  color: var(--color-accent);
+}
+
+.bottom-nav-tab--active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 2.5px;
+  background: var(--color-accent);
+  border-radius: 0 0 2px 2px;
+}
+
+.bottom-nav-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.bottom-nav-label {
+  letter-spacing: 0.01em;
+}
+
+.bottom-nav-fab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.bottom-nav-fab-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  box-shadow:
+    0 8px 20px -8px color-mix(in srgb, var(--color-accent) 80%, transparent),
+    0 0 0 4px var(--color-bg);
+  transform: translateY(-22px);
+  transition:
+    transform 200ms var(--ease-ui-out),
+    background-color 200ms var(--ease-ui-out),
+    box-shadow 200ms var(--ease-ui-out);
+}
+
+.bottom-nav-fab:active .bottom-nav-fab-inner {
+  transform: translateY(-22px) scale(0.92);
+  background: var(--color-accent-hover);
+}
+
+@media print {
+  .bottom-nav,
+  .no-print {
+    display: none !important;
+  }
+}
+</style>

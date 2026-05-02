@@ -95,7 +95,7 @@ const handleLogout = async () => {
 </script>
 
 <template>
-  <header class="sticky top-0 z-40 w-full border-b border-stroke bg-[#ffeddb]/90 backdrop-blur-md">
+  <header class="sticky top-0 z-40 w-full border-b border-stroke bg-[#ffeddb]/90 backdrop-blur-md hidden md:block">
     <!-- Unverified account banner -->
     <div
       v-if="authStore.isAuthenticated && authStore.user && !authStore.user.is_verified"
@@ -214,6 +214,13 @@ const handleLogout = async () => {
                     class="block px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors"
                   >
                     Kedvencek
+                  </RouterLink>
+                  <RouterLink
+                    to="/recipe-books"
+                    @click="closeProfileMenu"
+                    class="block px-4 py-2 text-sm font-medium text-text hover:bg-surface hover:text-accent transition-colors"
+                  >
+                    Receptkönyveim
                   </RouterLink>
                   <RouterLink
                     to="/messages"
@@ -382,6 +389,14 @@ const handleLogout = async () => {
                   class="mobile-sub-link"
                 >
                   Kedvencek
+                </RouterLink>
+
+                <RouterLink
+                  @click="closeMobileMenu"
+                  to="/recipe-books"
+                  class="mobile-sub-link"
+                >
+                  Receptkönyveim
                 </RouterLink>
 
                 <RouterLink
