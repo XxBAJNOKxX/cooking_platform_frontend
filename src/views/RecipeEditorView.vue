@@ -5,6 +5,7 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave, RouterLink } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
+import { useRecipeStore } from '@/stores/recipe'
 import { useApiCall } from '@/composables/useApiCall'
 import { useRecipeEditor, formIsEmpty } from '@/composables/useRecipeEditor'
 import { useRecipeDraft } from '@/composables/useRecipeDraft'
@@ -16,6 +17,7 @@ import RecipeCategoryEditor from '@/components/recipe/RecipeCategoryEditor.vue'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const recipeStore = useRecipeStore()
 
 const recipeId = computed(() => route.params.id)
 
@@ -33,18 +35,8 @@ const draftKey = computed(() =>
 )
 const draft = useRecipeDraft(form, draftKey, formIsEmpty)
 
-const categories = ref([])
 const units = ref([])
-const categoriesCall = useApiCall({ logTag: 'RecipeEditor:categories' })
 const unitsCall = useApiCall({ logTag: 'RecipeEditor:units' })
-const categoriesLoading = categoriesCall.loading
-
-async function fetchCategories() {
-  await categoriesCall.execute(async () => {
-    const { data } = await api.get('/categories')
-    categories.value = data.data
-  })
-}
 
 async function fetchUnits() {
   const result = await unitsCall.execute(async () => {
@@ -139,7 +131,7 @@ onBeforeRouteLeave(() => {
 })
 
 onMounted(async () => {
-  Promise.all([fetchCategories(), fetchUnits()])
+  Promise.all([recipeStore.fetchCategories(), fetchUnits()])
   window.addEventListener('beforeunload', beforeUnloadHandler)
 
   if (isEdit.value) {
@@ -428,9 +420,9 @@ const discardDraft = draft.discard
               <label class="field-label">Kategóriák</label>
               <RecipeCategoryEditor
                 v-model="form.category_ids"
-                :categories="categories"
-                :loading="categoriesLoading"
-                @update:categories="categories = $event"
+                :categories="recipeStore.categories"
+                :loading="recipeStore.categoriesLoading"
+                @update:categories="recipeStore.categories = $event"
               />
             </div>
           </div>

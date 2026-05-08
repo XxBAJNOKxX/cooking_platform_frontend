@@ -4,15 +4,14 @@
 import { computed, ref, onMounted, watch } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import api from '@/services/api'
+import { useRecipeStore } from '@/stores/recipe'
 import BaseButton from './BaseButton.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const recipeStore = useRecipeStore()
 
 const searchTerm = ref('')
-const dailyRecipe = ref(null)
-const loadingDaily = ref(true)
 
 const heroImages = [
   'https://images.unsplash.com/photo-1495195134817-aeb325a55b65?auto=format&fit=crop&w=1800&q=80',
@@ -34,10 +33,11 @@ const heroStyle = computed(() => ({
 
 const dailyImgSrc = ref(fallbackImage)
 watch(
-  () => dailyRecipe.value?.image_url,
+  () => recipeStore.dailyRecipe?.image_url,
   (v) => {
     dailyImgSrc.value = v || fallbackImage
   },
+  { immediate: true },
 )
 function onDailyImgError() {
   if (dailyImgSrc.value !== fallbackImage) dailyImgSrc.value = fallbackImage
@@ -51,15 +51,8 @@ const handleSearch = () => {
   })
 }
 
-onMounted(async () => {
-  try {
-    const { data } = await api.get('/recipes/daily')
-    dailyRecipe.value = data.data ?? null
-  } catch (error) {
-    if (import.meta.env.DEV) console.error('[dailyRecipe]', error)
-  } finally {
-    loadingDaily.value = false
-  }
+onMounted(() => {
+  recipeStore.fetchDailyRecipe()
 })
 </script>
 
@@ -137,7 +130,7 @@ onMounted(async () => {
         </div>
 
         <aside class="hero-daily">
-          <div v-if="loadingDaily" class="daily-card daily-card-skeleton">
+          <div v-if="recipeStore.dailyRecipeLoading" class="daily-card daily-card-skeleton">
             <div class="daily-skel-header"></div>
             <div class="daily-skel-image"></div>
             <div class="daily-skel-line daily-skel-line-w-3-4"></div>
@@ -145,8 +138,8 @@ onMounted(async () => {
           </div>
 
           <RouterLink
-            v-else-if="dailyRecipe"
-            :to="{ name: 'recipe-detail', params: { id: dailyRecipe.id } }"
+            v-else-if="recipeStore.dailyRecipe"
+            :to="{ name: 'recipe-detail', params: { id: recipeStore.dailyRecipe.id } }"
             class="daily-card daily-card-link"
           >
             <div class="daily-header">
@@ -160,26 +153,26 @@ onMounted(async () => {
                 <svg class="daily-time-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                {{ dailyRecipe.prep_time }} perc
+                {{ recipeStore.dailyRecipe.prep_time }} perc
               </span>
             </div>
 
             <div class="daily-image-wrap">
               <img
                 :src="dailyImgSrc"
-                :alt="dailyRecipe.title"
+                :alt="recipeStore.dailyRecipe.title"
                 class="daily-image"
                 @error="onDailyImgError"
               />
               <div class="daily-image-overlay"></div>
               <div class="daily-image-content">
-                <span class="daily-difficulty">{{ dailyRecipe.difficulty }}</span>
-                <h3 class="daily-title">{{ dailyRecipe.title }}</h3>
-                <p v-if="dailyRecipe.author" class="daily-author">
+                <span class="daily-difficulty">{{ recipeStore.dailyRecipe.difficulty }}</span>
+                <h3 class="daily-title">{{ recipeStore.dailyRecipe.title }}</h3>
+                <p v-if="recipeStore.dailyRecipe.author" class="daily-author">
                   <svg class="daily-author-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                   </svg>
-                  {{ dailyRecipe.author.username }}
+                  {{ recipeStore.dailyRecipe.author.username }}
                 </p>
               </div>
             </div>

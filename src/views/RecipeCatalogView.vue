@@ -4,6 +4,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter, isNavigationFailure } from 'vue-router'
 import api from '@/services/api'
+import { useRecipeStore } from '@/stores/recipe'
 import RecipeCard from '@/components/recipe/RecipeCard.vue'
 import RecipeSkeletonCard from '@/components/recipe/RecipeSkeletonCard.vue'
 import FilterSidebar from '@/components/recipe/FilterSidebar.vue'
@@ -11,14 +12,13 @@ import Pagination from '@/components/Pagination.vue'
 
 const route = useRoute()
 const router = useRouter()
+const recipeStore = useRecipeStore()
 
 // State — receptek + meta + szűrők (URL-szinkronizált)
 const recipes = ref([])
 const meta = ref(null)
 const loading = ref(false)
 const error = ref('')
-const categories = ref([])
-const categoriesLoading = ref(true)
 
 const filters = ref({
   search: '',
@@ -68,31 +68,6 @@ async function fetchRecipes(page = 1) {
   }
 }
 
-// Kategóriák lekérése a szűrő sidebar-hoz; egyszer újrapróbál (cold-start hiba ellen)
-async function fetchCategories({ retry = true } = {}) {
-  categoriesLoading.value = true
-  try {
-    const { data } = await api.get('/categories')
-    const list = data.data ?? []
-    if (list.length === 0 && retry) {
-      categoriesLoading.value = false
-      await new Promise((r) => setTimeout(r, 400))
-      return fetchCategories({ retry: false })
-    }
-    categories.value = list
-  } catch (err) {
-    if (import.meta.env.DEV) console.warn('[fetchCategories]', err)
-    if (retry) {
-      categoriesLoading.value = false
-      await new Promise((r) => setTimeout(r, 600))
-      return fetchCategories({ retry: false })
-    }
-    // hiba elnyelve — a dropdown így is használható "Összes kategória" opcióval
-  } finally {
-    categoriesLoading.value = false
-  }
-}
-
 // Sidebar szűrő-változás → URL frissítés (deep link / vissza-előre navigáció)
 function onFiltersUpdate(newFilters) {
   filters.value = { ...newFilters }
@@ -114,9 +89,7 @@ watch(
   () => {
     syncFromRoute()
     fetchRecipes(1)
-    if (categories.value.length === 0 && !categoriesLoading.value) {
-      fetchCategories()
-    }
+    recipeStore.fetchCategories()
   },
   { deep: true },
 )
@@ -130,7 +103,7 @@ function onPageChange(page) {
 // Mount: állapot szinkronizálás URL-ből + kezdeti lekérések
 onMounted(() => {
   syncFromRoute()
-  Promise.all([fetchCategories(), fetchRecipes(1)])
+  Promise.all([recipeStore.fetchCategories(), fetchRecipes(1)])
 })
 
 // Computed segédek a chip-ek megjelenítéséhez és a "Találatok" feliratokhoz
@@ -185,8 +158,8 @@ function onFavoriteToggled({ id, favorited }) {
       <aside class="cat-sidebar-col">
         <FilterSidebar
           :model-value="filters"
-          :categories="categories"
-          :categories-loading="categoriesLoading"
+          :categories="recipeStore.categories"
+          :categories-loading="recipeStore.categoriesLoading"
           @update:model-value="onFiltersUpdate"
         />
       </aside>
