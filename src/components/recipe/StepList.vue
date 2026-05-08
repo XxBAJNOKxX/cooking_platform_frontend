@@ -8,7 +8,11 @@
       class="step-item"
       :class="{ 'is-done': done.has(i), 'is-active': !done.has(i) && i === activeIdx }"
       :style="{ '--i': i }"
+      tabindex="0"
+      role="button"
+      :aria-pressed="done.has(i)"
       @click="toggle(i)"
+      @keydown.enter.space.prevent="toggle(i)"
     >
       <span class="step-num" :aria-label="`${i + 1}. lépés`">
         <span v-if="!done.has(i)">{{ i + 1 }}</span>
@@ -106,6 +110,12 @@ function toggle(i) {
   transform: scale(0.99) translateY(0);
 }
 
+.step-item:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
 .step-item.is-active {
   background: color-mix(in srgb, var(--color-accent) 8%, var(--color-bg));
   border-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
@@ -184,6 +194,11 @@ function toggle(i) {
     color: #000 !important;
     font-size: 10pt !important;
     line-height: 1.45 !important;
+    text-decoration: none !important;
+  }
+
+  .step-item.is-done {
+    opacity: 1 !important;
   }
 }
 </style>

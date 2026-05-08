@@ -4,7 +4,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 
-import BaseButton from '@/components/BaseButton.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import DeleteConfirmModal from '@/components/recipe/DeleteConfirmModal.vue'
 import { useRecipeBooks } from '@/composables/useRecipeBooks'
@@ -154,8 +153,14 @@ const formattedDate = computed(() => {
             class="action-btn"
           >
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke-linecap="round" />
-              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke-linecap="round" />
+              <path
+                d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
+                stroke-linecap="round"
+              />
+              <path
+                d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+                stroke-linecap="round"
+              />
             </svg>
             Szerkesztés
           </RouterLink>
@@ -197,9 +202,9 @@ const formattedDate = computed(() => {
         <section class="rb-cover">
           <div
             class="rb-cover-image"
-            :style="book.cover_image_url
-              ? { backgroundImage: `url(${book.cover_image_url})` }
-              : null"
+            :style="
+              book.cover_image_url ? { backgroundImage: `url(${book.cover_image_url})` } : null
+            "
           >
             <div class="rb-cover-overlay"></div>
           </div>
@@ -242,10 +247,14 @@ const formattedDate = computed(() => {
             <div>
               <h2 class="rb-recipe-title">{{ item.recipe?.title }}</h2>
               <p class="rb-recipe-meta">
-                <span v-if="item.recipe?.prep_time">{{ formatPrepTime(item.recipe.prep_time) }}</span>
+                <span v-if="item.recipe?.prep_time">{{
+                  formatPrepTime(item.recipe.prep_time)
+                }}</span>
                 <span v-if="item.recipe?.servings">· {{ item.recipe.servings }} adag</span>
                 <span v-if="item.recipe?.difficulty">· {{ item.recipe.difficulty }}</span>
-                <span v-if="item.recipe?.author?.username">· {{ item.recipe.author.username }}</span>
+                <span v-if="item.recipe?.author?.username"
+                  >· {{ item.recipe.author.username }}</span
+                >
               </p>
             </div>
           </header>
@@ -332,7 +341,9 @@ const formattedDate = computed(() => {
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 160ms ease, color 160ms ease;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
 }
 
 .back-link:hover {
