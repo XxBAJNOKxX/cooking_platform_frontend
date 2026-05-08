@@ -4,7 +4,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 
-import BaseButton from '@/components/BaseButton.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import DeleteConfirmModal from '@/components/recipe/DeleteConfirmModal.vue'
 import { useRecipeBooks } from '@/composables/useRecipeBooks'

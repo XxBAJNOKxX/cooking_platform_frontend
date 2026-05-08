@@ -6,7 +6,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/services/api'
 
-const props = defineProps({
+defineProps({
   open: { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:open'])

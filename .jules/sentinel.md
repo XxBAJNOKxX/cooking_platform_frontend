@@ -1,0 +1,4 @@
+## 2026-05-08 - XSS in Leaflet Tooltips
+**Vulnerability:** User-provided tool names and location labels were passed directly to Leaflet's `bindTooltip` function. Since Leaflet tooltips accept HTML by default, this allowed for potential Cross-Site Scripting (XSS) if a user entered malicious scripts as a tool name or address.
+**Learning:** External libraries often have "rich" features (like HTML support in tooltips/popups) that can become security liabilities if not handled carefully. Even common UI components like maps can be entry points for XSS if they render user data.
+**Prevention:** Always assume that third-party library functions accepting strings might render them as HTML. Explicitly escape any user-provided data before passing it to such functions, or use library-specific "text-only" modes if available.

@@ -21,6 +21,17 @@ const props = defineProps({
 
 const emit = defineEmits(['marker-click'])
 
+function escapeHtml(unsafe) {
+  if (!unsafe) return ''
+  return unsafe
+    .toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 const mapEl = ref(null)
 let map = null
 let primaryLayer = null
@@ -59,7 +70,8 @@ function renderPrimary() {
       : makeMarker(props.lat, props.lng)
 
   primaryLayer.addTo(map)
-  if (props.label) primaryLayer.bindTooltip(props.label, { direction: 'top', offset: [0, -6] })
+  if (props.label)
+    primaryLayer.bindTooltip(escapeHtml(props.label), { direction: 'top', offset: [0, -6] })
 }
 
 function renderSecondary() {
@@ -73,7 +85,7 @@ function renderSecondary() {
   markerGroup = L.layerGroup().addTo(map)
   for (const m of props.markers) {
     const layer = m.radius_m > 0 ? makeCircle(m.lat, m.lng, m.radius_m) : makeMarker(m.lat, m.lng)
-    if (m.name) layer.bindTooltip(m.name, { direction: 'top', offset: [0, -6] })
+    if (m.name) layer.bindTooltip(escapeHtml(m.name), { direction: 'top', offset: [0, -6] })
     layer.on('click', () => emit('marker-click', m))
     layer.addTo(markerGroup)
   }
